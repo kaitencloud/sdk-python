@@ -1,0 +1,123 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kaitencloud"
+dynamic = ["version"]
+description = "Official Python SDK for Kaiten: customers, instances, licenses, entitlements, usage metering, feature flags and the Platform API."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "KAITEN INC", email = "support@kaiten.sh" }]
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27,<1",
+    "pydantic>=2.11,<3",
+    "typing-extensions>=4.12.2",
+]
+keywords = [
+    "kaiten",
+    "saas",
+    "entitlements",
+    "licensing",
+    "usage-metering",
+    "feature-flags",
+    "openfeature",
+    "sdk",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://kaiten.sh"
+Documentation = "https://docs.kaiten.sh"
+Repository = "https://github.com/kaitencloud/sdk-python"
+Issues = "https://github.com/kaitencloud/sdk-python/issues"
+Changelog = "https://github.com/kaitencloud/sdk-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "anyio>=4.6",
+    "jsonschema>=4.23",
+    "mypy>=2.3",
+    "openfeature-provider-ofrep>=0.3.0",
+    "pytest>=9.0",
+    "pytest-cov>=7.0",
+    "pyyaml>=6.0",
+    "ruff>=0.16",
+    "types-jsonschema>=4.23",
+    "types-pyyaml>=6.0",
+]
+
+[tool.hatch.version]
+path = "src/kaitencloud/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kaitencloud"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/examples",
+    "/tests",
+    "/openapi",
+    "/scripts",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/NOTICE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["B", "C4", "E", "F", "I", "N", "PIE", "PT", "RET", "RUF", "SIM", "UP", "W"]
+ignore = [
+    # Docstrings and contract descriptions run long; the formatter owns code width.
+    "E501",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["kaitencloud"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+files = ["src/kaitencloud", "examples"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["kaitencloud"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "@overload"]

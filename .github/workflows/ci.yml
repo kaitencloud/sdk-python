@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Generated code, lint & types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+
+      # The models come from openapi/ and the sync client from the async one. A commit that
+      # edits either source without regenerating would ship code the repository cannot
+      # reproduce, so the check regenerates and compares.
+      - name: Generated code is up to date
+        run: |
+          uv run python scripts/generate_models.py --check
+          uv run python scripts/unasync.py --check
+
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - run: uv sync --locked
+      - run: uv run pytest --cov --cov-report=term-missing
+
+  lowest-dependencies:
+    name: Tests on the lowest supported dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.10"
+
+      # The lower bounds in pyproject.toml are a promise to every consumer; this is what keeps
+      # them honest.
+      - run: uv sync --resolution lowest-direct
+      - run: uv run pytest
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - run: uvx twine check --strict dist/*
