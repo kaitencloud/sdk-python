@@ -2,10 +2,10 @@
 
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html): until 1.0.0, a minor version may
-change the public API, and a patch version never does.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
+public API, a minor version adds to it, and a patch version fixes it.
 
-## [0.1.0] - Unreleased
+## [1.0.0] - 2026-10-01
 
 The first release of the Kaiten Python SDK, generated and tested against the contract of
 [`kaitencloud/kaiten@fa7f554f`](https://github.com/kaitencloud/kaiten/commit/fa7f554fb6464f52c2a3f1ed487f4c7383c8125d).
@@ -51,3 +51,5 @@ The first release of the Kaiten Python SDK, generated and tested against the con
 
 - Flag evaluation. Kaiten implements OFREP, so flags are evaluated with an OpenFeature SDK and
   its generic OFREP provider (`openfeature-provider-ofrep`); the README shows how.
+
+[1.0.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.0.0
