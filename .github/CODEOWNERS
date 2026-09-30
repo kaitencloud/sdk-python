@@ -1,0 +1,6 @@
+# Every change to this repository needs the approval of a member of @kaitencloud/engineering.
+#
+# The default-branch ruleset requires a review from a code owner. With this file, that means an
+# approval from one of the team's members -- never from a GitHub App or a workflow's token,
+# which cannot belong to a team, and never from the pull request's own author.
+* @kaitencloud/engineering
