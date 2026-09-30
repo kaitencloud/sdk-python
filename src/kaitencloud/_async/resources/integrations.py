@@ -1,0 +1,143 @@
+# Copyright 2026 KAITEN INC
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from datetime import datetime
+from typing import Any
+
+from ..._utils import api_path, compact, optional_datetime
+from ...types import CustomerIntegrationResource, InstanceIntegrationResource
+from ._base import AsyncResource
+
+__all__ = ["AsyncIntegrations"]
+
+
+class AsyncIntegrations(AsyncResource):
+    """Customers and instances, addressed by their identifier in a third-party system.
+
+    This is the surface a connector synchronizes through: it knows a record's id in *its*
+    system -- an Attio or HubSpot record -- not the Kaiten slug. ``adapter`` names that system,
+    without the ``kaiten.integration.`` prefix.
+    """
+
+    async def get_customer(self, adapter: str, external_id: str) -> CustomerIntegrationResource:
+        """Return the customer linked to ``external_id`` in ``adapter``."""
+        return await self._api.get(
+            api_path("integration", adapter, "customer", external_id), CustomerIntegrationResource
+        )
+
+    async def upsert_customer(
+        self,
+        adapter: str,
+        external_id: str,
+        *,
+        name: str | None = None,
+        slug: str | None = None,
+        domain: str | None = None,
+        web_url: str | None = None,
+        error: str | None = None,
+        integration_metadata: Mapping[str, Any] | None = None,
+    ) -> CustomerIntegrationResource:
+        """Create or update the customer linked to ``external_id`` in ``adapter``.
+
+        The customer is created -- subject to the organization's customer limit -- when no
+        customer is linked to that record yet, and updated otherwise.
+
+        Args:
+            adapter: The third-party system, e.g. ``"attio"``.
+            external_id: The record's identifier in that system.
+            name: The customer's name.
+            slug: The customer's slug.
+            domain: The customer's domain name.
+            web_url: An absolute http(s) link to the record.
+            error: The synchronization error to record, if any.
+            integration_metadata: Adapter-specific metadata.
+        """
+        body = compact(
+            {
+                "name": name,
+                "slug": slug,
+                "domain": domain,
+                "webUrl": web_url,
+                "error": error,
+                "integrationMetadata": (
+                    dict(integration_metadata) if integration_metadata is not None else None
+                ),
+            }
+        )
+        return await self._api.send(
+            "PATCH",
+            api_path("integration", adapter, "customer", external_id),
+            CustomerIntegrationResource,
+            body=body,
+        )
+
+    async def get_instance(self, adapter: str, external_id: str) -> InstanceIntegrationResource:
+        """Return the instance linked to ``external_id`` in ``adapter``."""
+        return await self._api.get(
+            api_path("integration", adapter, "instance", external_id), InstanceIntegrationResource
+        )
+
+    async def upsert_instance(
+        self,
+        adapter: str,
+        external_id: str,
+        *,
+        name: str | None = None,
+        slug: str | None = None,
+        description: str | None = None,
+        customer_external_id: str | None = None,
+        license_id: str | None = None,
+        deployment_zone_id: str | None = None,
+        start_license_date: datetime | str | None = None,
+        end_license_date: datetime | str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        web_url: str | None = None,
+        error: str | None = None,
+        integration_metadata: Mapping[str, Any] | None = None,
+    ) -> InstanceIntegrationResource:
+        """Create or update the instance linked to ``external_id`` in ``adapter``.
+
+        Args:
+            adapter: The third-party system, e.g. ``"attio"``.
+            external_id: The record's identifier in that system.
+            name: The instance's name.
+            slug: The instance's slug.
+            description: The instance's description.
+            customer_external_id: The identifier, in the same system, of the customer the
+                instance belongs to.
+            license_id: The id of the license the instance runs under.
+            deployment_zone_id: The id of the deployment zone it runs in.
+            start_license_date: When its license term starts.
+            end_license_date: When its license term ends.
+            metadata: The instance's metadata.
+            web_url: An absolute http(s) link to the record.
+            error: The synchronization error to record, if any.
+            integration_metadata: Adapter-specific metadata.
+        """
+        body = compact(
+            {
+                "name": name,
+                "slug": slug,
+                "description": description,
+                "customerExternalId": customer_external_id,
+                "licenseId": license_id,
+                "deploymentZoneId": deployment_zone_id,
+                "startLicenseDate": optional_datetime(start_license_date),
+                "endLicenseDate": optional_datetime(end_license_date),
+                "metadata": dict(metadata) if metadata is not None else None,
+                "webUrl": web_url,
+                "error": error,
+                "integrationMetadata": (
+                    dict(integration_metadata) if integration_metadata is not None else None
+                ),
+            }
+        )
+        return await self._api.send(
+            "PATCH",
+            api_path("integration", adapter, "instance", external_id),
+            InstanceIntegrationResource,
+            body=body,
+        )

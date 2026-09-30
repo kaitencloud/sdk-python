@@ -1,0 +1,68 @@
+# Copyright 2026 KAITEN INC
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+from ...._utils import api_path, compact, validate_uuid
+from ....types import Organization
+from .._base import AsyncResource
+
+__all__ = ["AsyncPlatformOrganizations"]
+
+
+class AsyncPlatformOrganizations(AsyncResource):
+    """Organizations: the tenants of this deployment."""
+
+    async def ensure(self, *, external_id: str, name: str | None = None) -> Organization:
+        """Create the organization for an identity provider's organization id, or return it.
+
+        The organization's id is derived from ``external_id``, so the same call converges on
+        the same organization every time -- including one a login already created just in
+        time. That is what makes it safe to call from a bootstrap on every run.
+
+        Args:
+            external_id: The identity provider's id for the organization, e.g.
+                ``"org_2abcDEF"``.
+            name: Its display name, applied only when this call creates it: an existing
+                organization is never renamed. Omitted, a new organization is named after its
+                external id.
+        """
+        return await self._api.send(
+            "POST",
+            "/platform/organizations",
+            Organization,
+            body=compact({"externalId": external_id, "name": name}),
+            idempotent=True,
+        )
+
+    async def get(self, organization_id: str) -> Organization:
+        """Return the organization identified by ``organization_id``."""
+        return await self._api.get(_organization(organization_id), Organization)
+
+    async def delete(self, organization_id: str) -> None:
+        """Delete an organization, and with it everything it owns. Irreversible.
+
+        Requires ``delete:organizations``, which ``write:organizations`` does not imply.
+        """
+        await self._api.send_empty("DELETE", _organization(organization_id))
+
+    async def delete_membership(self, organization_id: str, user_id: str) -> None:
+        """Remove one user's membership of an organization.
+
+        Requires ``delete:memberships``: a narrower privilege than deleting the organization
+        or the user.
+        """
+        await self._api.send_empty(
+            "DELETE",
+            api_path(
+                "platform",
+                "organizations",
+                validate_uuid(organization_id, "organization_id"),
+                "memberships",
+                validate_uuid(user_id, "user_id"),
+            ),
+        )
+
+
+def _organization(organization_id: str) -> str:
+    return api_path("platform", "organizations", validate_uuid(organization_id, "organization_id"))

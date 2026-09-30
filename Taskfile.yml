@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  # The kaiten checkout `task sync:openapi` copies the contract from.
+  KAITEN_PATH: '{{.KAITEN_PATH | default "../kaiten"}}'
+  KAITEN_REF: '{{.KAITEN_REF | default "origin/main"}}'
+
+tasks:
+  default:
+    desc: List all available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install the development environment
+    cmds:
+      - uv sync
+
+  generate:
+    desc: Regenerate the models from openapi/ and the sync client from the async one
+    cmds:
+      - uv run python scripts/generate_models.py
+      - uv run python scripts/unasync.py
+
+  generate:check:
+    desc: Fail when a generated file is stale
+    cmds:
+      - uv run python scripts/generate_models.py --check
+      - uv run python scripts/unasync.py --check
+
+  sync:openapi:
+    desc: Copy the contract from a kaiten checkout (KAITEN_PATH, KAITEN_REF), then regenerate
+    cmds:
+      - uv run python scripts/sync_openapi.py --kaiten "{{.KAITEN_PATH}}" --ref "{{.KAITEN_REF}}"
+      - task: generate
+
+  fmt:
+    desc: Format the code and apply safe lint fixes
+    cmds:
+      - uv run ruff format .
+      - uv run ruff check --fix .
+
+  lint:
+    desc: Lint, and check formatting
+    cmds:
+      - uv run ruff check .
+      - uv run ruff format --check .
+
+  typecheck:
+    desc: Type-check the package with mypy --strict
+    cmds:
+      - uv run mypy
+
+  test:
+    desc: Run the test suite with coverage
+    cmds:
+      - uv run pytest --cov --cov-report=term-missing {{.CLI_ARGS}}
+
+  check:
+    desc: Everything CI runs
+    cmds:
+      - task: generate:check
+      - task: lint
+      - task: typecheck
+      - task: test
+
+  build:
+    desc: Build the sdist and the wheel, and check their metadata
+    cmds:
+      - rm -rf dist
+      - uv build
+      - uvx twine check --strict dist/*
