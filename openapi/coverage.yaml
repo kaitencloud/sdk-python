@@ -1,0 +1,181 @@
+# Every operation in the two contract snapshots, mapped to the SDK method(s) that call it.
+#
+# tests/test_coverage.py reads this file and fails when:
+#   - an operation in openapi.yaml or platform-openapi.yaml is neither mapped nor excluded,
+#   - a mapped method is missing from the sync or the async client,
+#   - a client exposes a public method that nothing here maps.
+#
+# So a contract sync that adds an endpoint cannot ship silently unwrapped, and a wrapper
+# cannot exist without naming the operation it calls. scripts/generate_models.py reads
+# the exclusions too: a model only reachable from an excluded operation is not generated.
+
+core:
+  operations:
+    # components
+    list-components: components.list
+    get-component: components.get
+    create-component: components.create
+    update-component: components.update
+    delete-component: components.delete
+
+    # connectors
+    list-connectors: connectors.list
+    get-connector: connectors.get
+    get-connector-state: connectors.get_state
+    activate-connector: connectors.activate
+    deactivate-connector: connectors.deactivate
+    get-connector-settings-schema: connectors.get_settings_schema
+    get-connector-settings: connectors.get_settings
+    update-connector-settings: connectors.update_settings
+    delete-connector-settings: connectors.delete_settings
+
+    # customers
+    list-customers: customers.list
+    get-customer: customers.get
+    create-customer: customers.create
+    update-customer: customers.update
+    delete-customer: customers.delete
+    get-customer-integration: customers.get_integration
+    create-customer-integration: customers.create_integration
+    update-customer-integration: customers.update_integration
+    delete-customer-integration: customers.delete_integration
+
+    # deployment zones
+    list-deployment-zones: deployment_zones.list
+    get-deployment-zone-by-slug: deployment_zones.get
+    create-deployment-zone: deployment_zones.create
+    update-deploymentZone: deployment_zones.update
+    delete-deployment-zone: deployment_zones.delete
+
+    # entitlement groups
+    list-entitlement-groups: entitlement_groups.list
+    get-entitlement-group: entitlement_groups.get
+    create-entitlement-group: entitlement_groups.create
+    update-entitlement-group: entitlement_groups.update
+    delete-entitlement-group: entitlement_groups.delete
+    add-entitlement-to-group: entitlement_groups.add_entitlement
+    remove-entitlement-from-group: entitlement_groups.remove_entitlement
+    get-entitlement-group-usage: entitlement_groups.get_usage
+
+    # entitlements
+    list-entitlements: entitlements.list
+    get-entitlement: entitlements.get
+    create-entitlement: entitlements.create
+    update-entitlement: entitlements.update
+    delete-entitlement: entitlements.delete
+
+    # feature flags
+    get-feature-flags: feature_flags.list
+    get-feature-flag: feature_flags.get
+    create-feature-flag: feature_flags.create
+    update-feature-flag: feature_flags.update
+    delete-feature-flag: feature_flags.delete
+    get-openfeature-manifest: feature_flags.manifest
+
+    # instances
+    getInstances: instances.list
+    getInstance: instances.get
+    createInstance: instances.create
+    updateInstance: instances.update
+    patchInstance: [instances.update_status, instances.update_lifecycle_stage]
+    deleteInstance: instances.delete
+    getAuditTrails: instances.list_audit_trails
+    getEntitlementsUsageMetrics: instances.list_usage
+    getEntitlementUsageMetrics: instances.get_usage
+    reportEntitlementUsageMetric: instances.report_usage
+    get-instance-integration: instances.get_integration
+    create-instance-integration: instances.create_integration
+    update-instance-integration: instances.update_integration
+    delete-instance-integration: instances.delete_integration
+
+    # integrations, addressed by the third-party system's identifier
+    get-customer-integration-by-external-id: integrations.get_customer
+    upsert-customer-integration-by-external-id: integrations.upsert_customer
+    get-instance-integration-by-external-id: integrations.get_instance
+    upsert-instance-integration-by-external-id: integrations.upsert_instance
+
+    # licenses
+    get-licenses: licenses.list
+    get-license: licenses.get
+    create-license: licenses.create
+    update-license: licenses.update
+    delete-license: licenses.delete
+    get-license-entitlements: licenses.list_entitlements
+    get-license-entitlement: licenses.get_entitlement
+    associate-entitlement-with-license: licenses.associate_entitlement
+    update-license-entitlement: licenses.update_entitlement
+    delete-license-entitlement: licenses.delete_entitlement
+    publish-license: licenses.publish
+    archive-license: licenses.archive
+    unarchive-license: licenses.unarchive
+
+    # license families: the products whose versions the licenses above are
+    list-license-families: license_families.list
+    get-license-family: license_families.get
+
+    # metadata fields
+    list-metadata-fields: metadata_fields.list
+    create-metadata-field: metadata_fields.create
+    update-metadata-field: metadata_fields.update
+    archive-metadata-field: metadata_fields.archive
+    unarchive-metadata-field: metadata_fields.unarchive
+    dry-run-metadata-field: metadata_fields.dry_run
+    reorder-metadata-fields: metadata_fields.reorder
+
+    # releases
+    list-releases: releases.list
+    get-release-by-slug: releases.get
+    create-release: releases.create
+    delete-release: releases.delete
+
+    # service accounts
+    get-service-accounts: service_accounts.list
+    get-service-account: service_accounts.get
+    create-service-account: service_accounts.create
+    update-service-account: service_accounts.update
+    get-service-account-tokens: service_accounts.list_tokens
+    create-service-account-token: service_accounts.create_token
+    delete-service-account-token: service_accounts.delete_token
+
+  excluded:
+    get-targeting-context: >-
+      Rule-editor tooling for the Kaiten console, with no SDK audience. kaiten's own
+      operation-coverage test excludes the same three operations for the same reason.
+    lint-targeting-rule: Rule-editor tooling for the Kaiten console, with no SDK audience.
+    test-targeting-rule: Rule-editor tooling for the Kaiten console, with no SDK audience.
+
+    listNotifications: >-
+      A person's own notification feed. It addresses the signed-in user's rows -- an unread
+      count and a set of choices about what to be told -- and a machine client holding an API
+      token has neither; wrapping it would mean pretending to be a particular human. kaiten's
+      own operation-coverage test exempts these four operations for the same reason.
+    markNotificationsRead: A person's own read state; an API token has none.
+    getNotificationPreferences: A person's own notification choices; an API token has none.
+    putNotificationPreferences: A person's own notification choices; an API token has none.
+
+    evaluateFlag: >-
+      OFREP, which is a protocol before it is an endpoint. Kaiten implements it so that any
+      OpenFeature SDK can evaluate its flags through the generic OFREP provider -- in Python,
+      `openfeature-provider-ofrep`. That provider already has the hooks, the evaluation
+      context, the typed accessors and the default-on-failure semantics OpenFeature defines,
+      so a method here would be a second and worse client for the same endpoint, and would
+      tie flag evaluation to this SDK. The README and examples/playbook.py show the provider.
+    evaluateFlagsBulk: >-
+      OFREP, like evaluateFlag: the provider calls it when an OpenFeature client evaluates
+      every flag at once. (sdk-js does keep a bulk call, but only to feed the licensing
+      snapshot its React components render; nothing in a Python SDK needs that.)
+
+platform:
+  operations:
+    get-platform-me: me
+    register-connector: connectors.register
+    ensure-organization: organizations.ensure
+    get-organization: organizations.get
+    delete-organization: organizations.delete
+    delete-membership: organizations.delete_membership
+    mint-organization-token: tokens.mint
+    list-organization-tokens: tokens.list
+    revoke-organization-token: tokens.revoke
+    delete-user: users.delete
+
+  excluded: {}

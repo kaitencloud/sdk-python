@@ -1,0 +1,202 @@
+# Copyright 2026 KAITEN INC
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import builtins
+from collections.abc import Sequence
+from typing import Any
+
+from ..._utils import api_path, compact
+from ...types import AggregationMethod, Entitlement, EntitlementType, ResetAnchor, ResetPeriod
+from ._base import AsyncResource
+
+__all__ = ["AsyncEntitlements"]
+
+
+class AsyncEntitlements(AsyncResource):
+    """Entitlements: the catalog of what a license can grant, and how usage is measured.
+
+    An entitlement says *what* can be measured. How *much* a license grants of it is set on
+    the license (``client.licenses.associate_entitlement``), and how much an instance has
+    consumed is reported on the instance (``client.instances.report_usage``).
+    """
+
+    async def list(self) -> builtins.list[Entitlement]:
+        """Return every entitlement, walking all pages."""
+        return await self._api.list_all("/entitlements", Entitlement)
+
+    async def get(self, entitlement_slug: str) -> Entitlement:
+        """Return the entitlement identified by ``entitlement_slug``."""
+        return await self._api.get(api_path("entitlements", entitlement_slug), Entitlement)
+
+    async def create(
+        self,
+        *,
+        name: str,
+        type: EntitlementType | None = None,
+        description: str | None = None,
+        slug: str | None = None,
+        aggregation_method: AggregationMethod | None = None,
+        reset_period: ResetPeriod | None = None,
+        reset_anchor: ResetAnchor | None = None,
+        warning_threshold_percent: int | None = None,
+        group_slugs: Sequence[str] | None = None,
+        user_facing: bool | None = None,
+        display_order: int | None = None,
+        icon: str | None = None,
+        unit_singular: str | None = None,
+        unit_plural: str | None = None,
+        sale_unit_singular: str | None = None,
+        sale_unit_plural: str | None = None,
+        sale_unit_factor: float | None = None,
+    ) -> Entitlement:
+        """Create an entitlement.
+
+        Args:
+            name: The entitlement's name, e.g. ``"Seats"``.
+            type: ``BOOLEAN`` (a feature), ``NUMBER`` or ``NUMBER_AI_CREDIT`` (a metered quota)
+                or ``CONFIG`` (a configuration value).
+            description: A description. Always sent -- as null when omitted -- because the
+                API requires the key.
+            slug: Its URL-friendly identifier, generated when omitted. Immutable once set.
+            aggregation_method: How each reported value folds into the total, for a NUMBER
+                entitlement: ``SUM`` (the default), ``COUNT``, ``AVERAGE``, ``MIN``, ``MAX`` or
+                ``LATEST``.
+            reset_period: How often usage resets (``HOUR`` to ``YEAR``). Omitted, usage is a
+                lifetime counter. Once set it can never be changed or removed.
+            reset_anchor: What the reset windows align on: ``CALENDAR`` (the default) or
+                ``LICENSE_START``. Immutable once set.
+            warning_threshold_percent: The share of the cap, from 0 to 100, at which a warning
+                event fires. 0 disables it.
+            group_slugs: The groups the entitlement belongs to.
+            user_facing: Whether customer-facing components (pricing tables, usage meters)
+                show it. Defaults to ``False``, which keeps internal counters out of them.
+            display_order: Its position in customer-facing components, ascending.
+            icon: A provider-namespaced icon token, e.g. ``"lucide:users"``.
+            unit_singular: The base unit's singular label, e.g. ``"seat"``. Set both labels or
+                neither.
+            unit_plural: The base unit's plural label, e.g. ``"seats"``.
+            sale_unit_singular: The label of the unit it is sold in, when that differs from the
+                base unit, e.g. ``"pack"``. Requires the base unit labels and the full sale
+                unit trio.
+            sale_unit_plural: The sale unit's plural label.
+            sale_unit_factor: How many base units one sale unit holds, e.g. ``1_000_000``.
+        """
+        body = {
+            "name": name,
+            "description": description,
+            **compact(
+                {
+                    "slug": slug,
+                    **_fields(
+                        type=type,
+                        aggregation_method=aggregation_method,
+                        reset_period=reset_period,
+                        reset_anchor=reset_anchor,
+                        warning_threshold_percent=warning_threshold_percent,
+                        group_slugs=group_slugs,
+                        user_facing=user_facing,
+                        display_order=display_order,
+                        icon=icon,
+                        unit_singular=unit_singular,
+                        unit_plural=unit_plural,
+                        sale_unit_singular=sale_unit_singular,
+                        sale_unit_plural=sale_unit_plural,
+                        sale_unit_factor=sale_unit_factor,
+                    ),
+                }
+            ),
+        }
+        return await self._api.send("POST", "/entitlements", Entitlement, body=body)
+
+    async def update(
+        self,
+        entitlement_slug: str,
+        *,
+        name: str,
+        type: EntitlementType | None = None,
+        description: str | None = None,
+        aggregation_method: AggregationMethod | None = None,
+        reset_period: ResetPeriod | None = None,
+        reset_anchor: ResetAnchor | None = None,
+        warning_threshold_percent: int | None = None,
+        group_slugs: Sequence[str] | None = None,
+        user_facing: bool | None = None,
+        display_order: int | None = None,
+        icon: str | None = None,
+        unit_singular: str | None = None,
+        unit_plural: str | None = None,
+        sale_unit_singular: str | None = None,
+        sale_unit_plural: str | None = None,
+        sale_unit_factor: float | None = None,
+    ) -> None:
+        """Replace an entitlement's definition.
+
+        A full replacement: optional fields left out are reset. ``type``,
+        ``aggregation_method``, ``reset_period`` and ``reset_anchor`` are immutable once set --
+        send the stored values back, as the API refuses a different one. The slug cannot be
+        changed. See :meth:`create` for what each field means.
+        """
+        body = {
+            "name": name,
+            "description": description,
+            **compact(
+                _fields(
+                    type=type,
+                    aggregation_method=aggregation_method,
+                    reset_period=reset_period,
+                    reset_anchor=reset_anchor,
+                    warning_threshold_percent=warning_threshold_percent,
+                    group_slugs=group_slugs,
+                    user_facing=user_facing,
+                    display_order=display_order,
+                    icon=icon,
+                    unit_singular=unit_singular,
+                    unit_plural=unit_plural,
+                    sale_unit_singular=sale_unit_singular,
+                    sale_unit_plural=sale_unit_plural,
+                    sale_unit_factor=sale_unit_factor,
+                )
+            ),
+        }
+        await self._api.send_empty("PUT", api_path("entitlements", entitlement_slug), body=body)
+
+    async def delete(self, entitlement_slug: str) -> None:
+        """Delete the entitlement identified by ``entitlement_slug``."""
+        await self._api.send_empty("DELETE", api_path("entitlements", entitlement_slug))
+
+
+def _fields(
+    *,
+    type: EntitlementType | None,
+    aggregation_method: AggregationMethod | None,
+    reset_period: ResetPeriod | None,
+    reset_anchor: ResetAnchor | None,
+    warning_threshold_percent: int | None,
+    group_slugs: Sequence[str] | None,
+    user_facing: bool | None,
+    display_order: int | None,
+    icon: str | None,
+    unit_singular: str | None,
+    unit_plural: str | None,
+    sale_unit_singular: str | None,
+    sale_unit_plural: str | None,
+    sale_unit_factor: float | None,
+) -> dict[str, Any]:
+    return {
+        "type": type,
+        "aggregationMethod": aggregation_method,
+        "resetPeriod": reset_period,
+        "resetAnchor": reset_anchor,
+        "warningThresholdPercent": warning_threshold_percent,
+        "groupSlugs": list(group_slugs) if group_slugs is not None else None,
+        "userFacing": user_facing,
+        "displayOrder": display_order,
+        "icon": icon,
+        "unitSingular": unit_singular,
+        "unitPlural": unit_plural,
+        "saleUnitSingular": sale_unit_singular,
+        "saleUnitPlural": sale_unit_plural,
+        "saleUnitFactor": sale_unit_factor,
+    }
