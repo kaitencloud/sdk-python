@@ -796,8 +796,9 @@ a [DCO](DCO.md) sign-off (`git commit -s`). Report a vulnerability privately, as
 
 ## Versioning
 
-The SDK follows [Semantic Versioning](https://semver.org). Until 1.0.0, a minor release may
-change the public API — the [changelog](CHANGELOG.md) says how — and a patch release never does.
+The SDK follows [Semantic Versioning](https://semver.org): only a major release changes the
+public API — the [changelog](CHANGELOG.md) says how — while a minor release adds to it and a
+patch release fixes it.
 
 ## License
 

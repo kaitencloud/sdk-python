@@ -1,4 +1,4 @@
 # Copyright 2026 KAITEN INC
 # SPDX-License-Identifier: Apache-2.0
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
