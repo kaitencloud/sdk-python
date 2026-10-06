@@ -4,11 +4,19 @@
 from __future__ import annotations
 
 import builtins
+import logging
+import re
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, BinaryIO, Literal
 
-from ..._exceptions import ThresholdExceededError
+from ..._exceptions import (
+    APIStatusError,
+    PaginationError,
+    ThresholdExceededError,
+    TransactionIdReusedError,
+)
+from ..._results import UsageReportResult
 from ..._utils import (
     api_path,
     compact,
@@ -25,10 +33,23 @@ from ...types import (
     InstanceStatus,
     IntegrationParam,
     UsageBehavior,
+    UsageReport,
+    UsageReportPage,
 )
 from ._base import AsyncResource
 
 __all__ = ["AsyncInstances"]
+
+log = logging.getLogger("kaitencloud")
+
+# The format the API accepts for a usage report key.
+_TRANSACTION_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
+_TRANSACTION_ID_REUSED = "ReportEntitlementUsageMetric.TransactionIdReused"
+_INVALID_TRANSACTION_ID = "ReportEntitlementUsageMetric.InvalidTransactionId"
+# The largest page the usage history endpoint serves.
+_USAGE_HISTORY_PAGE = 500
+
+UsageExportFormat = Literal["csv", "json"]
 
 
 class AsyncInstances(AsyncResource):
@@ -221,6 +242,7 @@ class AsyncInstances(AsyncResource):
         *,
         behavior: UsageBehavior = "append",
         metadata: Mapping[str, Any] | None = None,
+        transaction_id: str | None = None,
     ) -> EntitlementUsage:
         """Report usage of a NUMBER entitlement, and return the usage it results in.
 
@@ -231,30 +253,250 @@ class AsyncInstances(AsyncResource):
                 through the entitlement's aggregation method (a sum, by default). With
                 ``"set"`` it replaces the total -- which is also how to correct it downwards.
             behavior: ``"append"`` (the default) or ``"set"``.
-            metadata: Free-form metadata recorded with the report.
+            metadata: Free-form metadata stored with the report in the usage history, when its
+                compact JSON encoding is at most 4 KiB. It must contain no personal data.
+            transaction_id: An idempotency key. The API applies a report at most once per key,
+                instance and entitlement within its idempotency window (35 days by default),
+                and answers a repeat with the original result. Use a UUID, or a business event
+                id plus the meter (``"llm-call:9f2c:tokens"``): 1 to 128 characters of letters,
+                digits, ``.``, ``_``, ``:`` and ``-``.
 
         Raises:
             ThresholdExceededError: The report would take usage past the maximum the license
                 allows -- the granted value plus its overage allowance. Nothing was recorded.
+            TransactionIdReusedError: The key was already used for a different report.
+            ValueError: ``transaction_id`` is malformed; nothing was sent.
 
-        Never retried automatically: without an idempotency key on the wire, a report retried
+        Retried, like a read, only with a ``transaction_id``: without one, a report retried
         after a lost response would be counted twice.
+        """
+        result = await self.report_usage_detailed(
+            instance_slug,
+            entitlement_slug,
+            value,
+            behavior=behavior,
+            metadata=metadata,
+            transaction_id=transaction_id,
+        )
+        return result.usage
+
+    async def report_usage_detailed(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        value: float,
+        *,
+        behavior: UsageBehavior = "append",
+        metadata: Mapping[str, Any] | None = None,
+        transaction_id: str | None = None,
+    ) -> UsageReportResult:
+        """:meth:`report_usage`, also returning what the API said about the report.
+
+        :attr:`UsageReportResult.replayed` says the report repeated one the API had already
+        counted, and :attr:`UsageReportResult.metadata_dropped` that its metadata was too
+        large to store.
+
+        An API older than ``transaction_id`` refuses the field. The report is then sent again
+        without it, and this client stops sending keys (and so retrying reports) for its
+        lifetime, logging that once.
         """
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise TypeError(f"usage must be a number, got {type(value).__name__}")
-        body = compact(
-            {
-                "value": {"type": "number", "value": value},
-                "behavior": behavior,
-                "metadata": dict(metadata) if metadata is not None else None,
-            }
+        if transaction_id is not None and not _TRANSACTION_ID.fullmatch(transaction_id):
+            raise ValueError(
+                f"transaction_id {transaction_id!r} must be 1 to 128 characters of letters, "
+                "digits, '.', '_', ':' and '-'"
+            )
+        key = None if self._api.transaction_ids_unsupported else transaction_id
+        path = api_path("instances", instance_slug, "entitlements", entitlement_slug, "usage")
+
+        def body(with_key: str | None) -> dict[str, Any]:
+            return compact(
+                {
+                    "value": {"type": "number", "value": value},
+                    "behavior": behavior,
+                    "metadata": dict(metadata) if metadata is not None else None,
+                    "transactionId": with_key,
+                }
+            )
+
+        try:
+            response = await self._send_report(path, body(key), keyed=key is not None)
+        except APIStatusError as error:
+            if key is None or not _refuses_transaction_id(error):
+                raise
+            self._api.transaction_ids_unsupported = True
+            log.warning(
+                "The Kaiten API does not support usage report transaction IDs: reports are sent "
+                "without them and are not retried for the rest of this client's life. Upgrade "
+                "Kaiten to make retries safe."
+            )
+            response = await self._send_report(path, body(None), keyed=False)
+
+        return UsageReportResult(
+            usage=self._api.validate(EntitlementUsage, self._api.decode(response), response),
+            replayed=response.headers.get("idempotent-replayed") == "true",
+            metadata_dropped=bool(response.headers.get("kaiten-metadata-dropped")),
         )
-        return await self._api.send(
-            "POST",
-            api_path("instances", instance_slug, "entitlements", entitlement_slug, "usage"),
-            EntitlementUsage,
-            body=body,
-            errors={409: ThresholdExceededError},
+
+    async def _send_report(self, path: str, body: dict[str, Any], *, keyed: bool) -> Any:
+        try:
+            return await self._api.request(
+                "POST", path, body=body, idempotent=keyed, errors={409: ThresholdExceededError}
+            )
+        except ThresholdExceededError as error:
+            # The usage endpoint answers 409 for two reasons; only the code tells them apart.
+            if error.code == _TRANSACTION_ID_REUSED:
+                raise TransactionIdReusedError(
+                    str(error), response=error.response, problem=error.problem
+                ) from None
+            raise
+
+    async def list_usage_reports(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        transaction_id: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[UsageReport]:
+        """Return the usage history of one entitlement for one instance, oldest first.
+
+        Every report the API accepted in the range, with the counter before and after it and
+        the limit it was gated on. Decimals are strings, exact to the digit. Pages are walked
+        until the range is exhausted or ``limit`` reports are held.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The entitlement.
+            from_: Start of the range, inclusive. Defaults to 30 days before ``to``; a value
+                before the start of the organization's usage history is refused with the code
+                ``ListUsageReports.OutsideRetention``.
+            to: End of the range, exclusive. Defaults to now.
+            transaction_id: Only the report sent with this key.
+            limit: The most reports to return.
+        """
+        if limit is not None and limit < 1:
+            raise ValueError(f"limit must be at least 1, got {limit}")
+        path = api_path(
+            "instances", instance_slug, "entitlements", entitlement_slug, "usage", "reports"
+        )
+        reports: builtins.list[UsageReport] = []
+        after_seq: int | None = None
+        while True:
+            wanted = _USAGE_HISTORY_PAGE if limit is None else limit - len(reports)
+            size = min(_USAGE_HISTORY_PAGE, wanted)
+            page = await self._api.get(
+                path,
+                UsageReportPage,
+                params={
+                    "from": optional_datetime(from_),
+                    "to": optional_datetime(to),
+                    "transactionId": transaction_id,
+                    "afterSeq": after_seq,
+                    "limit": size,
+                },
+            )
+            items = page.items or []
+            reports.extend(items)
+            # The API names a next page only after a full one; a short page is the last.
+            if (
+                page.next_after_seq is None
+                or len(items) < size
+                or (limit is not None and len(reports) >= limit)
+            ):
+                return reports
+            if after_seq is not None and page.next_after_seq <= after_seq:
+                raise PaginationError(
+                    f"GET {path}: nextAfterSeq {page.next_after_seq} does not move past "
+                    f"{after_seq}; refusing to return a partial history as a complete one"
+                )
+            after_seq = page.next_after_seq
+
+    async def export_usage_reports(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        destination: BinaryIO,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        format: UsageExportFormat = "csv",
+    ) -> int:
+        """Stream the usage history of one entitlement for one instance into ``destination``.
+
+        CSV (with a header row) or NDJSON (one report per line), written as it arrives, so the
+        export is never held whole in memory. At most 366 days per call. Returns the number of
+        bytes written.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The entitlement.
+            destination: A binary file-like object, such as ``open(path, "wb")``.
+            from_: Start of the range, inclusive (see :meth:`list_usage_reports`).
+            to: End of the range, exclusive. Defaults to now.
+            format: ``"csv"`` (the default) or ``"json"`` for NDJSON.
+        """
+        return await self._api.stream_to(
+            api_path(
+                "instances",
+                instance_slug,
+                "entitlements",
+                entitlement_slug,
+                "usage",
+                "reports",
+                "export",
+            ),
+            destination,
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "format": format,
+            },
+        )
+
+    async def export_organization_usage_reports(
+        self,
+        destination: BinaryIO,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        format: UsageExportFormat = "csv",
+        instance_slug: str | None = None,
+        instance_id: str | None = None,
+        entitlement_slug: str | None = None,
+        entitlement_id: str | None = None,
+    ) -> int:
+        """Stream the whole organization's usage history into ``destination``.
+
+        Every instance and entitlement, at most 31 days per call, optionally for one instance
+        or one entitlement. ``instance_id`` and ``entitlement_id`` reach deleted ones, whose
+        reports are kept. Returns the number of bytes written.
+
+        Args:
+            destination: A binary file-like object, such as ``open(path, "wb")``.
+            from_: Start of the range, inclusive (see :meth:`list_usage_reports`).
+            to: End of the range, exclusive. Defaults to now.
+            format: ``"csv"`` (the default) or ``"json"`` for NDJSON.
+            instance_slug: Only this instance.
+            instance_id: Only this instance, by id.
+            entitlement_slug: Only this entitlement.
+            entitlement_id: Only this entitlement, by id.
+        """
+        return await self._api.stream_to(
+            api_path("usage", "reports", "export"),
+            destination,
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "format": format,
+                "instanceSlug": instance_slug,
+                "instanceId": instance_id,
+                "entitlementSlug": entitlement_slug,
+                "entitlementId": entitlement_id,
+            },
         )
 
     async def get_integration(
@@ -347,3 +589,14 @@ def _instance(
             }
         ),
     }
+
+
+def _refuses_transaction_id(error: APIStatusError) -> bool:
+    """Whether ``error`` is an API without transaction IDs refusing the field.
+
+    That is a validation problem located on the field, from an API that does not know the code
+    newer ones answer a malformed key with. The key was checked before sending.
+    """
+    if error.status_code not in (400, 422) or error.code == _INVALID_TRANSACTION_ID:
+        return False
+    return any(detail.location == "body.transactionId" for detail in error.errors)

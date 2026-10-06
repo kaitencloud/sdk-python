@@ -5,6 +5,23 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
 public API, a minor version adds to it, and a patch version fixes it.
 
+## [Unreleased]
+
+### Added
+
+- `transaction_id` on `instances.report_usage()`: the API applies a keyed report at most once,
+  so a keyed report is retried like a read, every attempt under the same key; a report without a
+  key is still sent once. A malformed key raises `ValueError` before any request.
+- `TransactionIdReusedError`, a `ConflictError` raised when a key was already used for a
+  different report; never retried. A conflict over the threshold stays `ThresholdExceededError`.
+- `instances.report_usage_detailed()` returns a `UsageReportResult` with the usage, `replayed`
+  and `metadata_dropped`.
+- Against an API without `transaction_id`, the report is resent without it and the client stops
+  sending keys for its lifetime, logging a warning once.
+- `instances.list_usage_reports()`, `instances.export_usage_reports()` and
+  `instances.export_organization_usage_reports()`: the usage history, and CSV/NDJSON exports
+  streamed into a binary destination.
+
 ## [1.0.0] - 2026-10-01
 
 The first release of the Kaiten Python SDK, generated and tested against the contract of

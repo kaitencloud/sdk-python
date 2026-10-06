@@ -30,6 +30,7 @@ __all__ = [
     "RateLimitError",
     "ServiceUnavailableError",
     "ThresholdExceededError",
+    "TransactionIdReusedError",
     "UnprocessableEntityError",
     "WebhookPayloadError",
     "WebhookVerificationError",
@@ -159,6 +160,17 @@ class ThresholdExceededError(ConflictError):
 
     That maximum is the grant's value plus its overage allowance. The report was refused and
     nothing was recorded.
+    """
+
+
+class TransactionIdReusedError(ConflictError):
+    """A usage report's ``transaction_id`` was already used for a different report.
+
+    Within the API's idempotency window, a key names one report: the same key with another
+    behavior or value is refused, and nothing was recorded. It is a bug in how keys are made,
+    not a transient failure -- the same report under the same key fails the same way, so it is
+    never retried. Send a correction as a new report under a new key. The original report is
+    in ``errors[0].value``.
     """
 
 
