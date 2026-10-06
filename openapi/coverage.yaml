@@ -82,7 +82,10 @@ core:
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
     getEntitlementUsageMetrics: instances.get_usage
-    reportEntitlementUsageMetric: instances.report_usage
+    reportEntitlementUsageMetric: [instances.report_usage, instances.report_usage_detailed]
+    listUsageReports: instances.list_usage_reports
+    exportUsageReports: instances.export_usage_reports
+    exportOrganizationUsageReports: instances.export_organization_usage_reports
     get-instance-integration: instances.get_integration
     create-instance-integration: instances.create_integration
     update-instance-integration: instances.update_integration

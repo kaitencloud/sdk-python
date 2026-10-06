@@ -25,6 +25,7 @@ payload shaped like the contract's, since each call returns one.
 from __future__ import annotations
 
 import asyncio
+import io
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -385,6 +386,42 @@ CASES = [
             "acme-production", "seats", 3, behavior="set", metadata={"source": "billing"}
         ),
         minimal=lambda c: c.instances.report_usage("acme-production", "seats", 1),
+    ),
+    Case(
+        "reportEntitlementUsageMetric",
+        lambda c: c.instances.report_usage_detailed(
+            "acme-production", "tokens", 1200, transaction_id="llm-call:9f2c:tokens"
+        ),
+        required=frozenset({"transactionId"}),
+        name="reportEntitlementUsageMetric-keyed",
+    ),
+    Case(
+        "listUsageReports",
+        lambda c: c.instances.list_usage_reports(
+            "acme-production", "tokens", from_=NOW, to=LATER, transaction_id="evt-1", limit=10
+        ),
+        minimal=lambda c: c.instances.list_usage_reports("acme-production", "tokens"),
+    ),
+    Case(
+        "exportUsageReports",
+        lambda c: c.instances.export_usage_reports(
+            "acme-production", "tokens", io.BytesIO(), from_=NOW, to=LATER, format="json"
+        ),
+        minimal=lambda c: c.instances.export_usage_reports(
+            "acme-production", "tokens", io.BytesIO()
+        ),
+    ),
+    Case(
+        "exportOrganizationUsageReports",
+        lambda c: c.instances.export_organization_usage_reports(
+            io.BytesIO(),
+            from_=NOW,
+            to=LATER,
+            format="csv",
+            instance_slug="acme-production",
+            entitlement_id="22222222-2222-2222-2222-222222222222",
+        ),
+        minimal=lambda c: c.instances.export_organization_usage_reports(io.BytesIO()),
     ),
     Case(
         "get-instance-integration",

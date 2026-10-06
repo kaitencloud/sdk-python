@@ -96,6 +96,7 @@ ENUM_NAMES: dict[tuple[str, str], str] = {
     ("License", "type"): "LicenseType",
     ("LicenseEntitlement", "entitlementType"): "LicenseEntitlementType",
     ("MetadataField", "resourceType"): "MetadataResourceType",
+    ("UsageReport", "behavior"): "UsageBehavior",
 }
 
 # Attribute names that would shadow a pydantic.BaseModel member, keyed by (schema, property).

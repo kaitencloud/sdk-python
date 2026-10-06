@@ -41,6 +41,8 @@ RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b__aenter__\b"), "__enter__"),
     (re.compile(r"\b__aexit__\b"), "__exit__"),
     (re.compile(r"\baclose\b"), "close"),
+    (re.compile(r"\baread\b"), "read"),
+    (re.compile(r"\baiter_(bytes|text|lines|raw)\b"), r"iter_\1"),
     (re.compile(r"\basync_(\w+)"), r"\1"),
     (re.compile(r"\b_Async(?=[A-Z])"), "_"),
     (re.compile(r"\bAsync(?=[A-Z])"), ""),

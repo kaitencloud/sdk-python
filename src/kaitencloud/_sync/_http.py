@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, Mapping
-from typing import Any, TypeVar
+from typing import Any, BinaryIO, TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -66,6 +66,9 @@ class APIClient:
         self.http_client = http_client or httpx.Client(
             timeout=DEFAULT_TIMEOUT if isinstance(timeout, NotGiven) else timeout
         )
+        # Set once the API refuses usage report transaction IDs: from then on, reports go out
+        # without them (and so without retries).
+        self.transaction_ids_unsupported = False
 
     def copy(
         self,
@@ -139,6 +142,55 @@ class APIClient:
                 attempt += 1
                 continue
             raise make_status_error(response, overrides=errors)
+
+    def stream_to(
+        self,
+        path: str,
+        destination: BinaryIO,
+        *,
+        params: Mapping[str, Any] | None = None,
+    ) -> int:
+        """GET ``path`` and write its body to ``destination`` as it arrives; return its size.
+
+        The body is never held whole in memory. A failure before the body starts is retried
+        like any idempotent read; once bytes have been written, an interruption is raised, not
+        retried, since ``destination`` already holds part of the body.
+        """
+        url = self.base_url + path.lstrip("/")
+        attempt = 0
+        while True:
+            request = self._build(
+                "GET", url, params=_query(params), body=None, headers=self._headers()
+            )
+            try:
+                response = self.http_client.send(request, stream=True)
+            except httpx.TransportError as error:
+                if attempt < self.max_retries:
+                    self._back_off(request, attempt, repr(error))
+                    attempt += 1
+                    continue
+                if isinstance(error, httpx.TimeoutException):
+                    raise APITimeoutError(request=request) from error
+                raise APIConnectionError(request=request) from error
+
+            try:
+                if not response.is_success:
+                    response.read()
+                    status = response.status_code
+                    if attempt < self.max_retries and (status in (408, 429) or status >= 500):
+                        self._back_off(
+                            request, attempt, f"HTTP {status}", response.headers.get("retry-after")
+                        )
+                        attempt += 1
+                        continue
+                    raise make_status_error(response)
+                written = 0
+                for chunk in response.iter_bytes():
+                    destination.write(chunk)
+                    written += len(chunk)
+                return written
+            finally:
+                response.close()
 
     def get(
         self, path: str, model: type[ModelT], *, params: Mapping[str, Any] | None = None

@@ -86,6 +86,8 @@ __all__ = [
     "Targetings",
     "Token",
     "UsageBehavior",
+    "UsageReport",
+    "UsageReportPage",
     "UsageReportStatus",
     "User",
     "Variant",
@@ -1478,6 +1480,81 @@ class Token(KaitenModel):
     """
 
 
+class UsageReport(KaitenModel):
+    aggregation_method: str = Field(alias="aggregationMethod")
+    """The entitlement's aggregation method when the report was accepted"""
+
+    behavior: UsageBehavior | str
+    """append adds the value through the aggregation method; set overwrites the counter"""
+
+    delta: str
+    """valueAfter minus valueBefore; negative for a set that lowered the counter"""
+
+    entitlement_id: str = Field(alias="entitlementId")
+    """The entitlement the report was made for. It may since have been deleted."""
+
+    event_count_after: int = Field(alias="eventCountAfter")
+    """Reports counted in the window after this one"""
+
+    instance_id: str = Field(alias="instanceId")
+    """The instance the report was made for. It may since have been deleted."""
+
+    license_id: str = Field(alias="licenseId")
+    """The instance's licence when the report was accepted"""
+
+    limit_value: str | None = Field(default=None, alias="limitValue")
+    """The limit in force when the report was accepted. Null when unlimited."""
+
+    overage_delta: str = Field(alias="overageDelta")
+    """How much the usage above limitValue moved: max(0, valueAfter - limitValue) - max(0,
+    valueBefore - limitValue). 0 when unlimited.
+    """
+
+    overage_percent: int | None = Field(default=None, alias="overagePercent")
+    """The overage allowed above limitValue, in percent, when the report was accepted. Null
+    when unlimited.
+    """
+
+    properties: dict[str, Any] | None = None
+    """The report's metadata, when it was stored"""
+
+    report_seq: int = Field(alias="reportSeq")
+    """Position of the report among the pair's accepted reports, from 1, without gaps"""
+
+    reported_at: datetime = Field(alias="reportedAt")
+    """When the server accepted the report (UTC, millisecond precision)"""
+
+    reported_value: str = Field(alias="reportedValue")
+    """The value as sent: a delta for append, an absolute value for set"""
+
+    transaction_id: str | None = Field(default=None, alias="transactionId")
+    """The report's idempotency key, when it was sent with one"""
+
+    value_after: str = Field(alias="valueAfter")
+    """The counter after the report"""
+
+    value_before: str = Field(alias="valueBefore")
+    """The counter before the report, after any window reset"""
+
+    window_end: datetime | None = Field(default=None, alias="windowEnd")
+    """End of the usage window the report counted in (exclusive). Null for a lifetime
+    entitlement.
+    """
+
+    window_start: datetime | None = Field(default=None, alias="windowStart")
+    """Start of the usage window the report counted in (inclusive). Null for a lifetime
+    entitlement.
+    """
+
+
+class UsageReportPage(KaitenModel):
+    items: list[UsageReport]
+    """The reports, in reportSeq order"""
+
+    next_after_seq: int | None = Field(default=None, alias="nextAfterSeq")
+    """Pass as afterSeq to read the next page. Absent on the last page."""
+
+
 class User(KaitenModel):
     """A reference to the user behind an action."""
 
@@ -1575,6 +1652,8 @@ for _model in (
     ServiceAccount,
     SystemTokenIssuance,
     Token,
+    UsageReport,
+    UsageReportPage,
     User,
     Variant,
 ):

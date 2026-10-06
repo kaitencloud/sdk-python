@@ -264,6 +264,50 @@ except ThresholdExceededError as error:
 `behavior="append"` (the default) folds the value into the total through the entitlement's
 aggregation method; `behavior="set"` replaces the total, which is also how to correct it.
 
+A report without a key is sent once and never retried: if its response is lost, it may or may
+not have been counted. Give it a `transaction_id` and the API applies it at most once (per
+instance, entitlement and key, within 35 days by default), so the SDK retries it like a read,
+every attempt under the same key:
+
+```python
+from kaitencloud import TransactionIdReusedError
+
+try:
+    result = client.instances.report_usage_detailed(
+        "acme-production",
+        "tokens",
+        1200,
+        transaction_id="llm-call:9f2c:tokens",  # a UUID, or the business event id plus the meter
+    )
+except TransactionIdReusedError as error:
+    # The key was already used for a different report: a bug in how keys are made, never
+    # retried. A correction is a new report under a new key.
+    print("Original report:", error.errors[0].value)
+else:
+    print(result.usage.value, result.replayed, result.metadata_dropped)
+```
+
+`result.replayed` says the API had already counted this report and `result.usage` is its
+original answer; `result.metadata_dropped` that the metadata was above 4 KiB and not stored. An
+API older than `transaction_id` refuses the field: the report is then resent without it, and the
+client stops sending keys for its lifetime, logging a warning once.
+
+The usage history lists every accepted report, with the counter before and after it and the
+limit it was gated on. Exports stream into a binary file as they arrive:
+
+```python
+reports = client.instances.list_usage_reports("acme-production", "tokens", from_="2026-10-01T00:00:00Z")
+
+with open("tokens.csv", "wb") as destination:
+    client.instances.export_usage_reports("acme-production", "tokens", destination)
+
+# The whole organization, 31 days at a time; instance_id reaches a deleted instance.
+with open("september.ndjson", "wb") as destination:
+    client.instances.export_organization_usage_reports(
+        destination, from_="2026-09-01T00:00:00Z", to="2026-10-01T00:00:00Z", format="json"
+    )
+```
+
 `kaitencloud.usage` computes the same boundaries the server enforces, to render a meter or check
 a report before sending it:
 
@@ -665,6 +709,10 @@ all 10 of its operations. The async clients have the same methods.
 | `client.instances.list_usage()` | `GET /instances/{instanceSlug}/entitlements/usage` |
 | `client.instances.get_usage()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
 | `client.instances.report_usage()` | `POST /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
+| `client.instances.report_usage_detailed()` | `POST /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
+| `client.instances.list_usage_reports()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/reports` |
+| `client.instances.export_usage_reports()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/reports/export` |
+| `client.instances.export_organization_usage_reports()` | `GET /usage/reports/export` |
 | `client.instances.get_integration()` | `GET /instances/{instanceSlug}/integrations/{integrationName}` |
 | `client.instances.create_integration()` | `POST /instances/{instanceSlug}/integrations/{integrationName}` |
 | `client.instances.update_integration()` | `PUT /instances/{instanceSlug}/integrations/{integrationName}` |
