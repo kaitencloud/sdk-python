@@ -115,7 +115,9 @@ class AsyncKaitenClient(_AsyncBaseClient):
     (``ksh_...``) or a JWT from your identity provider. It covers customers, instances,
     licenses, entitlements and usage, feature flags, releases and connectors::
 
-        async with AsyncKaitenClient(token="ksh_...") as client:
+        async with AsyncKaitenClient(
+            base_url="https://kaiten.example.com", token="ksh_..."
+        ) as client:
             for customer in await client.customers.list():
                 print(customer.slug)
 

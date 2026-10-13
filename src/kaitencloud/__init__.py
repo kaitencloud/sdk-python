@@ -7,7 +7,7 @@
 
     from kaitencloud import KaitenClient
 
-    client = KaitenClient(token="ksh_...")
+    client = KaitenClient(base_url="https://kaiten.example.com", token="ksh_...")
     for instance in client.instances.list():
         print(instance.slug, instance.status)
 """
