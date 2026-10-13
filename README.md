@@ -482,7 +482,7 @@ entries = client.instances.list_audit_trails(
 
 ### Errors
 
-Every exception derives from `KaitenError`:
+Every exception the SDK defines derives from `KaitenError`:
 
 ```text
 KaitenError
@@ -505,6 +505,9 @@ KaitenError
 ├── WebhookVerificationError     a webhook that fails verification
 └── WebhookPayloadError          an authentic webhook that breaks its event contract
 ```
+
+A bad argument is refused before anything is sent, with a plain `ValueError` or `TypeError`: a
+missing `base_url`, a datetime without a timezone, a usage value that is not a number.
 
 An `APIStatusError` keeps everything the API said. Branch on `code` rather than on the status:
 a 409 for a reached limit and a 409 for a taken slug share a status, not a meaning.
