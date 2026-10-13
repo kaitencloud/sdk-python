@@ -1006,7 +1006,7 @@ def parse(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--list", action="store_true", help="list the steps and exit")
     parser.add_argument("--from", dest="start", metavar="STEP", help="resume at this step")
     parser.add_argument("--pause", action="store_true", help="wait for Enter before each step")
-    parser.add_argument("--base-url", help="the API, e.g. http://localhost:6000")
+    parser.add_argument("--base-url", help="the API, e.g. http://localhost:6060")
     parser.add_argument("--token", help="an organization token (ksh_...)")
     parser.add_argument("--platform-org", metavar="UUID", help="mint a token in this organization")
     parser.add_argument("--state", type=Path, default=STATE_FILE, help="where the run is recorded")

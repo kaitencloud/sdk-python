@@ -31,7 +31,7 @@ EMPTY_PAGE = {"items": [], "hasMore": False}
         ("https://kaiten.example.com/", "https://kaiten.example.com/api/"),
         ("https://kaiten.example.com/api", "https://kaiten.example.com/api/"),
         ("https://kaiten.example.com/api/", "https://kaiten.example.com/api/"),
-        ("http://localhost:6000", "http://localhost:6000/api/"),
+        ("http://localhost:6060", "http://localhost:6060/api/"),
         ("https://example.com/kaiten/api", "https://example.com/kaiten/api/"),
         ("  https://example.com/prefix  ", "https://example.com/prefix/api/"),
     ],

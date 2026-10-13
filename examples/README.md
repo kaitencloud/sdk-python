@@ -16,7 +16,7 @@ documentation that runs, and a failure points at the one call that failed.
 Run it from the repository root, with a credential that may write:
 
 ```bash
-export KAITEN_BASE_URL=http://localhost:6000
+export KAITEN_BASE_URL=http://localhost:6060
 export KAITEN_AUTH_TOKEN=ksh_...   # an organization token
 ```
 
