@@ -117,7 +117,9 @@ class KaitenClient(_BaseClient):
     (``ksh_...``) or a JWT from your identity provider. It covers customers, instances,
     licenses, entitlements and usage, feature flags, releases and connectors::
 
-        with KaitenClient(token="ksh_...") as client:
+        with KaitenClient(
+            base_url="https://kaiten.example.com", token="ksh_..."
+        ) as client:
             for customer in client.customers.list():
                 print(customer.slug)
 

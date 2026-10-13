@@ -20,7 +20,7 @@ customers, instances, licenses, entitlements, usage metering, feature flags and 
 ```python
 from kaitencloud import KaitenClient
 
-client = KaitenClient(token="ksh_...")
+client = KaitenClient(base_url="https://kaiten.example.com", token="ksh_...")
 
 for customer in client.customers.list():
     print(customer.name)
