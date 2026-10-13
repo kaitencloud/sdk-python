@@ -126,7 +126,7 @@ class KaitenClient(_BaseClient):
             rotated token is picked up. Defaults to the ``KAITEN_AUTH_TOKEN`` environment
             variable. A platform credential (``ksm_...``) is refused: use
             :class:`KaitenPlatformClient`.
-        base_url: Where your Kaiten deployment's API lives, e.g. ``http://localhost:6000``.
+        base_url: Where your Kaiten deployment's API lives, e.g. ``http://localhost:6060``.
             ``/api`` is appended when missing. Defaults to ``KAITEN_BASE_URL``; there is no
             default beyond it, since every deployment has an address of its own.
         timeout: Seconds, or an :class:`httpx.Timeout`. Defaults to 30 seconds.
@@ -195,7 +195,7 @@ class KaitenClient(_BaseClient):
         if not url or not url.strip():
             raise ValueError(
                 "No Kaiten API address: pass base_url=... (your deployment's, e.g. "
-                f"http://localhost:6000) or set {ENV_BASE_URL}."
+                f"http://localhost:6060) or set {ENV_BASE_URL}."
             )
         self._api = APIClient(
             base_url=normalize_base_url(url),
