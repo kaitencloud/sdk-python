@@ -340,8 +340,9 @@ entitlements that subject holds. Splits are sticky: a subject keeps its variant 
 evaluation to the next. A failed evaluation returns the default you passed rather than raise,
 which is OpenFeature's contract, not ours.
 
-`client.feature_flags.manifest()` returns the OpenFeature manifest — every flag, its type and
-its default — for tooling that generates typed accessors from flag definitions.
+`client.feature_flags.manifest()` returns the OpenFeature manifest — each flag whose metadata
+sets a `fallback_value`, with its type and its default — for tooling that generates typed
+accessors from flag definitions.
 
 ### Releases and deployment zones
 

@@ -124,7 +124,10 @@ class AsyncFeatureFlags(AsyncResource):
         await self._api.send_empty("DELETE", api_path("feature-flags", feature_flag_slug))
 
     async def manifest(self) -> builtins.list[ManifestFlag]:
-        """Return the OpenFeature manifest: every flag with its type and default value."""
+        """Return the OpenFeature manifest: each flag it lists, with its type and default value.
+
+        The manifest lists the flags whose metadata sets a ``fallback_value``, not every flag.
+        """
         envelope = await self._api.get("/openfeature/v0/manifest", ManifestEnvelope)
         return builtins.list(envelope.flags or [])
 
