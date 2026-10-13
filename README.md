@@ -497,9 +497,8 @@ KaitenError
 │   │   └── ThresholdExceededError       a usage report refused at the cap
 │   ├── UnprocessableEntityError     422
 │   ├── RateLimitError               429
-│   ├── InternalServerError          5xx
-│   │   └── ServiceUnavailableError      503
-│   └── FlagEvaluationError          a flag could not be evaluated
+│   └── InternalServerError          5xx
+│       └── ServiceUnavailableError      503
 ├── APIResponseValidationError   a 2xx response that breaks the contract
 ├── PaginationError              a list the API reported as incomplete
 ├── WebhookVerificationError     a webhook that fails verification
@@ -527,7 +526,7 @@ backoff and jitter, honouring `Retry-After` — but only when repeating it is sa
 | Request | Retried |
 | --- | --- |
 | `GET`, `PUT`, `DELETE` | ✓ |
-| Flag evaluations, instance status and lifecycle updates, metadata dry runs and reorders, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
+| Instance status and lifecycle updates, metadata dry runs and reorders, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
 | Any other `POST` or `PATCH`: creations, usage reports, upserts | only if the connection never opened |
 | A `401` or `403` | never |
 
@@ -561,8 +560,7 @@ All models, and the typed dictionaries methods accept, are importable from `kait
 
 ### Logging
 
-The SDK logs to the `kaitencloud` logger: retries at `INFO`, flag evaluations that fell back to
-their default at `WARNING`. Credentials are never logged.
+The SDK logs each retry to the `kaitencloud` logger, at `INFO`. Credentials are never logged.
 
 ```python
 import logging
@@ -636,7 +634,7 @@ all 10 of its operations. The async clients have the same methods.
 </details>
 
 <details>
-<summary><b>client.feature_flags</b> · <b>client.flags</b></summary>
+<summary><b>client.feature_flags</b></summary>
 
 | Method | Operation |
 | --- | --- |

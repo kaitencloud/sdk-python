@@ -1010,7 +1010,7 @@ def parse(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--token", help="an organization token (ksh_...)")
     parser.add_argument("--platform-org", metavar="UUID", help="mint a token in this organization")
     parser.add_argument("--state", type=Path, default=STATE_FILE, help="where the run is recorded")
-    parser.add_argument("--verbose", action="store_true", help="log retries and fallbacks")
+    parser.add_argument("--verbose", action="store_true", help="log retries")
     return parser.parse_args(argv)
 
 

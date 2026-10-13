@@ -113,7 +113,7 @@ state file to start fresh.
 | `--base-url`, `--token` | Instead of `KAITEN_BASE_URL` and `KAITEN_AUTH_TOKEN` |
 | `--platform-org UUID` | The organization the `platform` step mints a token in |
 | `--state PATH` | Where the run is recorded (default `.kaiten-playbook.json`) |
-| `--verbose` | Log retries and fallbacks on the `kaitencloud` logger |
+| `--verbose` | Log retries on the `kaitencloud` logger |
 
 The `platform` step skips itself unless `KAITEN_PLATFORM_BASE_URL` and `KAITEN_PLATFORM_TOKEN`
 are set: the Platform API has its own listener, reachable only from inside your infrastructure.

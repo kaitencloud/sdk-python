@@ -27,8 +27,9 @@ __all__ = ["FeatureFlags"]
 class FeatureFlags(Resource):
     """Feature flags: variants, targeting rules and default variants.
 
-    This namespace manages flag definitions. To evaluate a flag for a context, use
-    ``client.flags``. The builders in :mod:`kaitencloud.targeting` write variants and rules.
+    This namespace manages flag definitions. It does not evaluate them: Kaiten implements
+    OFREP, so use an OpenFeature SDK with its generic OFREP provider. The builders in
+    :mod:`kaitencloud.targeting` write variants and rules.
     """
 
     def list(self) -> builtins.list[FeatureFlag]:
