@@ -306,6 +306,22 @@ CASES = [
     ),
     Case("delete-feature-flag", lambda c: c.feature_flags.delete("new-checkout")),
     Case("get-openfeature-manifest", lambda c: c.feature_flags.manifest()),
+    Case("get-targeting-context", lambda c: c.feature_flags.targeting_context()),
+    Case(
+        "lint-targeting-rule",
+        lambda c: c.feature_flags.lint_rule("__kaiten.license.slug == 'growth'"),
+        required=frozenset({"rule"}),
+    ),
+    Case(
+        "test-targeting-rule",
+        lambda c: c.feature_flags.test_rule(
+            "__kaiten.instance.status == 'HEALTHY'",
+            targeting_key="acme",
+            context={"kaiten": {"instanceSlug": "acme-production"}},
+        ),
+        minimal=lambda c: c.feature_flags.test_rule("true"),
+        required=frozenset({"rule"}),
+    ),
     # instances
     Case("getInstances", lambda c: c.instances.list()),
     Case("getInstance", lambda c: c.instances.get("acme-production")),

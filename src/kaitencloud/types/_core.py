@@ -83,6 +83,12 @@ __all__ = [
     "ServiceAccount",
     "SystemTokenIssuance",
     "Targeting",
+    "TargetingContext",
+    "TargetingContextNode",
+    "TargetingFactType",
+    "TargetingRuleIssue",
+    "TargetingRuleRehearsal",
+    "TargetingRuleVerdict",
     "Targetings",
     "Token",
     "UsageBehavior",
@@ -155,6 +161,9 @@ Scope = Literal[
 """A permission an organization credential can carry, ``read:<resource>`` or
 ``write:<resource>``; ``write`` implies ``read`` on the same resource.
 """
+
+TargetingFactType = Literal["string", "number", "boolean", "object", "map", "dyn"]
+"""The shape of a fact a targeting rule can read."""
 
 UsageBehavior = Literal["append", "set"]
 """How a usage report applies: ``append`` folds the value in, ``set`` overwrites it."""
@@ -1451,6 +1460,85 @@ class SystemTokenIssuance(KaitenModel):
     """Server-assigned identifier of the minted credential"""
 
 
+class TargetingContext(KaitenModel):
+    roots: list[TargetingContextNode]
+    """Identifiers the server guarantees, and what is reachable below each. Not a closed set: a
+    host may target on its own attributes too
+    """
+
+
+class TargetingContextNode(KaitenModel):
+    description: str | None = None
+    """What this value means, shown by the editor"""
+
+    fields: list[TargetingContextNode] | None = None
+    """Named children, for an object"""
+
+    known_keys: list[str] | None = Field(default=None, alias="knownKeys")
+    """Keys this map currently has, for completion. Not a closed set"""
+
+    name: str
+    """Name as it is written in a rule"""
+
+    optional: bool | None = None
+    """Whether this value may be absent, in which case has() is worth using"""
+
+    type: TargetingFactType | str
+    """Shape of this node's value"""
+
+    values: TargetingContextNode | None = None
+    """Shape shared by every entry, for a map"""
+
+
+class TargetingRuleIssue(KaitenModel):
+    column: int
+    """1-based column the problem starts on, or 0 when it has no position"""
+
+    end_column: int | None = Field(default=None, alias="endColumn")
+    """1-based column just past the problem, or 0 when only a point is known"""
+
+    end_line: int | None = Field(default=None, alias="endLine")
+    """1-based line the problem ends on, or 0 when only a point is known"""
+
+    line: int
+    """1-based line the problem starts on, or 0 when it has no position"""
+
+    message: str
+    """What is wrong, in the same words the write path refuses it with"""
+
+
+class TargetingRuleRehearsal(KaitenModel):
+    evaluation_error: str | None = Field(default=None, alias="evaluationError")
+    """Why the engine could not answer, when it could not — e.g. the rule reads a host
+    attribute this context does not carry. At a real evaluation the rule would simply not
+    match
+    """
+
+    facts: dict[str, Any]
+    """The __kaiten namespace as enriched for this context — what a rule actually reads. Empty
+    sub-roots mean the context resolved nothing for them
+    """
+
+    issues: list[TargetingRuleIssue]
+    """Problems the lint found. The rule is only run when there are none"""
+
+    matched: bool
+    """Whether the rule matched this context. Meaningful only when valid and evaluationError is
+    empty
+    """
+
+    valid: bool
+    """Whether the rule lints clean"""
+
+
+class TargetingRuleVerdict(KaitenModel):
+    issues: list[TargetingRuleIssue]
+    """Every problem found, positioned where it is written. Empty when the rule is accepted"""
+
+    valid: bool
+    """Whether the write path would accept this rule"""
+
+
 class Token(KaitenModel):
     """A token's metadata. Never its secret."""
 
@@ -1574,6 +1662,11 @@ for _model in (
     RolloutStep,
     ServiceAccount,
     SystemTokenIssuance,
+    TargetingContext,
+    TargetingContextNode,
+    TargetingRuleIssue,
+    TargetingRuleRehearsal,
+    TargetingRuleVerdict,
     Token,
     User,
     Variant,

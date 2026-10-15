@@ -16,7 +16,10 @@ from ...types import (
     FeatureFlagType,
     ManifestEnvelope,
     ManifestFlag,
+    TargetingContext,
     TargetingParam,
+    TargetingRuleRehearsal,
+    TargetingRuleVerdict,
     VariantParam,
 )
 from ._base import Resource
@@ -120,6 +123,63 @@ class FeatureFlags(Resource):
             event_name=event_name,
         )
         self._api.send_empty("PUT", api_path("feature-flags", feature_flag_slug), body=body)
+
+    def targeting_context(self) -> TargetingContext:
+        """Return what a targeting rule can read: the facts Kaiten adds under ``__kaiten``.
+
+        Each node names a fact as a rule writes it, its shape, and for a map the keys it has
+        now -- the organization's entitlement slugs, its instances' metadata keys. A rule may
+        also read any attribute the application puts in its evaluation context.
+        """
+        return self._api.get("/feature-flags/targeting/context", TargetingContext)
+
+    def lint_rule(self, rule: str) -> TargetingRuleVerdict:
+        """Check a CEL targeting rule the way create and update do, without writing anything.
+
+        A rule that names a fact or an entitlement that does not exist never matches rather
+        than failing, so this is how to catch it before it ships. A refused rule is a verdict
+        with ``valid=False`` and its positioned issues, not an error.
+        """
+        return self._api.send(
+            "POST",
+            "/feature-flags/targeting/lint",
+            TargetingRuleVerdict,
+            body={"rule": rule},
+            idempotent=True,
+        )
+
+    def test_rule(
+        self,
+        rule: str,
+        *,
+        targeting_key: str | None = None,
+        context: Mapping[str, Any] | None = None,
+    ) -> TargetingRuleRehearsal:
+        """Run a targeting rule against one evaluation context, as an evaluation would.
+
+        Nothing is written, metered or audited. The context is enriched from the same sources
+        an evaluation uses, so the answer carries the facts the rule actually read alongside
+        whether it matched -- usually the answer to why it did not.
+
+        Args:
+            rule: The CEL expression.
+            targeting_key: Who is evaluating; a customer slug gets that customer's license and
+                entitlements.
+            context: The rest of the evaluation context, e.g.
+                ``{"kaiten": {"instanceSlug": "acme-production"}}`` for an instance's facts.
+        """
+        body: dict[str, Any] = {"rule": rule}
+        if targeting_key is not None:
+            body["targetingKey"] = targeting_key
+        if context is not None:
+            body["context"] = dict(context)
+        return self._api.send(
+            "POST",
+            "/feature-flags/targeting/test",
+            TargetingRuleRehearsal,
+            body=body,
+            idempotent=True,
+        )
 
     def delete(self, feature_flag_slug: str) -> None:
         """Delete the feature flag identified by ``feature_flag_slug``."""

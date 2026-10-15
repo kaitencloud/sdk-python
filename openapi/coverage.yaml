@@ -71,6 +71,10 @@ core:
     update-feature-flag: feature_flags.update
     delete-feature-flag: feature_flags.delete
     get-openfeature-manifest: feature_flags.manifest
+    # targeting rule authoring: what a rule can read, and whether it lints and matches
+    get-targeting-context: feature_flags.targeting_context
+    lint-targeting-rule: feature_flags.lint_rule
+    test-targeting-rule: feature_flags.test_rule
 
     # instances
     getInstances: instances.list
@@ -138,12 +142,6 @@ core:
     delete-service-account-token: service_accounts.delete_token
 
   excluded:
-    get-targeting-context: >-
-      Rule-editor tooling for the Kaiten console, with no SDK audience. kaiten's own
-      operation-coverage test excludes the same three operations for the same reason.
-    lint-targeting-rule: Rule-editor tooling for the Kaiten console, with no SDK audience.
-    test-targeting-rule: Rule-editor tooling for the Kaiten console, with no SDK audience.
-
     listNotifications: >-
       A person's own notification feed. It addresses the signed-in user's rows -- an unread
       count and a set of choices about what to be told -- and a machine client holding an API

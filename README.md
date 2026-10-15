@@ -45,7 +45,7 @@ client.instances.report_usage("acme-production", "seats", 1)
 - **Webhooks included.** Svix signatures verified, all 55 event types parsed into models.
 - **Flags through OpenFeature.** Kaiten speaks OFREP, so flags are defined here and
   evaluated with the [OpenFeature SDK](#feature-flags) — a vendor-neutral API, not ours.
-- **Contract-tested.** All 108 operations the SDK wraps are exercised against the contract, and
+- **Contract-tested.** All 111 operations the SDK wraps are exercised against the contract, and
   every request body is validated against the API's own schema.
 
 ## Contents
@@ -301,6 +301,27 @@ client.feature_flags.create(
     ],
 )
 ```
+
+A rule that names a fact or an entitlement that does not exist does not fail: it never matches.
+Check one before it ships — the same check the API runs on create and update — and run it
+against a real customer or instance to see the facts it reads:
+
+```python
+client.feature_flags.targeting_context()  # every fact a rule can read under __kaiten
+
+verdict = client.feature_flags.lint_rule("__kaiten.license.familySlug == 'growth'")
+if not verdict.valid:
+    print(verdict.issues[0].message, verdict.issues[0].line, verdict.issues[0].column)
+
+trial = client.feature_flags.test_rule(
+    "__kaiten.entitlements['seats'].percentage >= 0.8",
+    targeting_key="acme",
+    context={"kaiten": {"instanceSlug": "acme-production"}},
+)
+print(trial.matched, trial.facts)
+```
+
+Neither writes, meters nor audits anything.
 
 **This SDK does not evaluate flags, on purpose.** Kaiten implements
 [OFREP](https://openfeature.dev/specification/appendix-c), the OpenFeature Remote Evaluation
@@ -574,10 +595,9 @@ logging.getLogger("kaitencloud").setLevel(logging.INFO)
 
 ## API reference
 
-The Core API clients cover 98 of its 107 operations. Of the nine left out, three are
-rule-editor tooling for the Kaiten console, four are a signed-in person's own notification feed
-and preferences — which an API token has no equivalent of — and two are the OFREP evaluation
-endpoints, which an [OpenFeature provider](#feature-flags) calls. The Platform API clients cover
+The Core API clients cover 101 of its 107 operations. Of the six left out, four are a signed-in
+person's own notification feed and preferences — which an API token has no equivalent of — and
+two are the OFREP evaluation endpoints, which an [OpenFeature provider](#feature-flags) calls. The Platform API clients cover
 all 10 of its operations. The async clients have the same methods.
 
 <details>
@@ -648,6 +668,9 @@ all 10 of its operations. The async clients have the same methods.
 | `client.feature_flags.update()` | `PUT /feature-flags/{featureFlagSlug}` |
 | `client.feature_flags.delete()` | `DELETE /feature-flags/{featureFlagSlug}` |
 | `client.feature_flags.manifest()` | `GET /openfeature/v0/manifest` |
+| `client.feature_flags.targeting_context()` | `GET /feature-flags/targeting/context` |
+| `client.feature_flags.lint_rule()` | `POST /feature-flags/targeting/lint` |
+| `client.feature_flags.test_rule()` | `POST /feature-flags/targeting/test` |
 
 </details>
 

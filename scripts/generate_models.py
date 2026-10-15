@@ -96,6 +96,7 @@ ENUM_NAMES: dict[tuple[str, str], str] = {
     ("License", "type"): "LicenseType",
     ("LicenseEntitlement", "entitlementType"): "LicenseEntitlementType",
     ("MetadataField", "resourceType"): "MetadataResourceType",
+    ("TargetingContextNode", "type"): "TargetingFactType",
 }
 
 # Attribute names that would shadow a pydantic.BaseModel member, keyed by (schema, property).
@@ -119,6 +120,7 @@ ALIAS_DOCS: dict[str, str] = {
     "MetadataResourceType": "The resource a metadata field applies to.",
     "ResetAnchor": "What a periodic usage window is aligned on.",
     "ResetPeriod": "How often a periodic entitlement's usage resets.",
+    "TargetingFactType": "The shape of a fact a targeting rule can read.",
     "Scope": (
         "A permission an organization credential can carry, ``read:<resource>`` or "
         "``write:<resource>``; ``write`` implies ``read`` on the same resource."
