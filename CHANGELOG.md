@@ -12,6 +12,12 @@ public API, a minor version adds to it, and a patch version fixes it.
 - `feature_flags.targeting_context()`, `feature_flags.lint_rule()` and `feature_flags.test_rule()`:
   the facts a targeting rule can read, the check the API runs before accepting one, and a dry run
   of a rule against a customer or an instance.
+- `feature_flags.update(..., slug=...)` renames a flag.
+
+### Fixed
+
+- `feature_flags.update` sends the flag's slug. Without it, Kaiten blanked the slug and the flag
+  could no longer be reached.
 
 ## [1.0.0] - 2026-10-01
 
