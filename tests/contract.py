@@ -149,6 +149,11 @@ def _without_read_only(node: Any) -> Any:
     return node
 
 
+# What sample() answers for a schema already being expanded: a recursive schema stops there,
+# as an empty array or an absent property, which is still a payload the schema describes.
+_RECURSION = object()
+
+
 def sample(
     schema: Any, surface: str, *, full: bool = True, seen: frozenset[str] = frozenset()
 ) -> Any:
@@ -158,7 +163,7 @@ def sample(
     if "$ref" in schema:
         name = schema["$ref"].rsplit("/", 1)[-1]
         if name in seen:
-            return None
+            return _RECURSION
         target = document(surface)["components"]["schemas"][name]
         return sample(target, surface, full=full, seen=seen | {name})
     for key in ("oneOf", "anyOf"):
@@ -185,7 +190,8 @@ def sample(
         # False, so a sampled page never claims more rows than it holds.
         return False
     if kind == "array":
-        return [sample(schema.get("items"), surface, full=full, seen=seen)] if full else []
+        item = sample(schema.get("items"), surface, full=full, seen=seen)
+        return [item] if full and item is not _RECURSION else []
     if kind == "object":
         properties: dict[str, Any] = schema.get("properties") or {}
         required = set(schema.get("required") or [])
@@ -194,6 +200,7 @@ def sample(
             for name, node in properties.items()
             if full or name in required
         }
+        value = {name: v for name, v in value.items() if v is not _RECURSION}
         extra = schema.get("additionalProperties")
         if not properties and full:
             value["key"] = (

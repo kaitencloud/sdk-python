@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
 public API, a minor version adds to it, and a patch version fixes it.
 
+## [Unreleased]
+
+### Added
+
+- `feature_flags.targeting_context()`, `feature_flags.lint_rule()` and `feature_flags.test_rule()`:
+  the facts a targeting rule can read, the check the API runs before accepting one, and a dry run
+  of a rule against a customer or an instance.
+
 ## [1.0.0] - 2026-10-01
 
 The first release of the Kaiten Python SDK, generated and tested against the contract of
