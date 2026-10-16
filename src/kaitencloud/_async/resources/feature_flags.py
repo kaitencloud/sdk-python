@@ -103,11 +103,16 @@ class AsyncFeatureFlags(AsyncResource):
         description: str | None = None,
         metadata: Mapping[str, Any] | None = None,
         event_name: str = "",
+        slug: str | None = None,
     ) -> None:
         """Replace a feature flag's definition.
 
         A full replacement: the variants, rules and metadata sent become the flag's whole
         definition. See :meth:`create` for what each field means.
+
+        Args:
+            slug: A new slug, to rename the flag; applications evaluating it by its old key
+                stop finding it. Omitted, the flag keeps ``feature_flag_slug``.
         """
         body = _flag(
             name=name,
@@ -120,6 +125,9 @@ class AsyncFeatureFlags(AsyncResource):
             metadata=metadata,
             event_name=event_name,
         )
+        # The slug is always sent. Kaiten writes the body's slug as the flag's own, so a
+        # body without one would blank it rather than keep it.
+        body["slug"] = slug or feature_flag_slug
         await self._api.send_empty("PUT", api_path("feature-flags", feature_flag_slug), body=body)
 
     async def targeting_context(self) -> TargetingContext:

@@ -182,7 +182,29 @@ def test_a_feature_flag_needs_only_the_essentials(make_client: Callable[..., Any
         "description": None,
         "metadata": {},
         "event_name": "",
+        "slug": "new-checkout",
     }
+
+
+def test_a_feature_flag_update_keeps_its_slug_unless_renamed(
+    make_client: Callable[..., Any],
+) -> None:
+    # Kaiten writes the body's slug as the flag's own: sending none blanked it.
+    client, recorder = make_client(respond(204))
+    essentials = {
+        "name": "New checkout",
+        "type": "boolean",
+        "variants": [{"name": "on", "value": True}],
+        "default_variant": "on",
+    }
+
+    client.feature_flags.update("new-checkout", **essentials)
+    client.feature_flags.update("new-checkout", **essentials, slug="checkout-v2")
+
+    first, second = recorder
+    assert body(first)["slug"] == "new-checkout"
+    assert body(second)["slug"] == "checkout-v2"
+    assert second.url.path.endswith("/feature-flags/new-checkout")
 
 
 def test_usage_defaults_to_append(make_client: Callable[..., Any]) -> None:

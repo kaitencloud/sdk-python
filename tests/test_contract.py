@@ -302,7 +302,7 @@ CASES = [
             variants=VARIANTS,
             default_variant=targeting.fixed("off"),
         ),
-        forbidden=frozenset({"slug"}),
+        required=frozenset({"slug"}),
     ),
     Case("delete-feature-flag", lambda c: c.feature_flags.delete("new-checkout")),
     Case("get-openfeature-manifest", lambda c: c.feature_flags.manifest()),
