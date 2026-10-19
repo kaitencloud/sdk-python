@@ -9,6 +9,12 @@ public API, a minor version adds to it, and a patch version fixes it.
 
 ### Added
 
+- Optional OpenAI and Anthropic drop-in clients and existing-client wrappers, with
+  allow-listed reserve/call/commit accounting, sync/async streaming settlement,
+  pluggable estimates and provider timeout-based reservation lifetimes.
+- Documented current agent SDK accounting interfaces and the missing supported
+  per-model-inference gating boundary; no misleading run-budget wrappers.
+
 - `feature_flags.targeting_context()`, `feature_flags.lint_rule()` and `feature_flags.test_rule()`:
   the facts a targeting rule can read, the check the API runs before accepting one, and a dry run
   of a rule against a customer or an instance.

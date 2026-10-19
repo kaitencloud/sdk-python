@@ -835,3 +835,16 @@ By contributing, you agree to certify your contribution under the
 
 The Kaiten name and logos are not licensed under Apache-2.0.
 See the Kaiten trademark policy in the main Kaiten repository.
+
+### AI credit provider wrappers
+
+Use `from kaitencloud.openai import OpenAI` or
+`from kaitencloud.anthropic import Anthropic`, then pass
+`kaiten=client, instance="acme-prod", pool="chat-credits"` alongside your normal
+provider options. Async drop-in classes and `wrap_openai` / `wrap_anthropic`
+for existing clients are available. Install the corresponding `openai` or
+`anthropic` extra. Every allow-listed call reserves before execution and settles
+with normalized usage; pricing stays on the server.
+
+See [AI wrapper behavior and limits](internal-docs/AI_WRAPPERS.md), especially
+stream closure, missing audio usage and agent SDK gating constraints.
