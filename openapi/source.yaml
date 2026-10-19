@@ -1,8 +1,8 @@
 # Where the two snapshots in this directory were copied from. Rewritten by
 # `task sync:openapi`; never edit the snapshots themselves by hand.
 repository: kaitencloud/kaiten
-ref: HEAD
-commit: bcdbf36829ceb93b0c2d9a4c1ac3d8d141ce5144
+ref: feat/ai-credits
+commit: de1b0bc98f02169cb288227d485c5688bde87dbd
 synced_at: "2026-10-19"
 files:
   openapi.yaml: app/openapi.yaml
