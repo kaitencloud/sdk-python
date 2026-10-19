@@ -18,18 +18,23 @@ __all__ = [
     "APIResponseValidationError",
     "APIStatusError",
     "APITimeoutError",
+    "AiUsageUnsupportedError",
     "AuthenticationError",
     "BadRequestError",
     "ConflictError",
     "CredentialError",
+    "InsufficientCreditsError",
     "InternalServerError",
     "KaitenError",
+    "ModelNotAuthorizedError",
     "NotFoundError",
     "PaginationError",
     "PermissionDeniedError",
     "RateLimitError",
     "ServiceUnavailableError",
     "ThresholdExceededError",
+    "TransactionIdReusedError",
+    "UnknownModelError",
     "UnprocessableEntityError",
     "WebhookPayloadError",
     "WebhookVerificationError",
@@ -166,6 +171,37 @@ class UnprocessableEntityError(APIStatusError):
     """The API answered 422: the request is well-formed but its content is refused."""
 
 
+class InsufficientCreditsError(ThresholdExceededError):
+    """An AI usage reservation does not fit in what is left of the credit pool.
+
+    Raised before the provider is called: nothing was reserved, and nothing is owed.
+    """
+
+
+class TransactionIdReusedError(ConflictError):
+    """An AI usage transaction id was already used for another call.
+
+    The same id and phase arrived with another body, or a reservation was made on an id that is
+    already reserved or closed. A bug in the caller, never a transient failure: not retried.
+    """
+
+
+class ModelNotAuthorizedError(UnprocessableEntityError):
+    """The model may not be reserved against: it is archived, or no conversion rule prices it."""
+
+
+class UnknownModelError(UnprocessableEntityError):
+    """The model is in neither the catalogue's slugs nor its provider ids."""
+
+
+class AiUsageUnsupportedError(UnprocessableEntityError):
+    """The API cannot take an AI usage report on this entitlement.
+
+    Either the deployment predates AI credits, or the entitlement is not an AI credit pool
+    aggregated by ``SUM``. The provider wrappers log it once and keep serving calls unreported.
+    """
+
+
 class RateLimitError(APIStatusError):
     """The API answered 429."""
 
@@ -214,6 +250,44 @@ def make_status_error(
         error_class = InternalServerError if status >= 500 else APIStatusError
     problem = parse_problem(response)
     return error_class(_message(response, problem), response=response, problem=problem)
+
+
+# The 422 codes an AI usage report can answer with on a deployment that knows the variant.
+# Any other 422 to such a report means the deployment does not.
+_AI_INVALID_CODES = frozenset(
+    {
+        "TransactionIdRequired",
+        "InvalidTransactionId",
+        "InvalidAiUsage",
+        "AiUsageRequiresAppend",
+        "AiCreditPoolAppendOnly",
+    }
+)
+
+
+def make_ai_error(error: APIStatusError) -> APIStatusError:
+    """The typed error an AI usage report answered with ``error`` stands for.
+
+    The status alone does not say it: a 409 is a full pool or a reused transaction id, and a
+    422 is a refused model, a malformed body or a deployment without AI credits.
+    """
+    reason = (error.code or "").rsplit(".", 1)[-1]
+    target: type[APIStatusError] | None = None
+    if error.status_code == 409:
+        target = {
+            "ThresholdExceeded": InsufficientCreditsError,
+            "TransactionIdReused": TransactionIdReusedError,
+        }.get(reason)
+    elif error.status_code == 422:
+        target = {
+            "UnknownModel": UnknownModelError,
+            "ModelNotAuthorized": ModelNotAuthorizedError,
+        }.get(reason)
+        if target is None and reason not in _AI_INVALID_CODES:
+            target = AiUsageUnsupportedError
+    if target is None:
+        return error
+    return target(str(error), response=error.response, problem=error.problem)
 
 
 def parse_problem(response: httpx.Response) -> Problem | None:

@@ -11,6 +11,19 @@
 
 core:
   operations:
+    listModels: models.list
+    createModel: models.create
+    getModel: models.get
+    updateModel: models.update
+    deleteModel: models.delete
+    listConversionRules: licenses.list_conversion_rules
+    createConversionRule: licenses.create_conversion_rule
+    getConversionRule: licenses.get_conversion_rule
+    updateConversionRule: licenses.update_conversion_rule
+    archiveConversionRule: licenses.archive_conversion_rule
+    listAiInferences: instances.list_ai_inferences
+    listAiReservations: instances.list_ai_reservations
+
     # components
     list-components: components.list
     get-component: components.get
@@ -86,7 +99,12 @@ core:
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
     getEntitlementUsageMetrics: instances.get_usage
-    reportEntitlementUsageMetric: instances.report_usage
+    # One operation, two report shapes: a number, or one phase of an AI call (kaitencloud.ai
+    # reserves, runs and commits through the last two).
+    reportEntitlementUsageMetric:
+      - instances.report_usage
+      - instances.reserve_ai_usage
+      - instances.commit_ai_usage
     get-instance-integration: instances.get_integration
     create-instance-integration: instances.create_integration
     update-instance-integration: instances.update_integration

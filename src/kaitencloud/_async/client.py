@@ -38,6 +38,7 @@ from .resources import (
     AsyncLicenseFamilies,
     AsyncLicenses,
     AsyncMetadataFields,
+    AsyncModels,
     AsyncReleases,
     AsyncServiceAccounts,
 )
@@ -222,6 +223,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
         self.license_families = AsyncLicenseFamilies(api)
         self.licenses = AsyncLicenses(api)
         self.metadata_fields = AsyncMetadataFields(api)
+        self.models = AsyncModels(api)
         self.releases = AsyncReleases(api)
         self.service_accounts = AsyncServiceAccounts(api)
 

@@ -42,6 +42,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+[project.optional-dependencies]
+openai = ["openai>=3.35.1,<4"]
+anthropic = ["anthropic>=1.15.0,<2"]
+
 [project.urls]
 Homepage = "https://kaiten.sh"
 Documentation = "https://docs.kaiten.sh"
@@ -75,6 +79,7 @@ include = [
     "/examples",
     "/tests",
     "/openapi",
+    "/internal-docs",
     "/scripts",
     "/README.md",
     "/CHANGELOG.md",

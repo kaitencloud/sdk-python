@@ -15,6 +15,7 @@ from .integrations import Integrations
 from .license_families import LicenseFamilies
 from .licenses import Licenses
 from .metadata_fields import MetadataFields
+from .models import Models
 from .releases import Releases
 from .service_accounts import ServiceAccounts
 
@@ -31,6 +32,7 @@ __all__ = [
     "LicenseFamilies",
     "Licenses",
     "MetadataFields",
+    "Models",
     "Releases",
     "ServiceAccounts",
 ]
