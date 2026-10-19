@@ -35,6 +35,7 @@ from contract import contract_api, find_operation, operations, write_errors
 from helpers import ORG_ID, USER_ID, Recorder, body
 
 from kaitencloud import targeting
+from kaitencloud.types import ConversionRates
 
 ID = "5d1e8f3a-2b4c-4d6e-8f0a-1b2c3d4e5f60"
 SAMPLE_ID = "0f9e8d7c-6b5a-4938-8271-605f4e3d2c1b"
@@ -655,6 +656,86 @@ CASES = [
     ),
     Case("delete-user", lambda p: p.users.delete(USER_ID), surface="platform"),
 ]
+
+
+CASES.extend(
+    [
+        Case(
+            "listModels",
+            lambda c: c.models.list(status="ACTIVE", vendor="synthetic", modality="TEXT"),
+        ),
+        Case("getModel", lambda c: c.models.get("synthetic-model")),
+        Case(
+            "createModel",
+            lambda c: c.models.create(
+                name="Synthetic", slug="synthetic-model", vendor="synthetic", modality="TEXT"
+            ),
+        ),
+        Case(
+            "updateModel",
+            lambda c: c.models.update(
+                "synthetic-model", name="Synthetic", vendor="synthetic", modality="TEXT"
+            ),
+        ),
+        Case("deleteModel", lambda c: c.models.delete("synthetic-model")),
+        Case(
+            "listConversionRules",
+            lambda c: c.licenses.list_conversion_rules(
+                "pro", entitlement_slug="credits", model_slug="synthetic-model"
+            ),
+        ),
+        Case("getConversionRule", lambda c: c.licenses.get_conversion_rule("pro", ID)),
+        Case(
+            "createConversionRule",
+            lambda c: c.licenses.create_conversion_rule(
+                "pro", entitlement_slug="credits", rates=ConversionRates(perRequest="1")
+            ),
+        ),
+        Case(
+            "updateConversionRule",
+            lambda c: c.licenses.update_conversion_rule(
+                "pro", ID, rates=ConversionRates(perRequest="2")
+            ),
+        ),
+        Case("archiveConversionRule", lambda c: c.licenses.archive_conversion_rule("pro", ID)),
+        Case(
+            "listAiInferences",
+            lambda c: c.instances.list_ai_inferences(
+                "acme",
+                "credits",
+                from_=NOW,
+                to=LATER,
+                status="COMMITTED",
+                transaction_id="test:1",
+                limit=5,
+            ),
+        ),
+        Case("listAiReservations", lambda c: c.instances.list_ai_reservations("acme", "credits")),
+        Case(
+            "reportEntitlementUsageMetric",
+            lambda c: c.instances.reserve_ai_usage(
+                "acme",
+                "credits",
+                model="synthetic-model",
+                transaction_id="test:1",
+                usage={"input_tokens": 10},
+            ),
+            name="ai-reserve",
+        ),
+        Case(
+            "reportEntitlementUsageMetric",
+            lambda c: c.instances.commit_ai_usage(
+                "acme",
+                "credits",
+                transaction_id="test:1",
+                model="synthetic-model",
+                request_type="COMPLETION",
+                usage={"output_tokens": 2},
+            ),
+            name="ai-commit",
+        ),
+    ]
+)
 
 
 def _invocations() -> list[Any]:

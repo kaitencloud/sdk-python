@@ -15,6 +15,20 @@ from .._models import KaitenModel
 
 __all__ = [
     "AggregationMethod",
+    "AiChargeOnError",
+    "AiCredits",
+    "AiInference",
+    "AiInferencePage",
+    "AiInferenceStatus",
+    "AiRequestStatus",
+    "AiRequestType",
+    "AiReservations",
+    "AiUnitType",
+    "AiUsage",
+    "AiUsageOutcome",
+    "AiUsageOutcomeStatus",
+    "AiUsagePhase",
+    "AiUsageValue",
     "AuditTrail",
     "BasicTargeting",
     "BasicVariant",
@@ -26,6 +40,10 @@ __all__ = [
     "ConnectorSettings",
     "ConnectorSettingsSchema",
     "ConnectorState",
+    "ConversionRates",
+    "ConversionRule",
+    "ConversionRuleStatus",
+    "ConversionRuleUpdated",
     "Customer",
     "CustomerCreationRejected",
     "CustomerIntegration",
@@ -41,10 +59,12 @@ __all__ = [
     "EntitlementUsage",
     "EntitlementValue",
     "ErrorDetail",
+    "EventHeaders",
     "FeatureFlag",
     "FeatureFlagEvaluated",
     "FeatureFlagType",
     "Instance",
+    "InstanceAIModelUsageUnauthorized",
     "InstanceEntitlementCapExceeded",
     "InstanceEntitlementUsagePeriodRolledOver",
     "InstanceEntitlementUsageReportAccepted",
@@ -68,10 +88,16 @@ __all__ = [
     "MetadataFieldImpactSample",
     "MetadataFieldReordered",
     "MetadataResourceType",
+    "Model",
+    "ModelModality",
+    "ModelStatus",
+    "ModelUpdated",
     "NumberEntitlementValue",
     "PlainToken",
     "Problem",
     "Release",
+    "ReportEntitlementUsageBody",
+    "ReportUsageValue",
     "ResetAnchor",
     "ResetPeriod",
     "RolloutDateTargeting",
@@ -95,11 +121,28 @@ __all__ = [
     "UsageReportStatus",
     "User",
     "Variant",
+    "VendorCosts",
 ]
 
 
 AggregationMethod = Literal["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "LATEST"]
 """How each reported usage value folds into an entitlement's stored total."""
+
+AiChargeOnError = Literal["NEVER", "ALWAYS", "PROVIDER_ERROR_ONLY"]
+
+AiInferenceStatus = Literal["RESERVED", "COMMITTED", "RELEASED", "EXPIRED"]
+
+AiRequestStatus = Literal["SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SENT"]
+
+AiRequestType = Literal["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
+
+AiUnitType = Literal["image", "second", "frame"]
+
+AiUsageOutcomeStatus = Literal["RESERVED", "COMMITTED", "RELEASED"]
+
+AiUsagePhase = Literal["reserve", "commit"]
+
+ConversionRuleStatus = Literal["ACTIVE", "ARCHIVED"]
 
 EntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"]
 """The value type of an entitlement in the catalog."""
@@ -124,6 +167,10 @@ LicenseType = Literal["DEVELOPMENT", "TRIAL", "PAID", "COMMUNITY"]
 MetadataResourceType = Literal["DEPLOYMENT_ZONE", "INSTANCE"]
 """The resource a metadata field applies to."""
 
+ModelModality = Literal["TEXT", "IMAGE", "AUDIO", "VIDEO", "EMBEDDING", "MULTIMODAL"]
+
+ModelStatus = Literal["ACTIVE", "DEPRECATED", "ARCHIVED"]
+
 ResetAnchor = Literal["CALENDAR", "LICENSE_START"]
 """What a periodic usage window is aligned on."""
 
@@ -139,6 +186,7 @@ Scope = Literal[
     "read:instances",
     "read:licenses",
     "read:metadata_fields",
+    "read:models",
     "read:notifications",
     "read:organizations",
     "read:releases",
@@ -152,6 +200,7 @@ Scope = Literal[
     "write:instances",
     "write:licenses",
     "write:metadata_fields",
+    "write:models",
     "write:notifications",
     "write:organizations",
     "write:releases",
@@ -170,6 +219,114 @@ UsageBehavior = Literal["append", "set"]
 
 UsageReportStatus = Literal["ACCEPTED", "REJECTED"]
 """Whether a usage report was persisted."""
+
+
+class AiCredits(KaitenModel):
+    charged: str | None = None
+
+    computed: str | None = None
+
+    reserved: str | None = None
+
+
+class AiInference(KaitenModel):
+    authorized: bool | None = None
+
+    committed_at: datetime | None = Field(default=None, alias="committedAt")
+
+    conversion_rule_id: str | None = Field(default=None, alias="conversionRuleId")
+
+    credits: AiCredits
+
+    denial_reason: str | None = Field(default=None, alias="denialReason")
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    model: str
+
+    model_slug: str | None = Field(default=None, alias="modelSlug")
+
+    reported_at: datetime = Field(alias="reportedAt")
+
+    request_status: str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str = Field(alias="requestType")
+
+    status: AiInferenceStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    usage: AiUsage
+
+    value_after: float | None = Field(default=None, alias="valueAfter")
+
+    value_before: float | None = Field(default=None, alias="valueBefore")
+
+    window_start: datetime | None = Field(default=None, alias="windowStart")
+
+
+class AiInferencePage(KaitenModel):
+    has_more: bool = Field(alias="hasMore")
+
+    items: list[AiInference] | None
+
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class AiReservations(KaitenModel):
+    items: list[AiInference] | None
+
+
+class AiUsage(KaitenModel):
+    cache_read_input_tokens: int | None = Field(default=None, alias="cacheReadInputTokens")
+
+    cache_write_input_tokens: int | None = Field(default=None, alias="cacheWriteInputTokens")
+
+    duration_ms: int | None = Field(default=None, alias="durationMs")
+
+    input_tokens: int | None = Field(default=None, alias="inputTokens")
+
+    output_tokens: int | None = Field(default=None, alias="outputTokens")
+
+    unit_type: AiUnitType | str | None = Field(default=None, alias="unitType")
+
+    units: str | None = None
+
+
+class AiUsageOutcome(KaitenModel):
+    authorized: bool | None = None
+
+    credits: AiCredits
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    phase: AiUsagePhase | str
+
+    remaining: str | None
+
+    status: AiUsageOutcomeStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    warnings: list[str]
+
+
+class AiUsageValue(KaitenModel):
+    model: str | None = None
+
+    phase: AiUsagePhase | str
+
+    request_status: AiRequestStatus | str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str | None = Field(default=None, alias="requestType")
+
+    transaction_id: str | None = Field(default=None, alias="transactionId")
+
+    ttl_seconds: int | None = Field(default=None, alias="ttlSeconds")
+
+    type: Literal["ai_usage"]
+
+    usage: AiUsage | None = None
 
 
 class AuditTrail(KaitenModel):
@@ -333,16 +490,66 @@ class ConnectorState(KaitenModel):
     """When this organization activated the connector. Absent when it has not."""
 
     available: bool
-    """Whether this deployment has the connector registered"""
+    """Whether this installation has the connector registered"""
 
     connector_name: str = Field(alias="connectorName")
     """Stable connector identifier"""
 
     entitled: bool
-    """Whether this organization's licence includes the connector. True for an ungated connector."""
+    """Whether this organization's license includes the connector. True for an ungated connector."""
 
     version: str | None = None
     """Registered connector version. Absent when the connector is not available."""
+
+
+class ConversionRates(KaitenModel):
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_second: str | None = Field(default=None, alias="perSecond")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
+
+
+class ConversionRule(KaitenModel):
+    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
+
+    created_at: datetime = Field(alias="createdAt")
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted_by_license: bool = Field(alias="grantedByLicense")
+
+    id: str
+
+    license_slug: str = Field(alias="licenseSlug")
+
+    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
+
+    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
+
+    model_slug: str | None = Field(alias="modelSlug")
+
+    rates: ConversionRates
+
+    request_type: AiRequestType | str | None = Field(alias="requestType")
+
+    status: ConversionRuleStatus | str
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+
+class ConversionRuleUpdated(KaitenModel):
+    after: ConversionRule
+
+    before: ConversionRule
 
 
 class Customer(KaitenModel):
@@ -647,6 +854,9 @@ class EntitlementGroupUsage(KaitenModel):
 class EntitlementUsage(KaitenModel):
     """An instance's consumption of one entitlement, next to the grant it is measured against."""
 
+    ai: AiUsageOutcome | None = None
+    """Outcome of this AI report; absent on ordinary reads"""
+
     current_period_end: datetime | None = Field(default=None, alias="currentPeriodEnd")
     """End of the current usage window (exclusive). Null for a lifetime entitlement (no
     configured reset period).
@@ -674,6 +884,9 @@ class EntitlementUsage(KaitenModel):
     when the license grants no value; -1 means unlimited for a NUMBER entitlement.
     """
 
+    reserved: str | None = None
+    """Open, unexpired reserved credits; present only on AI credit pools"""
+
     value: EntitlementValue
     """Resolved entitlement value, discriminated by the 'type' field"""
 
@@ -689,6 +902,22 @@ class ErrorDetail(KaitenModel):
 
     value: Any | None = None
     """The value at the given location"""
+
+
+class EventHeaders(KaitenModel):
+    baggage: str | None = None
+    """W3C baggage of that request, when it carried any"""
+
+    instance_id: str | None = None
+    """The instance the event concerns, set on the events of one instance. The usage events'
+    payloads do not name it.
+    """
+
+    traceparent: str | None = None
+    """W3C trace context of the request that produced the event"""
+
+    tracestate: str | None = None
+    """W3C trace state of that request, when it carried one"""
 
 
 class FeatureFlag(KaitenModel):
@@ -810,6 +1039,16 @@ class Instance(KaitenModel):
 
     updated_by: User = Field(alias="updatedBy")
     """User who last updated this instance"""
+
+
+class InstanceAIModelUsageUnauthorized(KaitenModel):
+    entitlement_slug: str
+
+    model: str
+
+    reason: str
+
+    request_type: str
 
 
 class InstanceEntitlementCapExceeded(KaitenModel):
@@ -1257,6 +1496,43 @@ class MetadataFieldReordered(KaitenModel):
     """Metadata field ids in their new display order"""
 
 
+class Model(KaitenModel):
+    created_at: datetime = Field(alias="createdAt")
+
+    description: str | None = None
+
+    external_ids: list[str] | None = Field(default=None, alias="externalIds")
+    """Exact provider identifiers, unique per organization; cannot shadow another model's slug"""
+
+    id: str
+
+    metadata: dict[str, Any] | None = None
+
+    modality: ModelModality | str
+
+    name: str
+
+    slug: str
+    """Immutable URL-friendly identifier, unique per organization"""
+
+    status: ModelStatus | str
+    """ACTIVE authorizes usage; DEPRECATED keeps existing rules; ARCHIVED authorizes none.
+    Reversible.
+    """
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    vendor: str
+
+    vendor_costs: VendorCosts | None = Field(default=None, alias="vendorCosts")
+
+
+class ModelUpdated(KaitenModel):
+    after: Model
+
+    before: Model
+
+
 class NumberEntitlementValue(KaitenModel):
     """A numeric entitlement value: a quota, or an amount consumed."""
 
@@ -1355,6 +1631,21 @@ class Release(KaitenModel):
 
     version: str
     """Version of the release"""
+
+
+class ReportEntitlementUsageBody(KaitenModel):
+    behavior: UsageBehavior | str | None = None
+    """Report behavior: append folds the value into the stored total through the aggregation
+    method; set overwrites it
+    """
+
+    metadata: dict[str, Any] | None = None
+    """Optional metadata for the usage report"""
+
+    value: ReportUsageValue
+    """Reported entitlement value, discriminated by the 'type' field. Usage reporting accepts
+    the number variant only.
+    """
 
 
 class RolloutDateTargeting(KaitenModel):
@@ -1471,6 +1762,9 @@ class TargetingContextNode(KaitenModel):
     description: str | None = None
     """What this value means, shown by the editor"""
 
+    entries: list[TargetingContextNode] | None = None
+    """Shape of each known key, for a map whose entries differ. Named after the key"""
+
     fields: list[TargetingContextNode] | None = None
     """Named children, for an object"""
 
@@ -1586,6 +1880,22 @@ class Variant(KaitenModel):
     value: Any
 
 
+class VendorCosts(KaitenModel):
+    currency: Literal["USD"]
+
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
+
+
 DefaultVariant = Annotated[
     BasicVariant | RolloutDateVariant | RolloutPercentageVariant, Field(discriminator="type")
 ]
@@ -1597,6 +1907,8 @@ EntitlementValue = Annotated[
 ]
 """A typed entitlement value, discriminated by ``type``: a number, a boolean or a config object."""
 
+ReportUsageValue = Annotated[NumberEntitlementValue | AiUsageValue, Field(discriminator="type")]
+
 Targeting = Annotated[
     BasicTargeting | RolloutDateTargeting | RolloutPercentageTargeting, Field(discriminator="type")
 ]
@@ -1607,6 +1919,13 @@ Targetings = list[Targeting] | None
 
 
 for _model in (
+    AiCredits,
+    AiInference,
+    AiInferencePage,
+    AiReservations,
+    AiUsage,
+    AiUsageOutcome,
+    AiUsageValue,
     AuditTrail,
     BasicTargeting,
     BasicVariant,
@@ -1618,6 +1937,9 @@ for _model in (
     ConnectorSettings,
     ConnectorSettingsSchema,
     ConnectorState,
+    ConversionRates,
+    ConversionRule,
+    ConversionRuleUpdated,
     Customer,
     CustomerCreationRejected,
     CustomerIntegration,
@@ -1630,9 +1952,11 @@ for _model in (
     EntitlementGroupUsage,
     EntitlementUsage,
     ErrorDetail,
+    EventHeaders,
     FeatureFlag,
     FeatureFlagEvaluated,
     Instance,
+    InstanceAIModelUsageUnauthorized,
     InstanceEntitlementCapExceeded,
     InstanceEntitlementUsagePeriodRolledOver,
     InstanceEntitlementUsageReportAccepted,
@@ -1651,10 +1975,13 @@ for _model in (
     MetadataFieldImpact,
     MetadataFieldImpactSample,
     MetadataFieldReordered,
+    Model,
+    ModelUpdated,
     NumberEntitlementValue,
     PlainToken,
     Problem,
     Release,
+    ReportEntitlementUsageBody,
     RolloutDateTargeting,
     RolloutDateVariant,
     RolloutPercentageTargeting,
@@ -1670,6 +1997,7 @@ for _model in (
     Token,
     User,
     Variant,
+    VendorCosts,
 ):
     _model.model_rebuild()
 del _model

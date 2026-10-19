@@ -8,7 +8,16 @@ from typing import Literal
 
 from ..._types import EntitlementValueInput
 from ..._utils import api_path, compact, entitlement_value
-from ...types import License, LicenseEntitlement, LicenseType
+from ...types import (
+    AiChargeOnError,
+    AiRequestType,
+    ConversionRates,
+    ConversionRule,
+    ConversionRuleStatus,
+    License,
+    LicenseEntitlement,
+    LicenseType,
+)
 from ._base import AsyncResource
 
 __all__ = ["AsyncLicenses"]
@@ -244,4 +253,80 @@ class AsyncLicenses(AsyncResource):
         """Stop granting the entitlement identified by ``entitlement_slug`` under the license."""
         await self._api.send_empty(
             "DELETE", api_path("licenses", license_slug, "entitlements", entitlement_slug)
+        )
+
+    async def list_conversion_rules(
+        self,
+        license_slug: str,
+        *,
+        status: ConversionRuleStatus = "ACTIVE",
+        entitlement_slug: str | None = None,
+        model_slug: str | None = None,
+    ) -> builtins.list[ConversionRule]:
+        return await self._api.get_list(
+            api_path("licenses", license_slug, "conversion-rules"),
+            ConversionRule,
+            params={"status": status, "entitlementSlug": entitlement_slug, "modelSlug": model_slug},
+        )
+
+    async def get_conversion_rule(self, license_slug: str, rule_id: str) -> ConversionRule:
+        return await self._api.get(
+            api_path("licenses", license_slug, "conversion-rules", rule_id), ConversionRule
+        )
+
+    async def create_conversion_rule(
+        self,
+        license_slug: str,
+        *,
+        entitlement_slug: str,
+        rates: ConversionRates,
+        model_slug: str | None = None,
+        request_type: AiRequestType | None = None,
+        minimum_credits_per_request: str = "0",
+        maximum_credits_per_request: str | None = None,
+        charge_on_error: AiChargeOnError = "NEVER",
+    ) -> ConversionRule:
+        body = {
+            "entitlementSlug": entitlement_slug,
+            "rates": rates.to_dict(),
+            "modelSlug": model_slug,
+            "requestType": request_type,
+            "minimumCreditsPerRequest": minimum_credits_per_request,
+            "maximumCreditsPerRequest": maximum_credits_per_request,
+            "chargeOnError": charge_on_error,
+        }
+        return await self._api.send(
+            "POST",
+            api_path("licenses", license_slug, "conversion-rules"),
+            ConversionRule,
+            body=body,
+        )
+
+    async def update_conversion_rule(
+        self,
+        license_slug: str,
+        rule_id: str,
+        *,
+        rates: ConversionRates,
+        minimum_credits_per_request: str = "0",
+        maximum_credits_per_request: str | None = None,
+        charge_on_error: AiChargeOnError = "NEVER",
+    ) -> ConversionRule:
+        """Replace mutable pricing policy, without re-pointing immutable identity fields."""
+        body = {
+            "rates": rates.to_dict(),
+            "minimumCreditsPerRequest": minimum_credits_per_request,
+            "maximumCreditsPerRequest": maximum_credits_per_request,
+            "chargeOnError": charge_on_error,
+        }
+        return await self._api.send(
+            "PUT",
+            api_path("licenses", license_slug, "conversion-rules", rule_id),
+            ConversionRule,
+            body=body,
+        )
+
+    async def archive_conversion_rule(self, license_slug: str, rule_id: str) -> None:
+        await self._api.request(
+            "DELETE", api_path("licenses", license_slug, "conversion-rules", rule_id)
         )

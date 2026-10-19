@@ -29,8 +29,11 @@ from ..._utils import (
     optional_datetime,
 )
 from ...types import (
+    AiInferencePage,
+    AiInferenceStatus,
     AiRequestStatus,
     AiRequestType,
+    AiReservations,
     AiUsageParam,
     AuditTrail,
     EntitlementUsage,
@@ -463,6 +466,48 @@ class Instances(Resource):
         """Remove the instance's link to the ``integration_name`` adapter."""
         self._api.send_empty(
             "DELETE", api_path("instances", instance_slug, "integrations", integration_name)
+        )
+
+    def list_ai_inferences(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        from_: datetime | None = None,
+        to: datetime | None = None,
+        status: AiInferenceStatus | None = None,
+        transaction_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> AiInferencePage:
+        """One newest-first page; pass its next_cursor to fetch the next page."""
+        return self._api.get(
+            api_path(
+                "instances", instance_slug, "entitlements", entitlement_slug, "usage", "inferences"
+            ),
+            AiInferencePage,
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "status": status,
+                "transactionId": transaction_id,
+                "cursor": cursor,
+                "limit": limit,
+            },
+        )
+
+    def list_ai_reservations(self, instance_slug: str, entitlement_slug: str) -> AiReservations:
+        """The pool's open, unexpired reservations."""
+        return self._api.get(
+            api_path(
+                "instances",
+                instance_slug,
+                "entitlements",
+                entitlement_slug,
+                "usage",
+                "reservations",
+            ),
+            AiReservations,
         )
 
 

@@ -20,10 +20,9 @@ from typing import Any, Literal, TypeAlias
 
 from typing_extensions import Required, TypedDict
 
+from ._core import AiUnitType
+
 __all__ = [
-    "AiRequestStatus",
-    "AiRequestType",
-    "AiUnitType",
     "AiUsageParam",
     "BasicTargetingParam",
     "BasicVariantParam",
@@ -129,16 +128,6 @@ class RolloutDateTargetingParam(TypedDict):
 TargetingParam: TypeAlias = (
     BasicTargetingParam | RolloutPercentageTargetingParam | RolloutDateTargetingParam
 )
-
-
-AiRequestType: TypeAlias = Literal["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
-"""What an AI call produced, which picks the conversion rule that prices it."""
-
-AiRequestStatus: TypeAlias = Literal["SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SENT"]
-"""How an AI call ended. ``NOT_SENT``: the provider was never reached, and nothing is charged."""
-
-AiUnitType: TypeAlias = Literal["image", "second", "frame"]
-"""What ``units`` counts in an :class:`AiUsageParam`."""
 
 
 class AiUsageParam(TypedDict, total=False):

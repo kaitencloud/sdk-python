@@ -1,5 +1,221 @@
 components:
   schemas:
+    AiCredits:
+      additionalProperties: false
+      properties:
+        charged:
+          type: string
+        computed:
+          type: string
+        reserved:
+          type: string
+      type: object
+    AiInference:
+      additionalProperties: false
+      properties:
+        authorized:
+          type: boolean
+        committedAt:
+          format: date-time
+          type: string
+        conversionRuleId:
+          type: string
+        credits:
+          $ref: "#/components/schemas/AiCredits"
+        denialReason:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        model:
+          type: string
+        modelSlug:
+          type: string
+        reportedAt:
+          format: date-time
+          type: string
+        requestStatus:
+          type: string
+        requestType:
+          enum:
+            - COMPLETION
+            - EMBEDDING
+            - IMAGE_GENERATION
+            - AUDIO
+            - VIDEO
+          type: string
+        status:
+          enum:
+            - RESERVED
+            - COMMITTED
+            - RELEASED
+            - EXPIRED
+          type: string
+        transactionId:
+          type: string
+        usage:
+          $ref: "#/components/schemas/AiUsage"
+        valueAfter:
+          format: double
+          type: number
+        valueBefore:
+          format: double
+          type: number
+        windowStart:
+          format: date-time
+          type: string
+      required:
+        - transactionId
+        - status
+        - reportedAt
+        - model
+        - requestType
+        - usage
+        - credits
+      type: object
+    AiInferencePage:
+      additionalProperties: false
+      properties:
+        hasMore:
+          type: boolean
+        items:
+          items:
+            $ref: "#/components/schemas/AiInference"
+          type:
+            - array
+            - "null"
+        nextCursor:
+          type: string
+      required:
+        - items
+        - hasMore
+      type: object
+    AiReservations:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/AiInference"
+          type:
+            - array
+            - "null"
+      required:
+        - items
+      type: object
+    AiUsage:
+      additionalProperties: false
+      properties:
+        cacheReadInputTokens:
+          format: int64
+          minimum: 0
+          type: integer
+        cacheWriteInputTokens:
+          format: int64
+          minimum: 0
+          type: integer
+        durationMs:
+          format: int64
+          minimum: 0
+          type: integer
+        inputTokens:
+          format: int64
+          minimum: 0
+          type: integer
+        outputTokens:
+          format: int64
+          minimum: 0
+          type: integer
+        unitType:
+          enum:
+            - image
+            - second
+            - frame
+          type: string
+        units:
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type: string
+      type: object
+    AiUsageOutcome:
+      additionalProperties: false
+      properties:
+        authorized:
+          type: boolean
+        credits:
+          $ref: "#/components/schemas/AiCredits"
+        expiresAt:
+          format: date-time
+          type: string
+        phase:
+          enum:
+            - reserve
+            - commit
+          type: string
+        remaining:
+          type:
+            - string
+            - "null"
+        status:
+          enum:
+            - RESERVED
+            - COMMITTED
+            - RELEASED
+          type: string
+        transactionId:
+          type: string
+        warnings:
+          items:
+            type: string
+          type: array
+      required:
+        - transactionId
+        - phase
+        - status
+        - credits
+        - remaining
+        - warnings
+      type: object
+    AiUsageValue:
+      additionalProperties: false
+      properties:
+        model:
+          maxLength: 255
+          minLength: 1
+          type: string
+        phase:
+          enum:
+            - reserve
+            - commit
+          type: string
+        requestStatus:
+          enum:
+            - SUCCESS
+            - PROVIDER_ERROR
+            - CUSTOMER_ERROR
+            - NOT_SENT
+          type: string
+        requestType:
+          enum:
+            - COMPLETION
+            - EMBEDDING
+            - IMAGE_GENERATION
+            - AUDIO
+            - VIDEO
+          type: string
+        transactionId:
+          type: string
+        ttlSeconds:
+          format: int64
+          type: integer
+        type:
+          enum:
+            - ai_usage
+          type: string
+        usage:
+          $ref: "#/components/schemas/AiUsage"
+      required:
+        - type
+        - phase
+      type: object
     AuditTrail:
       additionalProperties: false
       properties:
@@ -296,7 +512,7 @@ components:
           format: date-time
           type: string
         available:
-          description: Whether this deployment has the connector registered
+          description: Whether this installation has the connector registered
           type: boolean
         connectorName:
           description: Stable connector identifier
@@ -304,7 +520,7 @@ components:
             - kaiten.integration.crm.attio
           type: string
         entitled:
-          description: Whether this organization's licence includes the connector. True for an ungated connector.
+          description: Whether this organization's license includes the connector. True for an ungated connector.
           type: boolean
         version:
           description: Registered connector version. Absent when the connector is not available.
@@ -316,6 +532,168 @@ components:
         - available
         - entitled
         - activated
+      type: object
+    ConversionRates:
+      additionalProperties: false
+      properties:
+        perCacheWriteToken:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perCachedInputToken:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perInputToken:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perOutputToken:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perRequest:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perSecond:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+        perUnit:
+          pattern: ^[0-9]{1,8}(\.[0-9]{1,10})?$
+          type:
+            - string
+            - "null"
+      type: object
+    ConversionRule:
+      additionalProperties: false
+      properties:
+        chargeOnError:
+          enum:
+            - NEVER
+            - ALWAYS
+            - PROVIDER_ERROR_ONLY
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        entitlementSlug:
+          type: string
+        grantedByLicense:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        licenseSlug:
+          type: string
+        maximumCreditsPerRequest:
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type:
+            - string
+            - "null"
+        minimumCreditsPerRequest:
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type: string
+        modelSlug:
+          type:
+            - string
+            - "null"
+        rates:
+          $ref: "#/components/schemas/ConversionRates"
+        requestType:
+          enum:
+            - COMPLETION
+            - EMBEDDING
+            - IMAGE_GENERATION
+            - AUDIO
+            - VIDEO
+            - null
+          type:
+            - string
+            - "null"
+        status:
+          enum:
+            - ACTIVE
+            - ARCHIVED
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - licenseSlug
+        - entitlementSlug
+        - modelSlug
+        - requestType
+        - rates
+        - minimumCreditsPerRequest
+        - maximumCreditsPerRequest
+        - chargeOnError
+        - status
+        - grantedByLicense
+        - createdAt
+        - updatedAt
+      type: object
+    ConversionRuleUpdated:
+      additionalProperties: false
+      properties:
+        after:
+          $ref: "#/components/schemas/ConversionRule"
+        before:
+          $ref: "#/components/schemas/ConversionRule"
+      required:
+        - before
+        - after
+      type: object
+    CreateConversionRuleBody:
+      additionalProperties: false
+      properties:
+        chargeOnError:
+          default: NEVER
+          enum:
+            - NEVER
+            - ALWAYS
+            - PROVIDER_ERROR_ONLY
+          type: string
+        entitlementSlug:
+          minLength: 1
+          type: string
+        maximumCreditsPerRequest:
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type:
+            - string
+            - "null"
+        minimumCreditsPerRequest:
+          default: "0"
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type: string
+        modelSlug:
+          type:
+            - string
+            - "null"
+        rates:
+          $ref: "#/components/schemas/ConversionRates"
+        requestType:
+          enum:
+            - COMPLETION
+            - EMBEDDING
+            - IMAGE_GENERATION
+            - AUDIO
+            - VIDEO
+            - null
+          type:
+            - string
+            - "null"
+      required:
+        - entitlementSlug
+        - rates
       type: object
     Customer:
       additionalProperties: false
@@ -907,6 +1285,9 @@ components:
     EntitlementUsage:
       additionalProperties: false
       properties:
+        ai:
+          $ref: "#/components/schemas/AiUsageOutcome"
+          description: Outcome of this AI report; absent on ordinary reads
         currentPeriodEnd:
           description: End of the current usage window (exclusive). Null for a lifetime entitlement (no configured reset period).
           examples:
@@ -951,6 +1332,9 @@ components:
             - $ref: "#/components/schemas/NumberEntitlementValue"
             - $ref: "#/components/schemas/BooleanEntitlementValue"
             - $ref: "#/components/schemas/ConfigEntitlementValue"
+        reserved:
+          description: Open, unexpired reserved credits; present only on AI credit pools
+          type: string
         value:
           description: Resolved entitlement value, discriminated by the 'type' field
           discriminator:
@@ -1031,6 +1415,23 @@ components:
           type: string
       required:
         - key
+      type: object
+    EventHeaders:
+      additionalProperties: true
+      properties:
+        baggage:
+          description: W3C baggage of that request, when it carried any
+          type: string
+        instance_id:
+          description: The instance the event concerns, set on the events of one instance. The usage events' payloads do not name it.
+          format: uuid
+          type: string
+        traceparent:
+          description: W3C trace context of the request that produced the event
+          type: string
+        tracestate:
+          description: W3C trace state of that request, when it carried one
+          type: string
       type: object
     FeatureFlag:
       additionalProperties: false
@@ -1297,6 +1698,23 @@ components:
         - licenseSlug
         - startLicenseDate
         - endLicenseDate
+      type: object
+    InstanceAIModelUsageUnauthorized:
+      additionalProperties: false
+      properties:
+        entitlement_slug:
+          type: string
+        model:
+          type: string
+        reason:
+          type: string
+        request_type:
+          type: string
+      required:
+        - entitlement_slug
+        - model
+        - request_type
+        - reason
       type: object
     InstanceBody:
       additionalProperties: false
@@ -2096,6 +2514,85 @@ components:
       required:
         - jsonSchema
       type: object
+    Model:
+      additionalProperties: false
+      properties:
+        createdAt:
+          format: date-time
+          readOnly: true
+          type: string
+        description:
+          type: string
+        externalIds:
+          description: Exact provider identifiers, unique per organization; cannot shadow another model's slug
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        id:
+          readOnly: true
+          type: string
+        metadata:
+          additionalProperties: {}
+          type: object
+        modality:
+          enum:
+            - TEXT
+            - IMAGE
+            - AUDIO
+            - VIDEO
+            - EMBEDDING
+            - MULTIMODAL
+          type: string
+        name:
+          maxLength: 100
+          minLength: 1
+          type: string
+        slug:
+          description: Immutable URL-friendly identifier, unique per organization
+          maxLength: 100
+          minLength: 2
+          pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+          type: string
+        status:
+          default: ACTIVE
+          description: ACTIVE authorizes usage; DEPRECATED keeps existing rules; ARCHIVED authorizes none. Reversible.
+          enum:
+            - ACTIVE
+            - DEPRECATED
+            - ARCHIVED
+          type: string
+        updatedAt:
+          format: date-time
+          readOnly: true
+          type: string
+        vendor:
+          maxLength: 100
+          minLength: 1
+          type: string
+        vendorCosts:
+          $ref: "#/components/schemas/VendorCosts"
+      required:
+        - id
+        - name
+        - slug
+        - vendor
+        - modality
+        - status
+        - createdAt
+        - updatedAt
+      type: object
+    ModelUpdated:
+      additionalProperties: false
+      properties:
+        after:
+          $ref: "#/components/schemas/Model"
+        before:
+          $ref: "#/components/schemas/Model"
+      required:
+        - before
+        - after
+      type: object
     Notification:
       additionalProperties: false
       properties:
@@ -2373,6 +2870,23 @@ components:
         - items
         - hasMore
       type: object
+    PageModel:
+      additionalProperties: false
+      properties:
+        hasMore:
+          description: Whether more rows exist beyond this page.
+          type: boolean
+        items:
+          items:
+            $ref: "#/components/schemas/Model"
+          type: array
+        nextCursor:
+          description: Opaque cursor for the next page. Absent when hasMore is false.
+          type: string
+      required:
+        - items
+        - hasMore
+      type: object
     PageRelease:
       additionalProperties: false
       properties:
@@ -2524,7 +3038,7 @@ components:
             - com.kaiten.instance.v1.deployed
           type: string
         group:
-          description: Catalogue group the client renders this under
+          description: Catalog group the client renders this under
           examples:
             - deployments
           type: string
@@ -2542,7 +3056,7 @@ components:
       additionalProperties: false
       properties:
         channels:
-          description: Channels this deployment serves, in display order
+          description: Channels this installation serves, in display order
           items:
             type: string
           type: array
@@ -2726,14 +3240,12 @@ components:
           description: Reported entitlement value, discriminated by the 'type' field. Usage reporting accepts the number variant only.
           discriminator:
             mapping:
-              boolean: "#/components/schemas/BooleanEntitlementValue"
+              ai_usage: "#/components/schemas/AiUsageValue"
               number: "#/components/schemas/NumberEntitlementValue"
-              object: "#/components/schemas/ConfigEntitlementValue"
             propertyName: type
           oneOf:
             - $ref: "#/components/schemas/NumberEntitlementValue"
-            - $ref: "#/components/schemas/BooleanEntitlementValue"
-            - $ref: "#/components/schemas/ConfigEntitlementValue"
+            - $ref: "#/components/schemas/AiUsageValue"
       required:
         - value
       type: object
@@ -2961,6 +3473,11 @@ components:
         description:
           description: What this value means, shown by the editor
           type: string
+        entries:
+          description: Shape of each known key, for a map whose entries differ. Named after the key
+          items:
+            $ref: "#/components/schemas/TargetingContextNode"
+          type: array
         fields:
           description: Named children, for an object
           items:
@@ -3150,6 +3667,42 @@ components:
         - createdAt
         - createdBy
       type: object
+    UpdateConversionRuleBody:
+      additionalProperties: false
+      properties:
+        chargeOnError:
+          default: NEVER
+          enum:
+            - NEVER
+            - ALWAYS
+            - PROVIDER_ERROR_ONLY
+          type: string
+        entitlementSlug:
+          type:
+            - string
+            - "null"
+        maximumCreditsPerRequest:
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type:
+            - string
+            - "null"
+        minimumCreditsPerRequest:
+          default: "0"
+          pattern: ^[0-9]{1,12}(\.[0-9]{1,6})?$
+          type: string
+        modelSlug:
+          type:
+            - string
+            - "null"
+        rates:
+          $ref: "#/components/schemas/ConversionRates"
+        requestType:
+          type:
+            - string
+            - "null"
+      required:
+        - rates
+      type: object
     User:
       additionalProperties: false
       properties:
@@ -3179,6 +3732,35 @@ components:
         - description
         - value
       type: object
+    VendorCosts:
+      additionalProperties: false
+      properties:
+        currency:
+          default: USD
+          enum:
+            - USD
+          type: string
+        perCacheWriteToken:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+        perCachedInputToken:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+        perInputToken:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+        perOutputToken:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+        perRequest:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+        perUnit:
+          pattern: ^[0-9]{1,6}(\.[0-9]{1,12})?$
+          type: string
+      required:
+        - currency
+      type: object
   securitySchemes:
     bearerAuth:
       bearerFormat: JWT
@@ -3194,6 +3776,7 @@ components:
         - read:instances
         - read:licenses
         - read:metadata_fields
+        - read:models
         - read:notifications
         - read:organizations
         - read:releases
@@ -3207,6 +3790,7 @@ components:
         - write:instances
         - write:licenses
         - write:metadata_fields
+        - write:models
         - write:notifications
         - write:organizations
         - write:releases
@@ -3707,7 +4291,7 @@ paths:
       tags:
         - connectors
     put:
-      description: "Activates a registered connector for the authenticated organization. Idempotent: activating an already-active connector succeeds without changing when it was first activated. Refused when the organization's licence does not include the connector."
+      description: "Activates a registered connector for the authenticated organization. Idempotent: activating an already-active connector succeeds without changing when it was first activated. Refused when the organization's license does not include the connector."
       operationId: activate-connector
       parameters:
         - description: Stable connector name
@@ -4023,7 +4607,7 @@ paths:
         - connectors
   /connectors/{connectorName}/state:
     get:
-      description: "Returns whether the connector is registered in this deployment, whether the authenticated organization's licence includes it, and whether the organization has activated it. Answers 200 with `available: false` for a connector this deployment does not have."
+      description: "Returns whether the connector is registered on this installation, whether the authenticated organization's license includes it, and whether the organization has activated it. Answers 200 with `available: false` for a connector this installation does not have."
       operationId: get-connector-state
       parameters:
         - description: Stable connector name
@@ -5614,7 +6198,7 @@ paths:
         - entitlements
   /entitlements/{entitlementSlug}:
     delete:
-      description: Delete an entitlement by its slug
+      description: "Delete an entitlement by its slug. Its usage is deleted with it. An entitlement a license still grants is refused with a 409: remove the grants first."
       operationId: delete-entitlement
       parameters:
         - in: path
@@ -5649,6 +6233,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
           description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
         "422":
           content:
             application/problem+json:
@@ -6165,7 +6755,7 @@ paths:
       tags:
         - featureflags
     put:
-      description: Update a featureflag with the provided details
+      description: Update a featureflag with the provided details. Sending a slug renames the flag; omitting it keeps the current one.
       operationId: update-feature-flag
       parameters:
         - in: path
@@ -6884,6 +7474,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/EntitlementUsage"
           description: OK
+          headers:
+            Idempotent-Replayed:
+              schema:
+                type: string
         "400":
           content:
             application/problem+json:
@@ -6930,6 +7524,166 @@ paths:
         - bearerAuth:
             - write:instances
       summary: Report entitlement usage metric for an instance
+      tags:
+        - instances
+  /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/inferences:
+    get:
+      operationId: listAiInferences
+      parameters:
+        - in: path
+          name: instanceSlug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: entitlementSlug
+          required: true
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: from
+          schema:
+            format: date-time
+            type: string
+        - explode: false
+          in: query
+          name: to
+          schema:
+            format: date-time
+            type: string
+        - explode: false
+          in: query
+          name: status
+          schema:
+            enum:
+              - RESERVED
+              - COMMITTED
+              - RELEASED
+              - EXPIRED
+            type: string
+        - explode: false
+          in: query
+          name: transactionId
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            format: int32
+            maximum: 500
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiInferencePage"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:instances
+      summary: List AI inferences
+      tags:
+        - instances
+  /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/reservations:
+    get:
+      operationId: listAiReservations
+      parameters:
+        - in: path
+          name: instanceSlug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: entitlementSlug
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReservations"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:instances
+      summary: List open AI reservations
       tags:
         - instances
   /instances/{instanceSlug}/integrations/{integrationName}:
@@ -7769,7 +8523,7 @@ paths:
       description: |-
         Create a new license with the provided details. Without familySlug or familyId this creates a new license family and the license becomes its version 1. With one of them it adds the next version to that family (familySlug names it by slug, familyId by identifier; sent together they must agree), and the version number is assigned by the server as the next one in the family's sequence. The version starts PUBLISHED, or DRAFT when lifecycleState says so; ARCHIVED is refused (422 CreateLicense.LifecycleStateNotSettable), because a version is archived with archive-license once it has been on sale.
 
-        Where the deployment limits how many licenses an organization may have, only a new family counts against that limit (409 CreateLicense.EntitlementLimitReached once it is reached): a new version of an existing family never does.
+        Where the installation limits how many licenses an organization may have, only a new family counts against that limit (409 CreateLicense.EntitlementLimitReached once it is reached): a new version of an existing family never does.
       operationId: create-license
       requestBody:
         content:
@@ -8096,6 +8850,369 @@ paths:
         - bearerAuth:
             - write:licenses
       summary: Archive a license version
+      tags:
+        - licenses
+  /licenses/{licenseSlug}/conversion-rules:
+    get:
+      operationId: listConversionRules
+      parameters:
+        - in: path
+          name: licenseSlug
+          required: true
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: status
+          schema:
+            default: ACTIVE
+            enum:
+              - ACTIVE
+              - ARCHIVED
+            type: string
+        - explode: false
+          in: query
+          name: entitlementSlug
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: modelSlug
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ConversionRule"
+                type:
+                  - array
+                  - "null"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:licenses
+      summary: List conversion rules
+      tags:
+        - licenses
+    post:
+      operationId: createConversionRule
+      parameters:
+        - in: path
+          name: licenseSlug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversionRuleBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionRule"
+          description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:licenses
+      summary: Create a conversion rule
+      tags:
+        - licenses
+  /licenses/{licenseSlug}/conversion-rules/{ruleId}:
+    delete:
+      operationId: archiveConversionRule
+      parameters:
+        - in: path
+          name: licenseSlug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: ruleId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:licenses
+      summary: Archive a conversion rule
+      tags:
+        - licenses
+    get:
+      operationId: getConversionRule
+      parameters:
+        - in: path
+          name: licenseSlug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: ruleId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionRule"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:licenses
+      summary: Get a conversion rule
+      tags:
+        - licenses
+    put:
+      operationId: updateConversionRule
+      parameters:
+        - in: path
+          name: licenseSlug
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: ruleId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConversionRuleBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionRule"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:licenses
+      summary: Update a conversion rule
       tags:
         - licenses
   /licenses/{licenseSlug}/entitlements:
@@ -8576,7 +9693,7 @@ paths:
         - licenses
   /metadata-fields:
     get:
-      description: Returns a cursor-paginated page of the active (non-archived) metadata fields declared for the org and the given resource type, ordered by displayOrder then createdAt.
+      description: "Returns a cursor-paginated page of the metadata fields declared for the org and the given resource type, ordered by displayOrder then createdAt. Only active fields are listed, unless includeArchived is set: an archived field's id is what unarchive-metadata-field takes."
       operationId: list-metadata-fields
       parameters:
         - explode: false
@@ -8588,6 +9705,13 @@ paths:
               - DEPLOYMENT_ZONE
               - INSTANCE
             type: string
+        - description: Include archived fields too, each with its archivedAt
+          explode: false
+          in: query
+          name: includeArchived
+          schema:
+            description: Include archived fields too, each with its archivedAt
+            type: boolean
         - description: Opaque pagination cursor from a previous response's nextCursor
           explode: false
           in: query
@@ -8645,7 +9769,7 @@ paths:
       security:
         - bearerAuth:
             - read:metadata_fields
-      summary: List active metadata fields for a resource type
+      summary: List metadata fields for a resource type
       tags:
         - metadataFields
     post:
@@ -9027,6 +10151,313 @@ paths:
       summary: Unarchive a metadata field
       tags:
         - metadataFields
+  /models:
+    get:
+      operationId: listModels
+      parameters:
+        - explode: false
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - description: Page size (default 50, max 200)
+          explode: false
+          in: query
+          name: limit
+          schema:
+            description: Page size (default 50, max 200)
+            format: int32
+            maximum: 200
+            minimum: 1
+            type: integer
+        - explode: false
+          in: query
+          name: status
+          schema:
+            enum:
+              - ACTIVE
+              - DEPRECATED
+              - ARCHIVED
+            type: string
+        - explode: false
+          in: query
+          name: vendor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: modality
+          schema:
+            enum:
+              - TEXT
+              - IMAGE
+              - AUDIO
+              - VIDEO
+              - EMBEDDING
+              - MULTIMODAL
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageModel"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Bad Request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:models
+      summary: List models
+      tags:
+        - models
+    post:
+      operationId: createModel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Model"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Model"
+          description: Created
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:models
+      summary: Create a model
+      tags:
+        - models
+  /models/{modelSlug}:
+    delete:
+      operationId: deleteModel
+      parameters:
+        - in: path
+          name: modelSlug
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:models
+      summary: Delete a model
+      tags:
+        - models
+    get:
+      operationId: getModel
+      parameters:
+        - in: path
+          name: modelSlug
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Model"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - read:models
+      summary: Get a model
+      tags:
+        - models
+    put:
+      operationId: updateModel
+      parameters:
+        - in: path
+          name: modelSlug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Model"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Model"
+          description: OK
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Not Found
+        "409":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Conflict
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+          description: Internal Server Error
+      security:
+        - bearerAuth:
+            - write:models
+      summary: Update a model
+      tags:
+        - models
   /ofrep/v1/evaluate/flags:
     post:
       description: |-
@@ -9941,7 +11372,7 @@ paths:
         - service-accounts
   /v1/notification-preferences:
     get:
-      description: "Every notifiable event, with this user's effective value per channel: their own choice where they made one, the catalogue default otherwise. Events absent from the catalogue of a deployment never appear, which is what keeps high-volume system events out of the feed."
+      description: "Every notifiable event, with this user's effective value per channel: their own choice where they made one, the catalog default otherwise. Events absent from the catalog of an installation never appear, which is what keeps high-volume system events out of the feed."
       operationId: getNotificationPreferences
       responses:
         "200":
@@ -9975,7 +11406,7 @@ paths:
       tags:
         - notifications
     put:
-      description: Stores the signed-in user's choices and answers with the whole matrix. A value that equals the catalogue default is stored as no row at all, so a later change to that default still reaches this user.
+      description: Stores the signed-in user's choices and answers with the whole matrix. A value that equals the catalog default is stored as no row at all, so a later change to that default still reaches this user.
       operationId: putNotificationPreferences
       requestBody:
         content:
@@ -10190,6 +11621,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Component"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10229,6 +11662,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Component"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10268,6 +11703,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Component"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10307,6 +11744,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Customer"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10346,6 +11785,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/CustomerCreationRejected"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10385,6 +11826,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Customer"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10424,6 +11867,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Customer"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10463,6 +11908,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/DeploymentZone"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10502,6 +11949,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/DeploymentZone"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10541,6 +11990,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Deployment"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10580,6 +12031,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/DeploymentZone"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10619,6 +12072,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Entitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10658,6 +12113,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Entitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10697,6 +12154,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Entitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10736,6 +12195,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/EntitlementGroup"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10775,6 +12236,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/EntitlementGroup"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10814,6 +12277,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/EntitlementGroup"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10853,6 +12318,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/FeatureFlag"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10892,6 +12359,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/FeatureFlag"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10931,6 +12400,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/FeatureFlagEvaluated"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10970,6 +12441,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/FeatureFlag"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -10999,7 +12472,7 @@ webhooks:
         - featureflags
   com.kaiten.identity.v1.system_token_issued:
     post:
-      description: "Triggered when a platform credential mints an organization-scoped credential for the `system:kaiten` platform identity inside this organization. Carries the platform credential that performed the mint and the scopes granted, never the credential value. Expect this at the rate an integration refreshes: roughly 120 per day per process at a 15-minute lifetime."
+      description: "Triggered when a platform credential mints an organization-scoped credential for the `system:kaiten` platform identity inside this organization. Carries the platform credential that performed the mint and the scopes granted, never the credential value. Expect this at the rate an integration refreshes: 96 a day per process at a 15-minute lifetime, more if it refreshes before expiry."
       operationId: onSystemOrganizationTokenIssued
       requestBody:
         content:
@@ -11009,6 +12482,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/SystemTokenIssuance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11036,6 +12511,47 @@ webhooks:
       tags:
         - webhooks
         - identity
+  com.kaiten.instance.ai.v1.model_usage_unauthorized:
+    post:
+      description: AI usage was recorded without an authorized model conversion rule.
+      operationId: onInstanceAIModelUsageUnauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/InstanceAIModelUsageUnauthorized"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - INSTANCE_AI_MODEL_USAGE_UNAUTHORIZED
+                  examples:
+                    - INSTANCE_AI_MODEL_USAGE_UNAUTHORIZED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.instance.ai.v1.model_usage_unauthorized
+                  examples:
+                    - com.kaiten.instance.ai.v1.model_usage_unauthorized
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Unauthorized model usage
+      tags:
+        - webhooks
+        - instances
   com.kaiten.instance.entitlement.v1.cap_exceeded:
     post:
       description: Triggered when a SOFT-enforcement entitlement's usage crosses from below the cap to above it. Fires once per crossing.
@@ -11048,6 +12564,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementCapExceeded"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11075,6 +12593,47 @@ webhooks:
       tags:
         - webhooks
         - instances
+  com.kaiten.instance.entitlement.v1.maximum_exceeded:
+    post:
+      description: A committed AI usage charge crossed a soft pool's maximum.
+      operationId: onInstanceEntitlementMaximumExceeded
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/InstanceEntitlementCapExceeded"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - INSTANCE_ENTITLEMENT_MAXIMUM_EXCEEDED
+                  examples:
+                    - INSTANCE_ENTITLEMENT_MAXIMUM_EXCEEDED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.instance.entitlement.v1.maximum_exceeded
+                  examples:
+                    - com.kaiten.instance.entitlement.v1.maximum_exceeded
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Instance entitlement maximum exceeded
+      tags:
+        - webhooks
+        - instances
   com.kaiten.instance.entitlement.v1.usage_period_rolled_over:
     post:
       description: "Triggered once per usage window closed by a report: the entitlement's own stored bucket, and one synthetic event per window skipped entirely since the last report."
@@ -11087,6 +12646,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementUsagePeriodRolledOver"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11126,6 +12687,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/EntitlementUsage"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11165,6 +12728,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementUsageReportAccepted"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11204,6 +12769,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementUsageReportAccepted"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11243,6 +12810,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementUsageWarningThresholdReached"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11282,6 +12851,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceEntitlementValueGet"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11321,6 +12892,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Instance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11360,6 +12933,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Instance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11399,6 +12974,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Instance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11438,6 +13015,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceLifecycleStageChanged"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11477,6 +13056,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Instance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11516,6 +13097,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/InstanceStatusChanged"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11555,6 +13138,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Instance"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11582,6 +13167,129 @@ webhooks:
       tags:
         - webhooks
         - instances
+  com.kaiten.license.conversion_rule.v1.archived:
+    post:
+      description: Conversion rule change.
+      operationId: onArchiveConversionRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/ConversionRule"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - LICENSE_CONVERSION_RULE_ARCHIVED
+                  examples:
+                    - LICENSE_CONVERSION_RULE_ARCHIVED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.license.conversion_rule.v1.archived
+                  examples:
+                    - com.kaiten.license.conversion_rule.v1.archived
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Archive a conversion rule webhook
+      tags:
+        - webhooks
+        - licenses
+  com.kaiten.license.conversion_rule.v1.created:
+    post:
+      description: Conversion rule change.
+      operationId: onCreateConversionRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/ConversionRule"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - LICENSE_CONVERSION_RULE_CREATED
+                  examples:
+                    - LICENSE_CONVERSION_RULE_CREATED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.license.conversion_rule.v1.created
+                  examples:
+                    - com.kaiten.license.conversion_rule.v1.created
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Create a conversion rule webhook
+      tags:
+        - webhooks
+        - licenses
+  com.kaiten.license.conversion_rule.v1.updated:
+    post:
+      description: Conversion rule change.
+      operationId: onUpdateConversionRule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/ConversionRuleUpdated"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - LICENSE_CONVERSION_RULE_UPDATED
+                  examples:
+                    - LICENSE_CONVERSION_RULE_UPDATED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.license.conversion_rule.v1.updated
+                  examples:
+                    - com.kaiten.license.conversion_rule.v1.updated
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Update a conversion rule webhook
+      tags:
+        - webhooks
+        - licenses
   com.kaiten.license.entitlement.v1.assigned:
     post:
       description: Triggered when an entitlement is assigned to a license.
@@ -11594,6 +13302,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseEntitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11633,6 +13343,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseEntitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11672,6 +13384,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseEntitlement"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11711,6 +13425,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11750,6 +13466,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11789,6 +13507,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11828,6 +13548,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11867,6 +13589,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11906,6 +13630,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/License"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11945,6 +13671,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseFamilyView"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -11984,6 +13712,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseFamilyView"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12023,6 +13753,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/LicenseFamilyView"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12062,6 +13794,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/MetadataField"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12101,6 +13835,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/MetadataField"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12140,6 +13876,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/MetadataFieldReordered"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12179,6 +13917,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/MetadataField"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12218,6 +13958,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/MetadataField"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12245,6 +13987,129 @@ webhooks:
       tags:
         - webhooks
         - metadataFields
+  com.kaiten.model.v1.created:
+    post:
+      description: Triggered when a catalogue model is created.
+      operationId: onModelCreated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/Model"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - MODEL_CREATED
+                  examples:
+                    - MODEL_CREATED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.model.v1.created
+                  examples:
+                    - com.kaiten.model.v1.created
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Model Created Webhook
+      tags:
+        - webhooks
+        - models
+  com.kaiten.model.v1.deleted:
+    post:
+      description: Triggered when a catalogue model is deleted.
+      operationId: onModelDeleted
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/Model"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - MODEL_DELETED
+                  examples:
+                    - MODEL_DELETED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.model.v1.deleted
+                  examples:
+                    - com.kaiten.model.v1.deleted
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Model Deleted Webhook
+      tags:
+        - webhooks
+        - models
+  com.kaiten.model.v1.updated:
+    post:
+      description: Triggered when a catalogue model is updated.
+      operationId: onModelUpdated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                data:
+                  $ref: "#/components/schemas/ModelUpdated"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
+                name:
+                  description: Event name
+                  enum:
+                    - MODEL_UPDATED
+                  examples:
+                    - MODEL_UPDATED
+                  type: string
+                type:
+                  description: Event type
+                  enum:
+                    - com.kaiten.model.v1.updated
+                  examples:
+                    - com.kaiten.model.v1.updated
+                  type: string
+              required:
+                - name
+                - type
+                - data
+              type: object
+        required: true
+      responses:
+        "200":
+          description: Webhook processed successfully
+      summary: Model Updated Webhook
+      tags:
+        - webhooks
+        - models
   com.kaiten.release.v1.created:
     post:
       description: Triggered when a new release is created.
@@ -12257,6 +14122,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Release"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:
@@ -12296,6 +14163,8 @@ webhooks:
               properties:
                 data:
                   $ref: "#/components/schemas/Release"
+                headers:
+                  $ref: "#/components/schemas/EventHeaders"
                 name:
                   description: Event name
                   enum:

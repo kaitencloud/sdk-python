@@ -848,3 +848,13 @@ with normalized usage; pricing stays on the server.
 
 See [AI wrapper behavior and limits](internal-docs/AI_WRAPPERS.md), especially
 stream closure, missing audio usage and agent SDK gating constraints.
+
+AI management uses `client.models` (catalogue list/get/create/update/delete) and
+`client.licenses.list_conversion_rules`, `create_conversion_rule`,
+`get_conversion_rule`, `update_conversion_rule`, `archive_conversion_rule`.
+Pass `ConversionRates` and `VendorCosts` from `kaitencloud.types`; decimal rates
+are strings, and no pricing calculation runs in the SDK. Inference history is
+one page at a time via `instances.list_ai_inferences(..., cursor=...)`; its
+`next_cursor` continues the history. `instances.list_ai_reservations` returns
+open reservations. Usage gauges now expose generated `reserved`/`ai` fields.
+The vendored contract's exact revision is recorded in `openapi/source.yaml`.

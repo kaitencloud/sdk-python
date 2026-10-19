@@ -13,6 +13,7 @@ from .integrations import AsyncIntegrations
 from .license_families import AsyncLicenseFamilies
 from .licenses import AsyncLicenses
 from .metadata_fields import AsyncMetadataFields
+from .models import AsyncModels
 from .releases import AsyncReleases
 from .service_accounts import AsyncServiceAccounts
 
@@ -29,6 +30,7 @@ __all__ = [
     "AsyncLicenseFamilies",
     "AsyncLicenses",
     "AsyncMetadataFields",
+    "AsyncModels",
     "AsyncReleases",
     "AsyncServiceAccounts",
 ]

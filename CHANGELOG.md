@@ -9,6 +9,12 @@ public API, a minor version adds to it, and a patch version fixes it.
 
 ### Added
 
+- Regenerated the AI credits contract, including write-only `ReportUsageValue`,
+  typed usage outcomes/gauges and model/conversion-rule events. Original AI
+  response bridge names now alias generated models.
+- Model catalogue CRUD, license conversion-rule management, paged inference
+  history and open reservation reads on both clients.
+
 - Optional OpenAI and Anthropic drop-in clients and existing-client wrappers, with
   allow-listed reserve/call/commit accounting, sync/async streaming settlement,
   pluggable estimates and provider timeout-based reservation lifetimes.

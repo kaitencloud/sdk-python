@@ -11,6 +11,19 @@
 
 core:
   operations:
+    listModels: models.list
+    createModel: models.create
+    getModel: models.get
+    updateModel: models.update
+    deleteModel: models.delete
+    listConversionRules: licenses.list_conversion_rules
+    createConversionRule: licenses.create_conversion_rule
+    getConversionRule: licenses.get_conversion_rule
+    updateConversionRule: licenses.update_conversion_rule
+    archiveConversionRule: licenses.archive_conversion_rule
+    listAiInferences: instances.list_ai_inferences
+    listAiReservations: instances.list_ai_reservations
+
     # components
     list-components: components.list
     get-component: components.get
