@@ -94,6 +94,10 @@ from ._core import (
     Variant,
 )
 from ._params import (
+    AiRequestStatus,
+    AiRequestType,
+    AiUnitType,
+    AiUsageParam,
     BasicTargetingParam,
     BasicVariantParam,
     DefaultVariantParam,
@@ -113,6 +117,10 @@ from ._platform import (
 
 __all__ = [
     "AggregationMethod",
+    "AiRequestStatus",
+    "AiRequestType",
+    "AiUnitType",
+    "AiUsageParam",
     "AuditTrail",
     "BasicTargeting",
     "BasicTargetingParam",

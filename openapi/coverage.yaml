@@ -86,7 +86,12 @@ core:
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
     getEntitlementUsageMetrics: instances.get_usage
-    reportEntitlementUsageMetric: instances.report_usage
+    # One operation, two report shapes: a number, or one phase of an AI call (kaitencloud.ai
+    # reserves, runs and commits through the last two).
+    reportEntitlementUsageMetric:
+      - instances.report_usage
+      - instances.reserve_ai_usage
+      - instances.commit_ai_usage
     get-instance-integration: instances.get_integration
     create-instance-integration: instances.create_integration
     update-instance-integration: instances.update_integration

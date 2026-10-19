@@ -4,11 +4,20 @@
 from __future__ import annotations
 
 import builtins
+import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
-from ..._exceptions import ThresholdExceededError
+from ..._ai import (
+    AI_MAX_RETRIES,
+    AI_RETRY_STATUSES,
+    ai_usage_body,
+    check_transaction_id,
+    new_transaction_id,
+)
+from ..._ai_models import AiEntitlementUsage
+from ..._exceptions import APIStatusError, ThresholdExceededError, make_ai_error
 from ..._utils import (
     api_path,
     compact,
@@ -18,6 +27,9 @@ from ..._utils import (
     optional_datetime,
 )
 from ...types import (
+    AiRequestStatus,
+    AiRequestType,
+    AiUsageParam,
     AuditTrail,
     EntitlementUsage,
     Instance,
@@ -256,6 +268,138 @@ class AsyncInstances(AsyncResource):
             body=body,
             errors={409: ThresholdExceededError},
         )
+
+    async def reserve_ai_usage(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        model: str,
+        request_type: AiRequestType = "COMPLETION",
+        transaction_id: str | None = None,
+        usage: AiUsageParam | None = None,
+        ttl_seconds: int | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> AiEntitlementUsage:
+        """Reserve the credits an AI call is expected to cost, before making it.
+
+        Kaiten prices ``usage`` with the conversion rule for ``model`` and holds the result
+        against the AI credit pool ``entitlement_slug`` until the call is committed with
+        :meth:`commit_ai_usage`, or the reservation expires. Usage does not move: only a
+        commit charges.
+
+        Args:
+            instance_slug: The instance making the call.
+            entitlement_slug: The AI credit pool it draws on.
+            model: The model, as a catalogue slug or a provider id such as ``"gpt-4o"``.
+            request_type: What the call produces: ``"COMPLETION"`` (the default),
+                ``"EMBEDDING"``, ``"IMAGE_GENERATION"``, ``"AUDIO"`` or ``"VIDEO"``.
+            transaction_id: Pairs this reservation with its commit. A fresh UUIDv7 when
+                omitted; read it back from the answer's ``ai.transaction_id``.
+            usage: The estimate to price.
+            ttl_seconds: How long the reservation holds; the server's default otherwise.
+            metadata: Free-form metadata, accepted and not stored.
+
+        Raises:
+            InsufficientCreditsError: The estimate does not fit in what is left of the pool.
+            UnknownModelError: The model is not in the catalogue.
+            ModelNotAuthorizedError: The model is archived, or no rule prices it.
+            TransactionIdReusedError: The transaction id already served another call.
+            AiUsageUnsupportedError: The deployment or the entitlement cannot take AI usage.
+
+        Retried up to three times on a network error and on a 500, 502, 503 or 504, under one
+        ``Idempotency-Key`` and one transaction id: the API answers a repeat with the original.
+        """
+        value = compact(
+            {
+                "type": "ai_usage",
+                "phase": "reserve",
+                "transactionId": check_transaction_id(transaction_id or new_transaction_id()),
+                "model": model,
+                "requestType": request_type,
+                "usage": ai_usage_body(usage) if usage is not None else None,
+                "ttlSeconds": ttl_seconds,
+            }
+        )
+        return await self._report_ai_usage(instance_slug, entitlement_slug, value, metadata)
+
+    async def commit_ai_usage(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        transaction_id: str,
+        request_status: AiRequestStatus = "SUCCESS",
+        usage: AiUsageParam | None = None,
+        model: str | None = None,
+        request_type: AiRequestType | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> AiEntitlementUsage:
+        """Report what an AI call really consumed, and charge the AI credit pool for it.
+
+        Closes the reservation ``transaction_id`` opened. A commit with no reservation behind
+        it is accepted too -- pass ``model`` and ``request_type`` then -- and a commit is never
+        refused for a commercial reason: an unknown model, a call no rule prices or a pool past
+        its limit are recorded, and answered with warnings.
+
+        Args:
+            instance_slug: The instance that made the call.
+            entitlement_slug: The AI credit pool it drew on.
+            transaction_id: The reservation's transaction id.
+            request_status: ``"SUCCESS"`` (the default), ``"PROVIDER_ERROR"``,
+                ``"CUSTOMER_ERROR"``, or ``"NOT_SENT"`` when the provider was never reached:
+                the reservation is released and nothing is charged.
+            usage: What the call consumed, as the provider reported it.
+            model: The model that ran, when it is not the one reserved.
+            request_type: What the call produced, when it is not what was reserved.
+            metadata: Free-form metadata, accepted and not stored.
+
+        Raises:
+            TransactionIdReusedError: The transaction was already committed with another body.
+            AiUsageUnsupportedError: The deployment or the entitlement cannot take AI usage.
+
+        Retried like :meth:`reserve_ai_usage`; a repeat of a commit that landed is answered
+        with the original, and charges nothing more.
+        """
+        value = compact(
+            {
+                "type": "ai_usage",
+                "phase": "commit",
+                "transactionId": check_transaction_id(transaction_id),
+                "requestStatus": request_status,
+                "model": model,
+                "requestType": request_type,
+                "usage": ai_usage_body(usage) if usage is not None else None,
+            }
+        )
+        return await self._report_ai_usage(instance_slug, entitlement_slug, value, metadata)
+
+    async def _report_ai_usage(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        value: dict[str, Any],
+        metadata: Mapping[str, Any] | None,
+    ) -> AiEntitlementUsage:
+        body = compact(
+            {"value": value, "metadata": dict(metadata) if metadata is not None else None}
+        )
+        try:
+            return await self._api.send(
+                "POST",
+                api_path("instances", instance_slug, "entitlements", entitlement_slug, "usage"),
+                AiEntitlementUsage,
+                body=body,
+                idempotent=True,
+                headers={"Idempotency-Key": str(uuid.uuid4())},
+                max_retries=AI_MAX_RETRIES,
+                retry_statuses=AI_RETRY_STATUSES,
+            )
+        except APIStatusError as error:
+            mapped = make_ai_error(error)
+            if mapped is error:
+                raise
+            raise mapped from error
 
     async def get_integration(
         self, instance_slug: str, integration_name: str

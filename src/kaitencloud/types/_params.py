@@ -15,11 +15,16 @@ The builders in :mod:`kaitencloud.targeting` produce the feature flag ones.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, Literal, TypeAlias
 
 from typing_extensions import Required, TypedDict
 
 __all__ = [
+    "AiRequestStatus",
+    "AiRequestType",
+    "AiUnitType",
+    "AiUsageParam",
     "BasicTargetingParam",
     "BasicVariantParam",
     "DefaultVariantParam",
@@ -124,3 +129,43 @@ class RolloutDateTargetingParam(TypedDict):
 TargetingParam: TypeAlias = (
     BasicTargetingParam | RolloutPercentageTargetingParam | RolloutDateTargetingParam
 )
+
+
+AiRequestType: TypeAlias = Literal["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
+"""What an AI call produced, which picks the conversion rule that prices it."""
+
+AiRequestStatus: TypeAlias = Literal["SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SENT"]
+"""How an AI call ended. ``NOT_SENT``: the provider was never reached, and nothing is charged."""
+
+AiUnitType: TypeAlias = Literal["image", "second", "frame"]
+"""What ``units`` counts in an :class:`AiUsageParam`."""
+
+
+class AiUsageParam(TypedDict, total=False):
+    """What an AI call consumed -- or, on a reservation, what it is expected to.
+
+    The token counts are disjoint: ``input_tokens`` is the input neither read from nor written
+    to a cache, so the call's whole input is the sum of the three input fields. The normalisers
+    in :mod:`kaitencloud.ai` build one from a provider's own usage object.
+    """
+
+    input_tokens: int
+    """Input tokens neither read from nor written to a cache."""
+
+    cache_read_input_tokens: int
+    """Input tokens served from the provider's cache."""
+
+    cache_write_input_tokens: int
+    """Input tokens written to the provider's cache."""
+
+    output_tokens: int
+    """Output tokens, reasoning included."""
+
+    units: str | int | Decimal
+    """Generated units -- images, seconds, frames -- counted by ``unit_type``."""
+
+    unit_type: AiUnitType
+    """What ``units`` counts."""
+
+    duration_ms: int
+    """The billable duration, in milliseconds."""

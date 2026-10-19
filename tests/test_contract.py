@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
-from contract import contract_api, find_operation, write_errors
+from contract import contract_api, find_operation, operations, write_errors
 from helpers import ORG_ID, USER_ID, Recorder, body
 
 from kaitencloud import targeting
@@ -723,3 +723,54 @@ def test_every_mapped_operation_has_a_contract_case() -> None:
     for surface in ("core", "platform"):
         mapped = set(coverage()[surface]["operations"])
         assert mapped - covered == set(), f"{surface} operations without a contract case"
+
+
+def _read_schemas(surface: str) -> dict[str, Any]:
+    """Every schema a response or a webhook payload of the contract can reach, by name."""
+    from contract import document
+
+    spec = document(surface)
+    schemas = spec["components"]["schemas"]
+    pending: list[Any] = [
+        response
+        for operation in operations(surface)
+        for code, response in operation.definition["responses"].items()
+        if code.startswith("2")
+    ]
+    pending.append(spec.get("webhooks") or {})
+    reached: dict[str, Any] = {}
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+                name = ref.rsplit("/", 1)[-1]
+                if name not in reached:
+                    reached[name] = schemas[name]
+                    pending.append(schemas[name])
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    return reached
+
+
+def _mentions(node: Any, needle: str) -> bool:
+    if isinstance(node, dict):
+        return any(_mentions(value, needle) for value in node.values())
+    if isinstance(node, list):
+        return any(_mentions(value, needle) for value in node)
+    return node == needle
+
+
+@pytest.mark.parametrize("surface", ["core", "platform"])
+def test_no_read_schema_carries_the_write_only_ai_usage_variant(surface: str) -> None:
+    """``ai_usage`` is a request value only: a response carrying it would break strict decoding.
+
+    ``EntitlementValue`` -- what every usage answer's ``value`` and ``limit`` decode into -- is
+    a closed union, so a released SDK would refuse an answer whose value were ``ai_usage``.
+    """
+    leaking = sorted(
+        name for name, schema in _read_schemas(surface).items() if _mentions(schema, "ai_usage")
+    )
+    assert leaking == []
+    assert "EntitlementUsage" in _read_schemas("core") or surface == "platform"
