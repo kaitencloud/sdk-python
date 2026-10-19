@@ -12,7 +12,7 @@ The provider wrappers do all of this with one changed line::
 
     from kaitencloud.openai import OpenAI      # instead of: from openai import OpenAI
 
-    openai = OpenAI(kaiten=kaiten, instance="acme-prod", pool="chat-credits")
+    openai = OpenAI(kaiten=kaiten, instance="acme-prod", entitlement="chat-credits")
 
 Anything else goes through :func:`run`, which reserves, calls, and commits::
 
@@ -22,7 +22,7 @@ Anything else goes through :func:`run`, which reserves, calls, and commits::
         kaiten,
         lambda: llm.generate(prompt),
         instance="acme-prod",
-        pool="chat-credits",
+        entitlement="chat-credits",
         model="gpt-4o",
         estimate={"input_tokens": 1200, "output_tokens": 800},
         usage=lambda reply: ai.from_openai(reply.usage),
@@ -101,7 +101,7 @@ def reserve(
     kaiten: KaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = ...,
     usage: AiUsageParam | None = ...,
@@ -113,7 +113,7 @@ def reserve(
     kaiten: AsyncKaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = ...,
     usage: AiUsageParam | None = ...,
@@ -124,7 +124,7 @@ def reserve(
     kaiten: KaitenClient | AsyncKaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = "COMPLETION",
     usage: AiUsageParam | None = None,
@@ -138,7 +138,7 @@ def reserve(
     """
     return kaiten.instances.reserve_ai_usage(
         instance,
-        pool,
+        entitlement,
         model=model,
         request_type=request_type,
         usage=usage,
@@ -152,7 +152,7 @@ def commit(
     kaiten: KaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     transaction_id: str,
     request_status: AiRequestStatus = ...,
     usage: AiUsageParam | None = ...,
@@ -164,7 +164,7 @@ def commit(
     kaiten: AsyncKaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     transaction_id: str,
     request_status: AiRequestStatus = ...,
     usage: AiUsageParam | None = ...,
@@ -175,7 +175,7 @@ def commit(
     kaiten: KaitenClient | AsyncKaitenClient,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     transaction_id: str,
     request_status: AiRequestStatus = "SUCCESS",
     usage: AiUsageParam | None = None,
@@ -188,7 +188,7 @@ def commit(
     """
     return kaiten.instances.commit_ai_usage(
         instance,
-        pool,
+        entitlement,
         transaction_id=transaction_id,
         request_status=request_status,
         usage=usage,
@@ -203,7 +203,7 @@ def run(
     fn: Callable[[], T],
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = ...,
     estimate: AiUsageParam | None = ...,
@@ -217,7 +217,7 @@ def run(
     fn: Callable[[], Awaitable[T]],
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = ...,
     estimate: AiUsageParam | None = ...,
@@ -230,7 +230,7 @@ def run(
     fn: Callable[[], Any],
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = "COMPLETION",
     estimate: AiUsageParam | None = None,
@@ -245,7 +245,7 @@ def run(
             function and ``run`` returns an awaitable.
         fn: The provider call, taking no argument.
         instance: The instance making the call.
-        pool: The AI credit pool it draws on.
+        entitlement: The slug of the AI credit entitlement it draws on.
         model: The model, as a catalogue slug or a provider id.
         request_type: What the call produces; ``"COMPLETION"`` by default.
         estimate: The usage to reserve.
@@ -265,7 +265,7 @@ def run(
     """
     options: dict[str, Any] = {
         "instance": instance,
-        "pool": pool,
+        "entitlement": entitlement,
         "model": model,
         "request_type": request_type,
         "estimate": estimate,

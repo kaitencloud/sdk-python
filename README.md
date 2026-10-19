@@ -840,7 +840,7 @@ See the Kaiten trademark policy in the main Kaiten repository.
 
 Use `from kaitencloud.openai import OpenAI` or
 `from kaitencloud.anthropic import Anthropic`, then pass
-`kaiten=client, instance="acme-prod", pool="chat-credits"` alongside your normal
+`kaiten=client, instance="acme-prod", entitlement="chat-credits"` alongside your normal
 provider options. Async drop-in classes and `wrap_openai` / `wrap_anthropic`
 for existing clients are available. Install the corresponding `openai` or
 `anthropic` extra. Every allow-listed call reserves before execution and settles

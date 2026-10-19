@@ -24,11 +24,13 @@ def wrap_anthropic(
     *,
     kaiten: KaitenClient | AsyncKaitenClient,
     instance: str,
-    pool: str,
+    entitlement: str,
     estimator: Estimator | None = None,
 ) -> Any:
     """Meter the allow-list on an existing client; unlisted methods stay provider-owned."""
-    return wrap(client, kaiten, "anthropic", instance=instance, pool=pool, estimator=estimator)
+    return wrap(
+        client, kaiten, "anthropic", instance=instance, entitlement=entitlement, estimator=estimator
+    )
 
 
 def __getattr__(name: str) -> Any:

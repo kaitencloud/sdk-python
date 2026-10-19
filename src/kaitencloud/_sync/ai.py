@@ -51,17 +51,19 @@ class Meter:
         kaiten: KaitenClient,
         *,
         instance: str,
-        pool: str,
+        entitlement: str,
         estimator: Estimator | None = None,
     ) -> None:
         self.kaiten = kaiten
         self.instance = instance
-        self.pool = pool
+        self.entitlement = entitlement
         self.estimator: Estimator = estimator or default_estimator
         self.unsupported = False
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__} instance={self.instance!r} pool={self.pool!r}>"
+        return (
+            f"<{type(self).__name__} instance={self.instance!r} entitlement={self.entitlement!r}>"
+        )
 
     def estimate(self, request: AiRequest) -> AiUsageParam | None:
         """The usage to reserve for ``request``, from the meter's estimator."""
@@ -88,7 +90,7 @@ class Meter:
         try:
             self.kaiten.instances.reserve_ai_usage(
                 self.instance,
-                self.pool,
+                self.entitlement,
                 model=model,
                 request_type=request_type,
                 transaction_id=transaction_id,
@@ -127,13 +129,13 @@ class Meter:
                     "attempting settlement without usage",
                     transaction_id,
                     self.instance,
-                    self.pool,
+                    self.entitlement,
                 )
                 usage = None
         try:
             return self.kaiten.instances.commit_ai_usage(
                 self.instance,
-                self.pool,
+                self.entitlement,
                 transaction_id=transaction_id,
                 request_status=request_status,
                 usage=usage,
@@ -148,7 +150,7 @@ class Meter:
                 "reservation will expire and the call goes unbilled",
                 transaction_id,
                 self.instance,
-                self.pool,
+                self.entitlement,
             )
         return None
 
@@ -197,7 +199,7 @@ class Meter:
                     "attempting settlement without usage",
                     reserved,
                     self.instance,
-                    self.pool,
+                    self.entitlement,
                 )
         self.commit(reserved, usage=actual_usage)
         return result
@@ -208,7 +210,7 @@ class Meter:
                 "Kaiten AI usage is NOT being reported for %s/%s: %s. Calls go through "
                 "unmetered until this client is recreated.",
                 self.instance,
-                self.pool,
+                self.entitlement,
                 error,
             )
         self.unsupported = True
@@ -219,7 +221,7 @@ def run(
     fn: Callable[[], T],
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     model: str,
     request_type: AiRequestType = "COMPLETION",
     estimate: AiUsageParam | None = None,
@@ -228,7 +230,7 @@ def run(
     ttl_seconds: int | None = None,
 ) -> T:
     """One metered call: see :meth:`Meter.run`."""
-    meter = Meter(kaiten, instance=instance, pool=pool)
+    meter = Meter(kaiten, instance=instance, entitlement=entitlement)
     return meter.run(
         fn,
         model=model,

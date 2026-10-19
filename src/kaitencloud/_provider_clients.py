@@ -23,15 +23,19 @@ def wrap(
     provider: str,
     *,
     instance: str,
-    pool: str,
+    entitlement: str,
     estimator: Estimator | None = None,
 ) -> Any:
     if isinstance(kaiten, AsyncKaitenClient):
         return AsyncProvider(
-            client, AsyncMeter(kaiten, instance=instance, pool=pool, estimator=estimator), provider
+            client,
+            AsyncMeter(kaiten, instance=instance, entitlement=entitlement, estimator=estimator),
+            provider,
         )
     return Provider(
-        client, Meter(kaiten, instance=instance, pool=pool, estimator=estimator), provider
+        client,
+        Meter(kaiten, instance=instance, entitlement=entitlement, estimator=estimator),
+        provider,
     )
 
 
@@ -46,12 +50,14 @@ def drop_in(provider: str, name: str, module: str) -> type[Any]:
         *args: Any,
         kaiten: KaitenClient | AsyncKaitenClient | None = None,
         instance: str | None = None,
-        pool: str | None = None,
+        entitlement: str | None = None,
         estimator: Estimator | None = None,
         **kwargs: Any,
     ) -> None:
-        if kaiten is not None and (instance is None or pool is None):
-            raise ValueError("instance and pool are required with kaiten")
+        if "pool" in kwargs:
+            raise TypeError("unexpected keyword argument 'pool'; use 'entitlement' instead")
+        if kaiten is not None and (instance is None or entitlement is None):
+            raise ValueError("instance and entitlement are required with kaiten")
         if kaiten is not None and name.startswith("Async") != isinstance(kaiten, AsyncKaitenClient):
             raise TypeError(
                 "provider and Kaiten clients must both be synchronous or both asynchronous"
@@ -59,8 +65,15 @@ def drop_in(provider: str, name: str, module: str) -> type[Any]:
         base.__init__(self, *args, **kwargs)
         if kaiten is not None:
             assert instance is not None
-            assert pool is not None
-            proxy = wrap(self, kaiten, provider, instance=instance, pool=pool, estimator=estimator)
+            assert entitlement is not None
+            proxy = wrap(
+                self,
+                kaiten,
+                provider,
+                instance=instance,
+                entitlement=entitlement,
+                estimator=estimator,
+            )
             roots = (
                 ("chat", "responses", "embeddings", "images", "audio")
                 if provider == "openai"

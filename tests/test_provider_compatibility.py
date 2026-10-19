@@ -66,7 +66,7 @@ def test_real_drop_in_and_copy_use_mock_transports(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
             ) as client,
         ):
@@ -86,7 +86,7 @@ def test_real_drop_in_and_copy_use_mock_transports(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
             ) as client,
         ):
@@ -153,7 +153,7 @@ def test_real_anthropic_text_stream_does_not_duplicate_text(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
             ) as client,
             client.messages.stream(model="m", max_tokens=3, messages=[]) as stream,
@@ -172,7 +172,7 @@ def test_real_anthropic_text_stream_does_not_duplicate_text(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
             ) as client,
             client.messages.stream(model="m", max_tokens=3, messages=[]) as stream,
@@ -227,7 +227,7 @@ def test_real_openai_chat_stream_reports_final_usage(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
             ) as client,
         ):
@@ -246,7 +246,7 @@ def test_real_openai_chat_stream_reports_final_usage(
                 api_key="synthetic",
                 kaiten=kaiten,
                 instance="i",
-                pool="p",
+                entitlement="p",
                 http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
             ) as client,
         ):

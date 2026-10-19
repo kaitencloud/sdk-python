@@ -26,6 +26,12 @@ public API, a minor version adds to it, and a patch version fixes it.
   of a rule against a customer or an instance.
 - `feature_flags.update(..., slug=...)` renames a flag.
 
+### Changed
+
+- Unreleased AI helpers, meters and provider wrappers select the AI credit entitlement
+  with `entitlement=` rather than `pool=`; the old keyword is not accepted.
+  Low-level instance methods still use `entitlement_slug`, and HTTP routes are unchanged.
+
 ### Fixed
 
 - `feature_flags.update` sends the flag's slug. Without it, Kaiten blanked the slug and the flag

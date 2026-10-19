@@ -119,7 +119,7 @@ def test_provider_reserves_calls_and_commits_without_changing_the_result(
     async def scenario() -> Any:
         client, _ = make_async_client(fake)
         async with client:
-            wrapped = wrap(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap(provider, kaiten=client, instance="i", entitlement="p")
             assert wrapped.unlisted is provider.unlisted
             method = (
                 wrapped.chat.completions.create
@@ -133,7 +133,7 @@ def test_provider_reserves_calls_and_commits_without_changing_the_result(
     else:
         client, _ = make_client(fake)
         with client:
-            wrapped = wrap(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap(provider, kaiten=client, instance="i", entitlement="p")
             assert wrapped.unlisted is provider.unlisted
             method = (
                 wrapped.chat.completions.create
@@ -156,7 +156,7 @@ def test_refusal_prevents_the_provider_and_unsupported_degrades_once(
         client, _ = make_client(fake)
         provider = Provider("reply")
         with client:
-            wrapped = wrap_openai(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
             if status_code == 409:
                 with pytest.raises(InsufficientCreditsError):
                     wrapped.responses.create(model="m", input="x")
@@ -202,7 +202,7 @@ def test_stream_completion_and_partial_close(
     async def scenario() -> None:
         client, _ = make_async_client(fake)
         async with client:
-            wrapped = wrap(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap(provider, kaiten=client, instance="i", entitlement="p")
             if provider_name == "anthropic":
                 async with wrapped.messages.stream(model="m", messages=[], max_tokens=5) as stream:
                     if abandoned:
@@ -227,7 +227,7 @@ def test_stream_completion_and_partial_close(
     else:
         client, _ = make_client(fake)
         with client:
-            wrapped = wrap(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap(provider, kaiten=client, instance="i", entitlement="p")
             if provider_name == "anthropic":
                 with wrapped.messages.stream(model="m", messages=[], max_tokens=5) as stream:
                     next(stream) if abandoned else list(stream)
@@ -257,29 +257,58 @@ def test_commit_failure_does_not_replace_success_and_copy_stays_wrapped(
     client, _ = make_client(fake)
     provider = Provider("reply")
     with client:
-        wrapped = wrap_openai(provider, kaiten=client, instance="i", pool="p")
+        wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
         assert wrapped.with_options(timeout=1).responses.create(model="m") == "reply"
     assert len(fake.commits) == 4
 
 
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("provider_name", ["openai", "anthropic"])
 def test_drop_in_is_a_provider_subclass_and_uses_the_same_loop(
-    make_client: Callable[..., Any], monkeypatch: pytest.MonkeyPatch
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    monkeypatch: pytest.MonkeyPatch,
+    asynchronous: bool,
+    provider_name: str,
 ) -> None:
     from kaitencloud._provider_clients import drop_in
 
-    class OpenAI(Provider):
+    class Base(Provider):
         def __init__(self, **kwargs: Any) -> None:
-            super().__init__(SimpleNamespace(usage={"prompt_tokens": 1, "completion_tokens": 2}))
+            assert "entitlement" not in kwargs
+            super().__init__(SimpleNamespace(usage={"output_tokens": 2}), asynchronous)
 
-    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=OpenAI))
-    client_type = drop_in("openai", "OpenAI", "kaitencloud.openai")
+    name = ("Async" if asynchronous else "") + (
+        "OpenAI" if provider_name == "openai" else "Anthropic"
+    )
+    monkeypatch.setitem(sys.modules, provider_name, SimpleNamespace(**{name: Base}))
+    client_type = drop_in(provider_name, name, f"kaitencloud.{provider_name}")
     fake = FakeKaiten()
-    client, _ = make_client(fake)
-    with client:
-        provider = client_type(kaiten=client, instance="i", pool="p")
-        assert isinstance(provider, OpenAI)
-        provider.responses.create(model="m")
+
+    def call(client: Any) -> Any:
+        provider = client_type(kaiten=client, instance="i", entitlement="p")
+        assert isinstance(provider, Base)
+        method = (
+            provider.responses.create if provider_name == "openai" else provider.messages.create
+        )
+        return method(model="m")
+
+    async def scenario() -> None:
+        client, _ = make_async_client(fake)
+        async with client:
+            await call(client)
+
+    if asynchronous:
+        asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        with client:
+            call(client)
     assert len(fake.commits) == 1
+    assert all(
+        report.request.url.path == "/api/instances/i/entitlements/p/usage"
+        for report in fake.reports
+    )
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -310,7 +339,7 @@ def test_responses_terminal_event_settles_once(
     async def scenario() -> None:
         client, _ = make_async_client(fake)
         async with client:
-            wrapped = wrap_openai(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
             stream = await wrapped.responses.create(model="m", stream=True)
             async with stream:
                 async for _ in stream:
@@ -321,7 +350,7 @@ def test_responses_terminal_event_settles_once(
     else:
         client, _ = make_client(fake)
         with client:
-            wrapped = wrap_openai(provider, kaiten=client, instance="i", pool="p")
+            wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
             with wrapped.responses.create(model="m", stream=True) as stream:
                 list(stream)
     assert "stream_options" not in provider.calls[0]
@@ -350,7 +379,7 @@ def test_remaining_openai_allow_list(make_client: Callable[..., Any], operation:
         result = SimpleNamespace(usage={"prompt_tokens": 3})
     client, _ = make_client(fake)
     with client:
-        target = wrap_openai(Provider(result), kaiten=client, instance="i", pool="p")
+        target = wrap_openai(Provider(result), kaiten=client, instance="i", entitlement="p")
         for part in operation.split("."):
             target = getattr(target, part)
         assert target(model="m") is result
@@ -374,7 +403,7 @@ def test_unread_stream_releases_on_close(
         client, _ = make_async_client(fake)
         async with client:
             stream = await wrap_openai(
-                provider, kaiten=client, instance="i", pool="p"
+                provider, kaiten=client, instance="i", entitlement="p"
             ).responses.create(model="m", stream=True)
             await stream.close()
 
@@ -383,9 +412,9 @@ def test_unread_stream_releases_on_close(
     else:
         client, _ = make_client(fake)
         with client:
-            stream = wrap_openai(provider, kaiten=client, instance="i", pool="p").responses.create(
-                model="m", stream=True
-            )
+            stream = wrap_openai(
+                provider, kaiten=client, instance="i", entitlement="p"
+            ).responses.create(model="m", stream=True)
             stream.close()
     assert fake.commits[0]["requestStatus"] == "NOT_SENT"
 
@@ -413,7 +442,7 @@ def test_stream_read_failure_commits_provider_error_with_partial_usage(
         client, _ = make_async_client(fake)
         async with client:
             stream = await wrap_openai(
-                provider, kaiten=client, instance="i", pool="p"
+                provider, kaiten=client, instance="i", entitlement="p"
             ).responses.create(model="m", stream=True)
             with pytest.raises(httpx.ReadError):
                 await stream.__anext__()
@@ -423,11 +452,56 @@ def test_stream_read_failure_commits_provider_error_with_partial_usage(
     else:
         client, _ = make_client(fake)
         with client:
-            stream = wrap_openai(provider, kaiten=client, instance="i", pool="p").responses.create(
-                model="m", stream=True
-            )
+            stream = wrap_openai(
+                provider, kaiten=client, instance="i", entitlement="p"
+            ).responses.create(model="m", stream=True)
             with pytest.raises(httpx.ReadError):
                 next(stream)
             stream.close()
     assert len(fake.commits) == 1
     assert fake.commits[0]["requestStatus"] == "PROVIDER_ERROR"
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("provider_name", ["openai", "anthropic"])
+@pytest.mark.parametrize("drop_in_client", [False, True])
+@pytest.mark.parametrize("include_entitlement", [False, True])
+def test_provider_entry_points_reject_pool_before_constructing_or_calling_provider(
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    monkeypatch: pytest.MonkeyPatch,
+    asynchronous: bool,
+    provider_name: str,
+    drop_in_client: bool,
+    include_entitlement: bool,
+) -> None:
+    from kaitencloud._provider_clients import drop_in
+
+    fake = FakeKaiten()
+    factory = make_async_client if asynchronous else make_client
+    client, _ = factory(fake)
+    options: dict[str, Any] = {"kaiten": client, "instance": "i", "pool": "p"}
+    if include_entitlement:
+        options["entitlement"] = "p"
+    if drop_in_client:
+        name = ("Async" if asynchronous else "") + (
+            "OpenAI" if provider_name == "openai" else "Anthropic"
+        )
+
+        class Base:
+            def __init__(self, **kwargs: Any) -> None:
+                pytest.fail("provider must not be constructed")
+
+        monkeypatch.setitem(sys.modules, provider_name, SimpleNamespace(**{name: Base}))
+        target = drop_in(provider_name, name, f"kaitencloud.{provider_name}")
+        args = ()
+    else:
+        target = wrap_openai if provider_name == "openai" else wrap_anthropic
+        args = (Provider("reply", asynchronous),)
+    with pytest.raises(TypeError, match="pool"):
+        target(*args, **options)
+    assert fake.reports == []
+    if asynchronous:
+        asyncio.run(client.close())
+    else:
+        client.close()

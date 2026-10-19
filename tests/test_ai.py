@@ -266,12 +266,12 @@ def test_the_client_retry_setting_does_not_change_the_ai_policy(
 
 def test_the_module_phases_go_through_the_client(kaiten: tuple[KaitenClient, FakeKaiten]) -> None:
     client, fake = kaiten
-    reserved = ai.reserve(client, instance=INSTANCE, pool=POOL, model="gpt-4o")
+    reserved = ai.reserve(client, instance=INSTANCE, entitlement=POOL, model="gpt-4o")
     assert reserved.ai is not None
     ai.commit(
         client,
         instance=INSTANCE,
-        pool=POOL,
+        entitlement=POOL,
         transaction_id=reserved.ai.transaction_id,
         request_status="NOT_SENT",
     )
@@ -280,6 +280,10 @@ def test_the_module_phases_go_through_the_client(kaiten: tuple[KaitenClient, Fak
         ("commit", reserved.ai.transaction_id),
     ]
     assert fake.commits[0]["requestStatus"] == "NOT_SENT"
+    assert all(
+        report.request.url.path == f"/api/instances/{INSTANCE}/entitlements/{POOL}/usage"
+        for report in fake.reports
+    )
 
 
 def test_run_reserves_calls_and_commits_the_usage(kaiten: tuple[KaitenClient, FakeKaiten]) -> None:
@@ -294,7 +298,7 @@ def test_run_reserves_calls_and_commits_the_usage(kaiten: tuple[KaitenClient, Fa
         client,
         call,
         instance=INSTANCE,
-        pool=POOL,
+        entitlement=POOL,
         model="gpt-4o",
         estimate={"input_tokens": 100, "output_tokens": 1024},
         usage=lambda reply: ai.from_openai(reply["usage"]),
@@ -321,7 +325,9 @@ def test_run_does_not_call_the_provider_when_the_pool_is_empty(
     fake.refuse("reserve", problem(409, "ThresholdExceeded"))
     called: list[bool] = []
     with pytest.raises(InsufficientCreditsError):
-        ai.run(client, lambda: called.append(True), instance=INSTANCE, pool=POOL, model="gpt-4o")
+        ai.run(
+            client, lambda: called.append(True), instance=INSTANCE, entitlement=POOL, model="gpt-4o"
+        )
     assert called == []
     assert fake.commits == []
 
@@ -359,7 +365,7 @@ def test_run_commits_how_a_failed_call_ended_and_reraises(
         raise error
 
     with pytest.raises(type(error)):
-        ai.run(client, call, instance=INSTANCE, pool=POOL, model="gpt-4o")
+        ai.run(client, call, instance=INSTANCE, entitlement=POOL, model="gpt-4o")
     assert [commit["requestStatus"] for commit in fake.commits] == [expected]
 
 
@@ -369,7 +375,9 @@ def test_run_survives_a_commit_that_keeps_failing(
     client, fake = kaiten
     fake.refuse("commit", *[status(503)] * 4)
     with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
-        result = ai.run(client, lambda: "reply", instance=INSTANCE, pool=POOL, model="gpt-4o")
+        result = ai.run(
+            client, lambda: "reply", instance=INSTANCE, entitlement=POOL, model="gpt-4o"
+        )
     assert result == "reply"
     assert len(fake.commits) == 4
     assert "reservation will expire" in caplog.text
@@ -405,7 +413,7 @@ def test_run_preserves_success_when_usage_extraction_or_validation_fails(
                 return reply
 
             return await ai.run(
-                client, call, instance=INSTANCE, pool=POOL, model="gpt-4o", usage=usage
+                client, call, instance=INSTANCE, entitlement=POOL, model="gpt-4o", usage=usage
             )
 
     with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
@@ -418,7 +426,7 @@ def test_run_preserves_success_when_usage_extraction_or_validation_fails(
                     client,
                     lambda: reply,
                     instance=INSTANCE,
-                    pool=POOL,
+                    entitlement=POOL,
                     model="gpt-4o",
                     usage=usage,
                 )
@@ -449,7 +457,9 @@ def test_run_lets_the_call_through_a_server_without_ai_credits(
     client, fake = kaiten
     fake.refuse("reserve", problem(422, None))
     with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
-        result = ai.run(client, lambda: "reply", instance=INSTANCE, pool=POOL, model="gpt-4o")
+        result = ai.run(
+            client, lambda: "reply", instance=INSTANCE, entitlement=POOL, model="gpt-4o"
+        )
     assert result == "reply"
     assert fake.phases == [("reserve", fake.reports[0].transaction_id)]
     assert "NOT being reported" in caplog.text
@@ -460,7 +470,7 @@ def test_a_meter_logs_an_unsupported_server_once_and_stops_reporting(
 ) -> None:
     client, fake = kaiten
     fake.refuse("reserve", problem(422, "AiUsageUnsupportedEntitlement"))
-    meter = ai.Meter(client, instance=INSTANCE, pool=POOL)
+    meter = ai.Meter(client, instance=INSTANCE, entitlement=POOL)
     with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
         for _ in range(3):
             assert meter.run(lambda: "reply", model="gpt-4o") == "reply"
@@ -478,16 +488,19 @@ def test_the_async_client_runs_the_same_way(make_async_client: Callable[..., Any
             async def call() -> str:
                 return "reply"
 
-            reserved = await ai.reserve(client, instance=INSTANCE, pool=POOL, model="gpt-4o")
+            reserved = await ai.reserve(client, instance=INSTANCE, entitlement=POOL, model="gpt-4o")
             assert reserved.ai is not None
             await ai.commit(
-                client, instance=INSTANCE, pool=POOL, transaction_id=reserved.ai.transaction_id
+                client,
+                instance=INSTANCE,
+                entitlement=POOL,
+                transaction_id=reserved.ai.transaction_id,
             )
             return await ai.run(
                 client,
                 call,
                 instance=INSTANCE,
-                pool=POOL,
+                entitlement=POOL,
                 model="gpt-4o",
                 usage=lambda _: {"output_tokens": 3},
             )
@@ -499,8 +512,52 @@ def test_the_async_client_runs_the_same_way(make_async_client: Callable[..., Any
 
 def test_an_async_client_is_metered_by_an_async_meter() -> None:
     client = AsyncKaitenClient(token="ksh_x", base_url="https://kaiten.test")
-    meter = ai.AsyncMeter(client, instance=INSTANCE, pool=POOL)
-    assert repr(meter) == "<AsyncMeter instance='acme-prod' pool='chat-credits'>"
+    meter = ai.AsyncMeter(client, instance=INSTANCE, entitlement=POOL)
+    assert repr(meter) == "<AsyncMeter instance='acme-prod' entitlement='chat-credits'>"
+    assert meter.entitlement == POOL
+    assert not hasattr(meter, "pool")
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("entry_point", ["reserve", "commit", "run", "meter", "runner"])
+@pytest.mark.parametrize("include_entitlement", [False, True])
+def test_high_level_ai_rejects_the_old_pool_keyword_before_reporting(
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    asynchronous: bool,
+    entry_point: str,
+    include_entitlement: bool,
+) -> None:
+    from kaitencloud._async.ai import async_run
+    from kaitencloud._sync.ai import run
+
+    fake = FakeKaiten()
+    factory = make_async_client if asynchronous else make_client
+    client, _ = factory(fake)
+    options: dict[str, Any] = {"instance": INSTANCE, "pool": POOL}
+    if include_entitlement:
+        options["entitlement"] = POOL
+    args: tuple[Any, ...] = (client,)
+    if entry_point == "meter":
+        target = ai.AsyncMeter if asynchronous else ai.Meter
+    elif entry_point == "runner":
+        target = async_run if asynchronous else run
+    else:
+        target = getattr(ai, entry_point)
+    if entry_point in ("run", "runner"):
+        args += (lambda: pytest.fail("provider must not be called"),)
+    if entry_point == "commit":
+        options["transaction_id"] = "t1"
+    elif entry_point != "meter":
+        options["model"] = "gpt-4o"
+
+    with pytest.raises(TypeError, match="pool"):
+        target(*args, **options)
+    assert fake.reports == []
+    if asynchronous:
+        asyncio.run(client.close())
+    else:
+        client.close()
 
 
 # -- transaction ids, normalisers, estimation ----------------------------------------------
@@ -648,6 +705,7 @@ def test_an_image_generation_reserves_its_images() -> None:
         (600.0, 600),
         (12.2, 13),
         (httpx.Timeout(30.0, connect=10.0), 30),
+        (httpx.Timeout(1.0, pool=90.0), 90),
         (httpx.Timeout(None), None),
         (7200, 3600),
         (None, None),

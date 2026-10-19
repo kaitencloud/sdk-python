@@ -12,14 +12,14 @@ Install `kaitencloud[openai]` (OpenAI 3.x, >=3.35.1) or
 from kaitencloud.openai import OpenAI
 
 provider = OpenAI(
-    api_key="your-provider-key", kaiten=kaiten, instance="acme-prod", pool="chat-credits"
+    api_key="your-provider-key", kaiten=kaiten, instance="acme-prod", entitlement="chat-credits"
 )
 reply = provider.chat.completions.create(model="your-model", messages=messages)
 ```
 
 `AsyncOpenAI`, `Anthropic` and `AsyncAnthropic` use the same keyword options.
 Provider and Kaiten clients must both be sync or both be async. An existing
-client can be delegated with `wrap_openai(client, kaiten=..., instance=..., pool=...)`
+client can be delegated with `wrap_openai(client, kaiten=..., instance=..., entitlement=...)`
 or `wrap_anthropic(...)`. The wrapper does not own a supplied client's lifetime;
 `close()` and context-manager exit delegate to that client. Copies made with
 `copy()` / `with_options()` retain the meter.
