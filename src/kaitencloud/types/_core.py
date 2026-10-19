@@ -1048,7 +1048,7 @@ class InstanceAIModelUsageUnauthorized(KaitenModel):
 
     reason: str
 
-    request_type: str
+    request_type: str = Field(alias="requestType")
 
 
 class InstanceEntitlementCapExceeded(KaitenModel):
