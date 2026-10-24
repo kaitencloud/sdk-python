@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import builtins
-import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
@@ -311,7 +310,8 @@ class AsyncInstances(AsyncResource):
             AiUsageUnsupportedError: The deployment or the entitlement cannot take AI usage.
 
         Retried up to three times on a network error and on a 500, 502, 503 or 504, under one
-        ``Idempotency-Key`` and one transaction id: the API answers a repeat with the original.
+        transaction id and an identical phase/body: the API answers a repeat with the original.
+        AI reports must not send ``Idempotency-Key``; the server rejects that header.
         """
         value = compact(
             {
@@ -394,7 +394,7 @@ class AsyncInstances(AsyncResource):
                 AiEntitlementUsage,
                 body=body,
                 idempotent=True,
-                headers={"Idempotency-Key": str(uuid.uuid4())},
+                omit_headers=("Idempotency-Key",),
                 max_retries=AI_MAX_RETRIES,
                 retry_statuses=AI_RETRY_STATUSES,
             )

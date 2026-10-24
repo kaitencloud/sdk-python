@@ -76,6 +76,7 @@ class FakeKaiten:
         body = json.loads(request.content)
         value = body["value"]
         assert value["type"] == "ai_usage", value
+        assert "idempotency-key" not in request.headers, "AI phases use value.transactionId"
         self.reports.append(Report(value, body, request))
         queued = self.script.get(value["phase"])
         if queued:

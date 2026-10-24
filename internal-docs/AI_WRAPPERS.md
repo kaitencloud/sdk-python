@@ -3,6 +3,20 @@
 The server prices every call. The SDK sends only model, request type and usage;
 no prompts, responses or vendor prices are sent to Kaiten.
 
+AI pools are `NUMBER_AI_CREDIT` entitlements with numeric `SUM` usage. Grants
+and usage reads still use the `number` value shape; `ai_usage` is only the
+reserve/commit calculation input. Credit adjustments/refunds use numeric
+`report_usage(..., behavior="append")`, never `set`.
+
+Reserve and commit share `value.transactionId`; retries repeat the identical
+phase/body. The server rejects `Idempotency-Key` on AI reports, so these phases
+omit it case-insensitively, including SDK and supplied HTTP-client defaults;
+numeric reports keep their configured headers. Decimal units accept integers, strings or `Decimal`
+(12 integer digits and at most 6 decimal places), not binary floats. Conversion
+rates and credit outcomes remain decimal strings. An omitted cache rate is
+unknown policy, not an explicit zero/free rate; leave it omitted unless a rate
+is known, and let the server determine pricing and warnings.
+
 ## Provider clients
 
 Install `kaitencloud[openai]` (OpenAI 3.x, >=3.35.1) or

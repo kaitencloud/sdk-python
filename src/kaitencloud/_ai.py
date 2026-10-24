@@ -75,7 +75,7 @@ def new_transaction_id() -> str:
 
 def check_transaction_id(value: str) -> str:
     """``value``, when the API accepts it as a transaction id; ``ValueError`` otherwise."""
-    if not isinstance(value, str) or not _TRANSACTION_ID.match(value):
+    if not isinstance(value, str) or not _TRANSACTION_ID.fullmatch(value):
         raise ValueError(
             "a transaction id is 1 to 128 characters among letters, digits and . _ : -, "
             f"got {value!r}"
@@ -113,7 +113,12 @@ def _decimal_string(value: object) -> str:
         raise ValueError(f"usage units must be a decimal number, got {value!r}") from error
     if not number.is_finite() or number < 0:
         raise ValueError(f"usage units must be zero or more, got {value!r}")
-    return format(number, "f")
+    text = format(number, "f")
+    if re.fullmatch(r"[0-9]{1,12}(\.[0-9]{1,6})?", text) is None:
+        raise ValueError(
+            "usage units must have 1 to 12 integer digits and at most 6 decimal places"
+        )
+    return text
 
 
 def add_usage(*usages: AiUsageParam | None) -> AiUsageParam:

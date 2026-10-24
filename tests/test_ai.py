@@ -6,14 +6,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import uuid
 from collections.abc import Callable
+from decimal import Decimal
 from typing import Any
 
 import httpx
 import pytest
-from ai_fakes import FakeKaiten, network_error, problem, status
+from ai_fakes import USAGE, FakeKaiten, network_error, problem, status
 
 from kaitencloud import (
     AiUsageUnsupportedError,
@@ -70,14 +72,82 @@ def test_a_reservation_sends_the_ai_variant_and_a_fresh_uuid7(
         }
     }
     assert uuid.UUID(report.transaction_id).version == 7
-    assert report.key is not None
-    assert uuid.UUID(report.key).version == 4
+    assert report.key is None
     assert answer.ai is not None
     assert answer.ai.transaction_id == report.transaction_id
     assert answer.ai.status == "RESERVED"
     assert answer.ai.credits.reserved == "6.6"
     assert answer.reserved == "6.6"
     assert answer.value.type == "number"
+
+
+@pytest.mark.usefixtures("delays")
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("source", ["sdk", "httpx", "both"])
+def test_ai_phases_omit_inherited_keys_without_changing_numeric_reports(
+    asynchronous: bool, source: str
+) -> None:
+    fake = FakeKaiten()
+    fake.refuse("reserve", status(503))
+    fake.refuse("commit", status(503))
+    numeric: list[httpx.Request] = []
+    sdk_headers = {"iDeMpOtEnCy-KeY": "sdk-event"} if source != "httpx" else {}
+    http_headers = {"IDEMPOTENCY-KEY": "http-event"} if source != "sdk" else {}
+    http_headers["X-Request-Source"] = "billing"
+    expected_key = "http-event" if source == "httpx" else "sdk-event"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["x-request-source"] == "billing"
+        if json.loads(request.content)["value"]["type"] == "ai_usage":
+            return fake(request)
+        numeric.append(request)
+        return httpx.Response(200, json=USAGE)
+
+    async def scenario() -> None:
+        async with (
+            httpx.AsyncClient(
+                transport=httpx.MockTransport(handler), headers=http_headers
+            ) as http_client,
+            AsyncKaitenClient(
+                base_url="https://kaiten.test",
+                token="ksh_test",
+                default_headers=sdk_headers,
+                http_client=http_client,
+            ) as client,
+        ):
+            await client.instances.report_usage(INSTANCE, POOL, 1)
+            await client.instances.reserve_ai_usage(
+                INSTANCE, POOL, model="synthetic", transaction_id="call-1"
+            )
+            await client.instances.commit_ai_usage(INSTANCE, POOL, transaction_id="call-1")
+            await client.instances.report_usage(INSTANCE, POOL, 1)
+
+    if asynchronous:
+        asyncio.run(scenario())
+    else:
+        with (
+            httpx.Client(
+                transport=httpx.MockTransport(handler), headers=http_headers
+            ) as http_client,
+            KaitenClient(
+                base_url="https://kaiten.test",
+                token="ksh_test",
+                default_headers=sdk_headers,
+                http_client=http_client,
+            ) as client,
+        ):
+            client.instances.report_usage(INSTANCE, POOL, 1)
+            client.instances.reserve_ai_usage(
+                INSTANCE, POOL, model="synthetic", transaction_id="call-1"
+            )
+            client.instances.commit_ai_usage(INSTANCE, POOL, transaction_id="call-1")
+            client.instances.report_usage(INSTANCE, POOL, 1)
+
+    assert len(fake.reports) == 4
+    assert all(report.key is None for report in fake.reports)
+    assert len(numeric) == 2
+    assert all(request.headers["idempotency-key"] == expected_key for request in numeric)
+    assert sdk_headers == ({"iDeMpOtEnCy-KeY": "sdk-event"} if source != "httpx" else {})
 
 
 def test_a_commit_sends_only_what_the_reservation_does_not_know(
@@ -131,7 +201,7 @@ def test_a_commit_without_a_reservation_names_what_ran(
     }
 
 
-@pytest.mark.parametrize("transaction_id", ["", "has space", "a" * 129, "slash/no"])
+@pytest.mark.parametrize("transaction_id", ["", "has space", "a" * 129, "slash/no", "valid\n"])
 def test_a_transaction_id_the_api_would_refuse_is_refused_before_sending(
     kaiten: tuple[KaitenClient, FakeKaiten], transaction_id: str
 ) -> None:
@@ -143,7 +213,16 @@ def test_a_transaction_id_the_api_would_refuse_is_refused_before_sending(
 
 @pytest.mark.parametrize(
     "usage",
-    [{"input_tokens": -1}, {"output_tokens": 1.5}, {"units": "-2"}, {"tokens": 3}],
+    [
+        {"input_tokens": -1},
+        {"output_tokens": 1.5},
+        {"units": "-2"},
+        {"units": "0.0000001"},
+        {"units": "1000000000000"},
+        {"units": 0.1},
+        {"units": "NaN"},
+        {"tokens": 3},
+    ],
 )
 def test_a_malformed_usage_is_refused_before_sending(
     kaiten: tuple[KaitenClient, FakeKaiten], usage: Any
@@ -152,6 +231,15 @@ def test_a_malformed_usage_is_refused_before_sending(
     with pytest.raises(ValueError, match="usage"):
         client.instances.reserve_ai_usage(INSTANCE, POOL, model="gpt-4o", usage=usage)
     assert fake.reports == []
+
+
+@pytest.mark.parametrize("units", ["999999999999.123456", Decimal("0.000001"), 0])
+def test_units_keep_exact_contract_precision(
+    kaiten: tuple[KaitenClient, FakeKaiten], units: Any
+) -> None:
+    client, fake = kaiten
+    client.instances.reserve_ai_usage(INSTANCE, POOL, model="gpt-4o", usage={"units": units})
+    assert fake.reports[0].value["usage"]["units"] == format(Decimal(units), "f")
 
 
 # -- errors ---------------------------------------------------------------------------------
@@ -213,7 +301,7 @@ def test_a_malformed_ai_body_is_not_mistaken_for_an_old_server(
 @pytest.mark.parametrize(
     "failure", [status(500), status(502), status(503), status(504), network_error]
 )
-def test_a_commit_is_retried_under_one_key_and_one_transaction_id(
+def test_a_commit_is_retried_with_identical_body_and_no_idempotency_header(
     kaiten: tuple[KaitenClient, FakeKaiten], failure: Any
 ) -> None:
     client, fake = kaiten
@@ -221,8 +309,9 @@ def test_a_commit_is_retried_under_one_key_and_one_transaction_id(
     client.instances.commit_ai_usage(INSTANCE, POOL, transaction_id="t1")
 
     assert len(fake.reports) == 3
-    assert {report.key for report in fake.reports} == {fake.reports[0].key}
+    assert {report.key for report in fake.reports} == {None}
     assert {report.transaction_id for report in fake.reports} == {"t1"}
+    assert all(report.body == fake.reports[0].body for report in fake.reports)
 
 
 def test_a_commit_gives_up_after_three_retries(kaiten: tuple[KaitenClient, FakeKaiten]) -> None:
@@ -244,11 +333,14 @@ def test_a_commit_is_not_retried_outside_its_statuses(
     assert len(fake.reports) == 1
 
 
-def test_each_logical_call_has_its_own_key(kaiten: tuple[KaitenClient, FakeKaiten]) -> None:
+def test_phase_replays_do_not_generate_an_idempotency_header(
+    kaiten: tuple[KaitenClient, FakeKaiten],
+) -> None:
     client, fake = kaiten
     client.instances.commit_ai_usage(INSTANCE, POOL, transaction_id="t1")
     client.instances.commit_ai_usage(INSTANCE, POOL, transaction_id="t1")
-    assert fake.reports[0].key != fake.reports[1].key
+    assert all(report.key is None for report in fake.reports)
+    assert fake.reports[0].body == fake.reports[1].body
 
 
 def test_the_client_retry_setting_does_not_change_the_ai_policy(

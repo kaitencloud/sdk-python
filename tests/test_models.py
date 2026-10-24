@@ -156,6 +156,17 @@ def test_report_usage_union_is_generated_without_widening_entitlement_values() -
     assert AiEntitlementUsage is EntitlementUsage
 
 
+def test_conversion_rates_preserve_exact_decimals_and_unknown_cache_policy() -> None:
+    from kaitencloud.types import ConversionRates
+
+    rates = ConversionRates(per_input_token="0.000000000123456789")
+    assert rates.to_dict() == {"perInputToken": "0.000000000123456789"}
+    assert rates.per_cached_input_token is None
+    assert rates.per_cache_write_token is None
+    free_cache = ConversionRates(per_cached_input_token="0", per_cache_write_token="0")
+    assert free_cache.to_dict() == {"perCachedInputToken": "0", "perCacheWriteToken": "0"}
+
+
 def test_nullable_rule_request_type_reuses_the_generated_enum() -> None:
     from generate_models import ModelModule
 

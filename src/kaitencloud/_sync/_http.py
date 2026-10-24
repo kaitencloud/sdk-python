@@ -101,6 +101,7 @@ class APIClient:
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
         headers: Mapping[str, str] | None = None,
+        omit_headers: Collection[str] = (),
         max_retries: int | None = None,
         retry_statuses: Collection[int] | None = None,
     ) -> httpx.Response:
@@ -113,6 +114,8 @@ class APIClient:
         only burns the rate budget.
 
         ``headers`` are sent on every attempt, so a key in them is the same on each retry.
+        ``omit_headers`` removes case-insensitive names after merging all defaults, including
+        those on a supplied HTTP client, without changing either client's configuration.
         ``max_retries`` and ``retry_statuses`` narrow the policy for one call: the AI usage
         phases retry a fixed number of times, on a fixed set of statuses.
         """
@@ -129,6 +132,9 @@ class APIClient:
                 body=body,
                 headers={**self._headers(), **(headers or {})},
             )
+            for name in omit_headers:
+                if name in request.headers:
+                    del request.headers[name]
             try:
                 response = self.http_client.send(request)
             except httpx.TransportError as error:
@@ -187,6 +193,7 @@ class APIClient:
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
         headers: Mapping[str, str] | None = None,
+        omit_headers: Collection[str] = (),
         max_retries: int | None = None,
         retry_statuses: Collection[int] | None = None,
     ) -> ModelT:
@@ -198,6 +205,7 @@ class APIClient:
             idempotent=idempotent,
             errors=errors,
             headers=headers,
+            omit_headers=omit_headers,
             max_retries=max_retries,
             retry_statuses=retry_statuses,
         )
