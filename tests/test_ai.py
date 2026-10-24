@@ -283,7 +283,14 @@ def test_running_out_of_credits_is_also_a_reached_threshold(
 
 
 @pytest.mark.parametrize(
-    "code", ["InvalidAiUsage", "TransactionIdRequired", "AiUsageRequiresAppend"]
+    "code",
+    [
+        "InvalidAiUsage",
+        "TransactionIdRequired",
+        "AiUsageRequiresAppend",
+        "AiIdempotencyKeyUnsupported",
+        "FutureValidationCode",
+    ],
 )
 def test_a_malformed_ai_body_is_not_mistaken_for_an_old_server(
     kaiten: tuple[KaitenClient, FakeKaiten], code: str

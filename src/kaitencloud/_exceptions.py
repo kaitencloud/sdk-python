@@ -252,17 +252,9 @@ def make_status_error(
     return error_class(_message(response, problem), response=response, problem=problem)
 
 
-# The 422 codes an AI usage report can answer with on a deployment that knows the variant.
-# Any other 422 to such a report means the deployment does not.
-_AI_INVALID_CODES = frozenset(
-    {
-        "TransactionIdRequired",
-        "InvalidTransactionId",
-        "InvalidAiUsage",
-        "AiUsageRequiresAppend",
-        "AiCreditPoolAppendOnly",
-    }
-)
+# Only known capability/legacy validation responses mean AI usage is unsupported.
+# Unknown validation codes must remain caller errors, not enable unmetered fallback.
+_AI_UNSUPPORTED_CODES = frozenset({"", "InvalidValueType", "AiUsageUnsupportedEntitlement"})
 
 
 def make_ai_error(error: APIStatusError) -> APIStatusError:
@@ -283,7 +275,7 @@ def make_ai_error(error: APIStatusError) -> APIStatusError:
             "UnknownModel": UnknownModelError,
             "ModelNotAuthorized": ModelNotAuthorizedError,
         }.get(reason)
-        if target is None and reason not in _AI_INVALID_CODES:
+        if target is None and reason in _AI_UNSUPPORTED_CODES:
             target = AiUsageUnsupportedError
     if target is None:
         return error
