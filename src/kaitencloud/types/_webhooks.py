@@ -15,6 +15,8 @@ from pydantic import Field
 from .._models import KaitenModel
 from ._core import (
     Component,
+    ConversionRule,
+    ConversionRuleUpdated,
     Customer,
     CustomerCreationRejected,
     Deployment,
@@ -25,6 +27,7 @@ from ._core import (
     FeatureFlag,
     FeatureFlagEvaluated,
     Instance,
+    InstanceAIModelUsageUnauthorized,
     InstanceEntitlementCapExceeded,
     InstanceEntitlementUsagePeriodRolledOver,
     InstanceEntitlementUsageReportAccepted,
@@ -37,15 +40,19 @@ from ._core import (
     LicenseFamilyView,
     MetadataField,
     MetadataFieldReordered,
+    Model,
+    ModelUpdated,
     Release,
     SystemTokenIssuance,
 )
 
 __all__ = [
     "WEBHOOK_EVENTS",
+    "ArchiveConversionRuleEvent",
     "ComponentCreatedEvent",
     "ComponentDeletedEvent",
     "ComponentUpdatedEvent",
+    "CreateConversionRuleEvent",
     "CustomerCreatedEvent",
     "CustomerCreationRejectedEvent",
     "CustomerDeletedEvent",
@@ -63,10 +70,12 @@ __all__ = [
     "FeatureFlagDeletedEvent",
     "FeatureFlagEvaluatedEvent",
     "FeatureFlagUpdatedEvent",
+    "InstanceAIModelUsageUnauthorizedEvent",
     "InstanceCreatedEvent",
     "InstanceDeletedEvent",
     "InstanceDeployedEvent",
     "InstanceEntitlementCapExceededEvent",
+    "InstanceEntitlementMaximumExceededEvent",
     "InstanceEntitlementUsagePeriodRolledOverEvent",
     "InstanceEntitlementUsageReachedEvent",
     "InstanceEntitlementUsageReportAcceptedEvent",
@@ -94,10 +103,14 @@ __all__ = [
     "MetadataFieldReorderedEvent",
     "MetadataFieldUnarchivedEvent",
     "MetadataFieldUpdatedEvent",
+    "ModelCreatedEvent",
+    "ModelDeletedEvent",
+    "ModelUpdatedEvent",
     "ReleaseCreatedEvent",
     "ReleaseDeletedEvent",
     "ReleaseDeployedEvent",
     "SystemOrganizationTokenIssuedEvent",
+    "UpdateConversionRuleEvent",
     "WebhookEvent",
 ]
 
@@ -416,8 +429,9 @@ class SystemOrganizationTokenIssuedEvent(KaitenModel):
     """Triggered when a platform credential mints an organization-scoped credential for the
     `system:kaiten` platform identity inside this organization. Carries the platform
     credential that performed the mint and the scopes granted, never the credential value.
-    Expect this at the rate an integration refreshes: roughly 120 per day per process at a
-    15-minute lifetime. Delivered as ``com.kaiten.identity.v1.system_token_issued``.
+    Expect this at the rate an integration refreshes: 96 a day per process at a 15-minute
+    lifetime, more if it refreshes before expiry. Delivered as
+    ``com.kaiten.identity.v1.system_token_issued``.
     """
 
     name: Literal["SYSTEM_ORGANIZATION_TOKEN_ISSUED"]
@@ -427,6 +441,21 @@ class SystemOrganizationTokenIssuedEvent(KaitenModel):
     """The event type: what tells one event from another."""
 
     data: SystemTokenIssuance
+    """What the event is about."""
+
+
+class InstanceAIModelUsageUnauthorizedEvent(KaitenModel):
+    """AI usage was recorded without an authorized model conversion rule. Delivered as
+    ``com.kaiten.instance.ai.v1.model_usage_unauthorized``.
+    """
+
+    name: Literal["INSTANCE_AI_MODEL_USAGE_UNAUTHORIZED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.ai.v1.model_usage_unauthorized"]
+    """The event type: what tells one event from another."""
+
+    data: InstanceAIModelUsageUnauthorized
     """What the event is about."""
 
 
@@ -440,6 +469,21 @@ class InstanceEntitlementCapExceededEvent(KaitenModel):
     """The event name."""
 
     type: Literal["com.kaiten.instance.entitlement.v1.cap_exceeded"]
+    """The event type: what tells one event from another."""
+
+    data: InstanceEntitlementCapExceeded
+    """What the event is about."""
+
+
+class InstanceEntitlementMaximumExceededEvent(KaitenModel):
+    """A committed AI usage charge crossed a soft pool's maximum. Delivered as
+    ``com.kaiten.instance.entitlement.v1.maximum_exceeded``.
+    """
+
+    name: Literal["INSTANCE_ENTITLEMENT_MAXIMUM_EXCEEDED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.entitlement.v1.maximum_exceeded"]
     """The event type: what tells one event from another."""
 
     data: InstanceEntitlementCapExceeded
@@ -636,6 +680,45 @@ class InstanceUpdatedEvent(KaitenModel):
     """The event type: what tells one event from another."""
 
     data: Instance
+    """What the event is about."""
+
+
+class ArchiveConversionRuleEvent(KaitenModel):
+    """Conversion rule change. Delivered as ``com.kaiten.license.conversion_rule.v1.archived``."""
+
+    name: Literal["LICENSE_CONVERSION_RULE_ARCHIVED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.conversion_rule.v1.archived"]
+    """The event type: what tells one event from another."""
+
+    data: ConversionRule
+    """What the event is about."""
+
+
+class CreateConversionRuleEvent(KaitenModel):
+    """Conversion rule change. Delivered as ``com.kaiten.license.conversion_rule.v1.created``."""
+
+    name: Literal["LICENSE_CONVERSION_RULE_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.conversion_rule.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: ConversionRule
+    """What the event is about."""
+
+
+class UpdateConversionRuleEvent(KaitenModel):
+    """Conversion rule change. Delivered as ``com.kaiten.license.conversion_rule.v1.updated``."""
+
+    name: Literal["LICENSE_CONVERSION_RULE_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.conversion_rule.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: ConversionRuleUpdated
     """What the event is about."""
 
 
@@ -897,6 +980,45 @@ class MetadataFieldUpdatedEvent(KaitenModel):
     """What the event is about."""
 
 
+class ModelCreatedEvent(KaitenModel):
+    """Triggered when a catalogue model is created. Delivered as ``com.kaiten.model.v1.created``."""
+
+    name: Literal["MODEL_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.model.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: Model
+    """What the event is about."""
+
+
+class ModelDeletedEvent(KaitenModel):
+    """Triggered when a catalogue model is deleted. Delivered as ``com.kaiten.model.v1.deleted``."""
+
+    name: Literal["MODEL_DELETED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.model.v1.deleted"]
+    """The event type: what tells one event from another."""
+
+    data: Model
+    """What the event is about."""
+
+
+class ModelUpdatedEvent(KaitenModel):
+    """Triggered when a catalogue model is updated. Delivered as ``com.kaiten.model.v1.updated``."""
+
+    name: Literal["MODEL_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.model.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: ModelUpdated
+    """What the event is about."""
+
+
 class ReleaseCreatedEvent(KaitenModel):
     """Triggered when a new release is created. Delivered as ``com.kaiten.release.v1.created``."""
 
@@ -946,7 +1068,9 @@ WebhookEvent = Annotated[
     | FeatureFlagEvaluatedEvent
     | FeatureFlagUpdatedEvent
     | SystemOrganizationTokenIssuedEvent
+    | InstanceAIModelUsageUnauthorizedEvent
     | InstanceEntitlementCapExceededEvent
+    | InstanceEntitlementMaximumExceededEvent
     | InstanceEntitlementUsagePeriodRolledOverEvent
     | InstanceEntitlementUsageReachedEvent
     | InstanceEntitlementUsageReportAcceptedEvent
@@ -960,6 +1084,9 @@ WebhookEvent = Annotated[
     | InstanceMigratedEvent
     | InstanceStatusChangedEvent
     | InstanceUpdatedEvent
+    | ArchiveConversionRuleEvent
+    | CreateConversionRuleEvent
+    | UpdateConversionRuleEvent
     | LicenseEntitlementAssignedEvent
     | LicenseEntitlementUnassignedEvent
     | LicenseEntitlementUpdatedEvent
@@ -977,6 +1104,9 @@ WebhookEvent = Annotated[
     | MetadataFieldReorderedEvent
     | MetadataFieldUnarchivedEvent
     | MetadataFieldUpdatedEvent
+    | ModelCreatedEvent
+    | ModelDeletedEvent
+    | ModelUpdatedEvent
     | ReleaseCreatedEvent
     | ReleaseDeletedEvent,
     Field(discriminator="type"),
@@ -1006,7 +1136,9 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.feature_flag.v1.evaluated": FeatureFlagEvaluatedEvent,
     "com.kaiten.feature_flag.v1.updated": FeatureFlagUpdatedEvent,
     "com.kaiten.identity.v1.system_token_issued": SystemOrganizationTokenIssuedEvent,
+    "com.kaiten.instance.ai.v1.model_usage_unauthorized": InstanceAIModelUsageUnauthorizedEvent,
     "com.kaiten.instance.entitlement.v1.cap_exceeded": InstanceEntitlementCapExceededEvent,
+    "com.kaiten.instance.entitlement.v1.maximum_exceeded": InstanceEntitlementMaximumExceededEvent,
     "com.kaiten.instance.entitlement.v1.usage_period_rolled_over": InstanceEntitlementUsagePeriodRolledOverEvent,
     "com.kaiten.instance.entitlement.v1.usage_reached": InstanceEntitlementUsageReachedEvent,
     "com.kaiten.instance.entitlement.v1.usage_report_accepted": InstanceEntitlementUsageReportAcceptedEvent,
@@ -1020,6 +1152,9 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.instance.v1.migrated": InstanceMigratedEvent,
     "com.kaiten.instance.v1.status_changed": InstanceStatusChangedEvent,
     "com.kaiten.instance.v1.updated": InstanceUpdatedEvent,
+    "com.kaiten.license.conversion_rule.v1.archived": ArchiveConversionRuleEvent,
+    "com.kaiten.license.conversion_rule.v1.created": CreateConversionRuleEvent,
+    "com.kaiten.license.conversion_rule.v1.updated": UpdateConversionRuleEvent,
     "com.kaiten.license.entitlement.v1.assigned": LicenseEntitlementAssignedEvent,
     "com.kaiten.license.entitlement.v1.unassigned": LicenseEntitlementUnassignedEvent,
     "com.kaiten.license.entitlement.v1.updated": LicenseEntitlementUpdatedEvent,
@@ -1037,6 +1172,9 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.metadata_field.v1.reordered": MetadataFieldReorderedEvent,
     "com.kaiten.metadata_field.v1.unarchived": MetadataFieldUnarchivedEvent,
     "com.kaiten.metadata_field.v1.updated": MetadataFieldUpdatedEvent,
+    "com.kaiten.model.v1.created": ModelCreatedEvent,
+    "com.kaiten.model.v1.deleted": ModelDeletedEvent,
+    "com.kaiten.model.v1.updated": ModelUpdatedEvent,
     "com.kaiten.release.v1.created": ReleaseCreatedEvent,
     "com.kaiten.release.v1.deleted": ReleaseDeletedEvent,
 }

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Mapping
+from collections.abc import Collection, Iterator, Mapping
 from typing import Any, TypeVar
 
 import httpx
@@ -100,6 +100,10 @@ class APIClient:
         body: Any = None,
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
+        headers: Mapping[str, str] | None = None,
+        omit_headers: Collection[str] = (),
+        max_retries: int | None = None,
+        retry_statuses: Collection[int] | None = None,
     ) -> httpx.Response:
         """Send one operation and return its successful response.
 
@@ -108,20 +112,34 @@ class APIClient:
         is idempotent, ``idempotent=True`` says so, or it never left the machine. A 401 or 403 is
         never retried -- the SDK cannot mint a better credential, and hammering a rejected one
         only burns the rate budget.
+
+        ``headers`` are sent on every attempt, so a key in them is the same on each retry.
+        ``omit_headers`` removes case-insensitive names after merging all defaults, including
+        those on a supplied HTTP client, without changing either client's configuration.
+        ``max_retries`` and ``retry_statuses`` narrow the policy for one call: the AI usage
+        phases retry a fixed number of times, on a fixed set of statuses.
         """
         url = self.base_url + path.lstrip("/")
         retryable = method in IDEMPOTENT_METHODS if idempotent is None else idempotent
+        retries = self.max_retries if max_retries is None else max_retries
         attempt = 0
 
         while True:
             request = self._build(
-                method, url, params=_query(params), body=body, headers=self._headers()
+                method,
+                url,
+                params=_query(params),
+                body=body,
+                headers={**self._headers(), **(headers or {})},
             )
+            for name in omit_headers:
+                if name in request.headers:
+                    del request.headers[name]
             try:
                 response = self.http_client.send(request)
             except httpx.TransportError as error:
-                if attempt < self.max_retries and (retryable or isinstance(error, NEVER_SENT)):
-                    self._back_off(request, attempt, repr(error))
+                if attempt < retries and (retryable or isinstance(error, NEVER_SENT)):
+                    self._back_off(request, attempt, repr(error), None, retries)
                     attempt += 1
                     continue
                 if isinstance(error, httpx.TimeoutException):
@@ -132,9 +150,14 @@ class APIClient:
                 return response
 
             status = response.status_code
-            if retryable and attempt < self.max_retries and (status in (408, 429) or status >= 500):
+            worth_retrying = (
+                status in (408, 429) or status >= 500
+                if retry_statuses is None
+                else status in retry_statuses
+            )
+            if retryable and attempt < retries and worth_retrying:
                 self._back_off(
-                    request, attempt, f"HTTP {status}", response.headers.get("retry-after")
+                    request, attempt, f"HTTP {status}", response.headers.get("retry-after"), retries
                 )
                 attempt += 1
                 continue
@@ -169,9 +192,22 @@ class APIClient:
         body: Any = None,
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
+        headers: Mapping[str, str] | None = None,
+        omit_headers: Collection[str] = (),
+        max_retries: int | None = None,
+        retry_statuses: Collection[int] | None = None,
     ) -> ModelT:
         response = self.request(
-            method, path, params=params, body=body, idempotent=idempotent, errors=errors
+            method,
+            path,
+            params=params,
+            body=body,
+            idempotent=idempotent,
+            errors=errors,
+            headers=headers,
+            omit_headers=omit_headers,
+            max_retries=max_retries,
+            retry_statuses=retry_statuses,
         )
         return self.validate(model, self.decode(response), response)
 
@@ -303,7 +339,12 @@ class APIClient:
         }
 
     def _back_off(
-        self, request: httpx.Request, attempt: int, reason: str, retry_after: str | None = None
+        self,
+        request: httpx.Request,
+        attempt: int,
+        reason: str,
+        retry_after: str | None = None,
+        retries: int | None = None,
     ) -> None:
         delay = retry_delay(attempt, retry_after)
         log.info(
@@ -312,7 +353,7 @@ class APIClient:
             request.url.path,
             delay,
             attempt + 1,
-            self.max_retries,
+            self.max_retries if retries is None else retries,
             reason,
         )
         sleep(delay)

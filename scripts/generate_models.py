@@ -72,6 +72,7 @@ CLASS_NAMES: dict[str, str] = {
 
 # Names for inline unions, keyed by their members.
 UNION_NAMES: dict[frozenset[str], str] = {
+    frozenset({"NumberEntitlementValue", "AiUsageValue"}): "ReportUsageValue",
     frozenset(
         {"NumberEntitlementValue", "BooleanEntitlementValue", "ConfigEntitlementValue"}
     ): "EntitlementValue",
@@ -82,6 +83,22 @@ UNION_NAMES: dict[frozenset[str], str] = {
 
 # Names for enums with more than one value, keyed by (schema, property).
 ENUM_NAMES: dict[tuple[str, str], str] = {
+    ("ReportEntitlementUsageBody", "behavior"): "UsageBehavior",
+    ("AiInference", "status"): "AiInferenceStatus",
+    ("AiUsageOutcome", "status"): "AiUsageOutcomeStatus",
+    ("Model", "status"): "ModelStatus",
+    ("Model", "modality"): "ModelModality",
+    ("ConversionRule", "status"): "ConversionRuleStatus",
+    ("ConversionRule", "chargeOnError"): "AiChargeOnError",
+    ("AiInference", "requestType"): "AiRequestType",
+    ("AiUsageValue", "requestType"): "AiRequestType",
+    ("ConversionRule", "requestType"): "AiRequestType",
+    ("AiInference", "requestStatus"): "AiRequestStatus",
+    ("AiUsageValue", "requestStatus"): "AiRequestStatus",
+    ("AiUsageValue", "phase"): "AiUsagePhase",
+    ("AiUsageOutcome", "phase"): "AiUsagePhase",
+    ("AiUsage", "unitType"): "AiUnitType",
+    ("AiInference", "denialReason"): "AiDenialReason",
     ("Entitlement", "aggregationMethod"): "AggregationMethod",
     ("Entitlement", "resetAnchor"): "ResetAnchor",
     ("Entitlement", "resetPeriod"): "ResetPeriod",
@@ -232,6 +249,8 @@ def core_module(
 ) -> tuple[str, dict[str, str], list[str]]:
     schemas = spec["components"]["schemas"]
     roots = response_roots(spec, excluded) | refs_in(spec.get("webhooks") or {})
+    # AI reports have a write-only discriminator union; generate it without widening reads.
+    roots.add("ReportEntitlementUsageBody")
     emitted = sorted(name for name in closure(schemas, roots) if not PAGE.match(name))
     names = {name: CLASS_NAMES.get(name, name) for name in emitted}
 
@@ -494,7 +513,7 @@ class ModelModule:
         return f"{text} | None" if nullable else text
 
     def string(self, node: dict[str, Any], *, owner: str, prop: str | None) -> str:
-        values = node.get("enum")
+        values = [value for value in node.get("enum", []) if value is not None]
         if values:
             if len(values) == 1:
                 return f"Literal[{json.dumps(values[0])}]"

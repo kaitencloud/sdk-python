@@ -134,3 +134,50 @@ def test_a_flag_parses_its_default_variant_and_rules_by_type() -> None:
 
 def test_types_exports_the_parameter_shapes_too() -> None:
     assert {"IntegrationParam", "VariantParam", "TargetingParam"} <= set(types.__all__)
+
+
+def test_report_usage_union_is_generated_without_widening_entitlement_values() -> None:
+    from pydantic import TypeAdapter, ValidationError
+
+    from kaitencloud._ai_models import AiEntitlementUsage
+    from kaitencloud.types import AiUsageValue, EntitlementValue, ReportUsageValue
+
+    payload = {
+        "type": "ai_usage",
+        "phase": "reserve",
+        "transactionId": "test:1",
+        "model": "synthetic",
+        "requestType": "COMPLETION",
+    }
+    assert isinstance(TypeAdapter(ReportUsageValue).validate_python(payload), AiUsageValue)
+    assert TypeAdapter(ReportUsageValue).validate_python({"type": "number", "value": 2}).value == 2
+    with pytest.raises(ValidationError):
+        TypeAdapter(EntitlementValue).validate_python(payload)
+    assert AiEntitlementUsage is EntitlementUsage
+
+
+def test_conversion_rates_preserve_exact_decimals_and_unknown_cache_policy() -> None:
+    from kaitencloud.types import ConversionRates
+
+    rates = ConversionRates(per_input_token="0.000000000123456789")
+    assert rates.to_dict() == {"perInputToken": "0.000000000123456789"}
+    assert rates.per_cached_input_token is None
+    assert rates.per_cache_write_token is None
+    free_cache = ConversionRates(per_cached_input_token="0", per_cache_write_token="0")
+    assert free_cache.to_dict() == {"perCachedInputToken": "0", "perCacheWriteToken": "0"}
+
+
+def test_nullable_rule_request_type_reuses_the_generated_enum() -> None:
+    from generate_models import ModelModule
+
+    module = ModelModule(source="synthetic", schemas={}, names={})
+    values = ["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
+    module.annotation({"type": "string", "enum": values}, owner="AiInference", prop="requestType")
+    assert (
+        module.annotation(
+            {"type": ["string", "null"], "enum": [*values, None]},
+            owner="ConversionRule",
+            prop="requestType",
+        )
+        == "AiRequestType | str | None"
+    )

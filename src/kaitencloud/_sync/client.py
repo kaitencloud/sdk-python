@@ -40,6 +40,7 @@ from .resources import (
     LicenseFamilies,
     Licenses,
     MetadataFields,
+    Models,
     Releases,
     ServiceAccounts,
 )
@@ -224,6 +225,7 @@ class KaitenClient(_BaseClient):
         self.license_families = LicenseFamilies(api)
         self.licenses = Licenses(api)
         self.metadata_fields = MetadataFields(api)
+        self.models = Models(api)
         self.releases = Releases(api)
         self.service_accounts = ServiceAccounts(api)
 

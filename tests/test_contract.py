@@ -31,10 +31,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
-from contract import contract_api, find_operation, write_errors
+from contract import contract_api, find_operation, operations, write_errors
 from helpers import ORG_ID, USER_ID, Recorder, body
 
 from kaitencloud import targeting
+from kaitencloud.types import ConversionRates
 
 ID = "5d1e8f3a-2b4c-4d6e-8f0a-1b2c3d4e5f60"
 SAMPLE_ID = "0f9e8d7c-6b5a-4938-8271-605f4e3d2c1b"
@@ -657,6 +658,86 @@ CASES = [
 ]
 
 
+CASES.extend(
+    [
+        Case(
+            "listModels",
+            lambda c: c.models.list(status="ACTIVE", vendor="synthetic", modality="TEXT"),
+        ),
+        Case("getModel", lambda c: c.models.get("synthetic-model")),
+        Case(
+            "createModel",
+            lambda c: c.models.create(
+                name="Synthetic", slug="synthetic-model", vendor="synthetic", modality="TEXT"
+            ),
+        ),
+        Case(
+            "updateModel",
+            lambda c: c.models.update(
+                "synthetic-model", name="Synthetic", vendor="synthetic", modality="TEXT"
+            ),
+        ),
+        Case("deleteModel", lambda c: c.models.delete("synthetic-model")),
+        Case(
+            "listConversionRules",
+            lambda c: c.licenses.list_conversion_rules(
+                "pro", entitlement_slug="credits", model_slug="synthetic-model"
+            ),
+        ),
+        Case("getConversionRule", lambda c: c.licenses.get_conversion_rule("pro", ID)),
+        Case(
+            "createConversionRule",
+            lambda c: c.licenses.create_conversion_rule(
+                "pro", entitlement_slug="credits", rates=ConversionRates(perRequest="1")
+            ),
+        ),
+        Case(
+            "updateConversionRule",
+            lambda c: c.licenses.update_conversion_rule(
+                "pro", ID, rates=ConversionRates(perRequest="2")
+            ),
+        ),
+        Case("archiveConversionRule", lambda c: c.licenses.archive_conversion_rule("pro", ID)),
+        Case(
+            "listAiInferences",
+            lambda c: c.instances.list_ai_inferences(
+                "acme",
+                "credits",
+                from_=NOW,
+                to=LATER,
+                status="COMMITTED",
+                transaction_id="test:1",
+                limit=5,
+            ),
+        ),
+        Case("listAiReservations", lambda c: c.instances.list_ai_reservations("acme", "credits")),
+        Case(
+            "reportEntitlementUsageMetric",
+            lambda c: c.instances.reserve_ai_usage(
+                "acme",
+                "credits",
+                model="synthetic-model",
+                transaction_id="test:1",
+                usage={"input_tokens": 10},
+            ),
+            name="ai-reserve",
+        ),
+        Case(
+            "reportEntitlementUsageMetric",
+            lambda c: c.instances.commit_ai_usage(
+                "acme",
+                "credits",
+                transaction_id="test:1",
+                model="synthetic-model",
+                request_type="COMPLETION",
+                usage={"output_tokens": 2},
+            ),
+            name="ai-commit",
+        ),
+    ]
+)
+
+
 def _invocations() -> list[Any]:
     params = []
     for case in CASES:
@@ -723,3 +804,54 @@ def test_every_mapped_operation_has_a_contract_case() -> None:
     for surface in ("core", "platform"):
         mapped = set(coverage()[surface]["operations"])
         assert mapped - covered == set(), f"{surface} operations without a contract case"
+
+
+def _read_schemas(surface: str) -> dict[str, Any]:
+    """Every schema a response or a webhook payload of the contract can reach, by name."""
+    from contract import document
+
+    spec = document(surface)
+    schemas = spec["components"]["schemas"]
+    pending: list[Any] = [
+        response
+        for operation in operations(surface)
+        for code, response in operation.definition["responses"].items()
+        if code.startswith("2")
+    ]
+    pending.append(spec.get("webhooks") or {})
+    reached: dict[str, Any] = {}
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+                name = ref.rsplit("/", 1)[-1]
+                if name not in reached:
+                    reached[name] = schemas[name]
+                    pending.append(schemas[name])
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    return reached
+
+
+def _mentions(node: Any, needle: str) -> bool:
+    if isinstance(node, dict):
+        return any(_mentions(value, needle) for value in node.values())
+    if isinstance(node, list):
+        return any(_mentions(value, needle) for value in node)
+    return node == needle
+
+
+@pytest.mark.parametrize("surface", ["core", "platform"])
+def test_no_read_schema_carries_the_write_only_ai_usage_variant(surface: str) -> None:
+    """``ai_usage`` is a request value only: a response carrying it would break strict decoding.
+
+    ``EntitlementValue`` -- what every usage answer's ``value`` and ``limit`` decode into -- is
+    a closed union, so a released SDK would refuse an answer whose value were ``ai_usage``.
+    """
+    leaking = sorted(
+        name for name, schema in _read_schemas(surface).items() if _mentions(schema, "ai_usage")
+    )
+    assert leaking == []
+    assert "EntitlementUsage" in _read_schemas("core") or surface == "platform"
