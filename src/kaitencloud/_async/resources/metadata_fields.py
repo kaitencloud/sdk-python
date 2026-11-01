@@ -21,10 +21,17 @@ class AsyncMetadataFields(AsyncResource):
     against the active fields declared for its resource type.
     """
 
-    async def list(self, resource_type: MetadataResourceType) -> builtins.list[MetadataField]:
-        """Return the metadata fields declared for ``resource_type``, walking all pages."""
+    async def list(
+        self, resource_type: MetadataResourceType, *, include_archived: bool = False
+    ) -> builtins.list[MetadataField]:
+        """Return the metadata fields declared for ``resource_type``, walking all pages.
+
+        Archived fields are left out unless ``include_archived`` asks for them.
+        """
         return await self._api.list_all(
-            "/metadata-fields", MetadataField, params={"resourceType": resource_type}
+            "/metadata-fields",
+            MetadataField,
+            params={"resourceType": resource_type, "includeArchived": include_archived or None},
         )
 
     async def create(

@@ -34,7 +34,7 @@ MARKDOWN = {
 }
 LINK = re.compile(r"\[[^\]]+\]\((?!https?:)([^)#]*)(#[^)]+)?\)")
 EXAMPLES = re.findall(r"```python\n(.*?)```", README, flags=re.DOTALL)
-CLIENT_CALL = re.compile(r"\b(client|platform)\.(\w+)(?:\.(\w+))?\(")
+CLIENT_CALL = re.compile(r"\b(client|platform)((?:\.\w+)+)\(")
 HELPER_CALL = re.compile(r"\b(targeting|usage)\.(\w+)\(")
 ENVIRONMENT_ASSUMED = "With `KAITEN_BASE_URL` and `KAITEN_AUTH_TOKEN` set"
 
@@ -68,14 +68,20 @@ def test_every_import_from_the_sdk_exists() -> None:
                     assert hasattr(module, alias.name), f"from {node.module} import {alias.name}"
 
 
+def resolve(clients: dict[str, object], owner: str, path: str) -> object:
+    """``client.billing.invoices.list`` and the like, attribute by attribute."""
+    target = clients[owner]
+    for attribute in path.strip(".").split("."):
+        assert hasattr(target, attribute), f"{owner}{path}"
+        target = getattr(target, attribute)
+    return target
+
+
 def test_every_client_call_names_a_real_method(clients: dict[str, object]) -> None:
     calls = [call for example in EXAMPLES for call in CLIENT_CALL.findall(example)]
     assert calls
-    for owner, attribute, method in calls:
-        target = getattr(clients[owner], attribute)
-        if method:
-            target = getattr(target, method)
-        assert callable(target), f"{owner}.{attribute}.{method}"
+    for owner, path in calls:
+        assert callable(resolve(clients, owner, path)), f"{owner}{path}"
 
 
 def test_every_helper_call_names_a_real_function() -> None:
@@ -117,17 +123,14 @@ def test_the_error_tree_names_real_exceptions() -> None:
 def test_the_api_reference_names_real_namespaces_and_methods(clients: dict[str, object]) -> None:
     """The reference is tables rather than ``python`` blocks, so the checks above skip it."""
     reference = README[README.index("\n## API reference") : README.index("\n## How the SDK stays")]
-    namespaces = re.findall(r"<b>(client|platform)\.(\w+)</b>", reference)
+    namespaces = re.findall(r"<b>(client|platform)((?:\.\w+)+)</b>", reference)
     calls = CLIENT_CALL.findall(reference)
     assert namespaces
     assert calls
-    for owner, attribute in namespaces:
-        assert hasattr(clients[owner], attribute), f"{owner}.{attribute}"
-    for owner, attribute, method in calls:
-        target = getattr(clients[owner], attribute)
-        if method:
-            target = getattr(target, method)
-        assert callable(target), f"{owner}.{attribute}.{method}"
+    for owner, path in namespaces:
+        resolve(clients, owner, path)
+    for owner, path in calls:
+        assert callable(resolve(clients, owner, path)), f"{owner}{path}"
 
 
 def anchors(text: str) -> set[str]:

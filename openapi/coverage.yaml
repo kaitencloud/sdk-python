@@ -11,6 +11,132 @@
 
 core:
   operations:
+    # billing: settings, capabilities and the payment providers
+    getBillingSettings: billing.get_settings
+    updateBillingSettings: billing.update_settings
+    getBillingCapabilities: billing.get_capabilities
+    getBillingHealth: billing.get_health
+    syncBillingProvider: billing.sync
+    closeBillingPeriods: billing.close_periods
+
+    # billing: add-ons, their families, grants, prices and compatibility
+    listAddons: billing.addons.list
+    getAddon: billing.addons.get
+    createAddon: billing.addons.create
+    updateAddon: billing.addons.update
+    deleteAddon: billing.addons.delete
+    publishAddon: billing.addons.publish
+    archiveAddon: billing.addons.archive
+    unarchiveAddon: billing.addons.unarchive
+    listAddonCompatibility: billing.addons.list_compatibility
+    setAddonCompatibility: billing.addons.set_compatibility
+    removeAddonCompatibility: billing.addons.remove_compatibility
+    listAddonEntitlements: billing.addons.list_entitlements
+    getAddonEntitlement: billing.addons.get_entitlement
+    assignAddonEntitlement: billing.addons.assign_entitlement
+    updateAddonEntitlement: billing.addons.update_entitlement
+    unassignAddonEntitlement: billing.addons.unassign_entitlement
+    listAddonPrices: billing.addons.list_prices
+    createAddonPrice: billing.addons.create_price
+    deprecateAddonPrice: billing.addons.deprecate_price
+    listAddonFamilies: billing.addons.list_families
+    getAddonFamily: billing.addons.get_family
+    updateAddonFamily: billing.addons.update_family
+
+    # billing: anonymous checkouts, customer sessions and publishable keys
+    listCheckoutSessions: billing.checkout_sessions.list
+    getCheckoutSessionAdmin: billing.checkout_sessions.get
+    createCustomerSession: billing.customer_sessions.create
+    revokeCustomerSession: billing.customer_sessions.revoke
+    listPublishableKeys: billing.publishable_keys.list
+    createPublishableKey: billing.publishable_keys.create
+    updatePublishableKey: billing.publishable_keys.update
+    revokePublishableKey: billing.publishable_keys.revoke
+
+    # billing: a customer's payment method and provider portal
+    getCustomerBilling: billing.customers.get
+    detachPaymentMethod: billing.customers.detach_payment_method
+    createPaymentMethodSession: billing.customers.create_payment_method_session
+    completePaymentMethodSession: billing.customers.complete_payment_method_session
+    createPortalSession: billing.customers.create_portal_session
+
+    # billing: the accounting handoff
+    listHandoff: billing.handoff.list
+    claimHandoff: billing.handoff.claim
+    ackHandoff: billing.handoff.ack
+
+    # billing: an instance's add-ons and redeemed vouchers
+    listInstanceAddons: billing.instance_addons.list
+    attachInstanceAddon: billing.instance_addons.attach
+    setInstanceAddonQuantity: billing.instance_addons.set_quantity
+    detachInstanceAddon: billing.instance_addons.detach
+    listInstanceVouchers: billing.instance_vouchers.list
+    redeemVoucher: billing.instance_vouchers.redeem
+    revokeInstanceVoucher: billing.instance_vouchers.revoke
+
+    # billing: invoices
+    listInvoices: billing.invoices.list
+    getInvoice: billing.invoices.get
+    exportInvoices: billing.invoices.export
+    voidInvoice: billing.invoices.void
+    recomposeInvoice: billing.invoices.recompose
+    markInvoicePaid: billing.invoices.mark_paid
+    writeOffInvoice: billing.invoices.write_off
+    releaseInvoiceHold: billing.invoices.release_hold
+    retryInvoicePush: billing.invoices.retry_push
+    syncInvoice: billing.invoices.sync
+    listInvoiceLineReports: billing.invoices.list_line_reports
+
+    # billing: the prices of license versions
+    listLicensePrices: billing.license_prices.list
+    getLicensePrice: billing.license_prices.get
+    createLicensePrice: billing.license_prices.create
+    updateLicensePrice: billing.license_prices.update
+    deprecateLicensePrice: billing.license_prices.deprecate
+    previewLicenseInvoice: billing.license_prices.preview_invoice
+
+    # billing: what a publishable key (pk_) and an anonymous checkout's token (ksc_) reach
+    getPublicCatalog: billing.public.get_catalog
+    createCheckoutSession: billing.public.create_checkout_session
+    getCheckoutSession: billing.public.get_checkout_session
+    confirmCheckoutSession: billing.public.confirm_checkout_session
+
+    # billing: what a customer session (kst_) reaches
+    getSessionPortal: billing.session.get_portal
+    listSessionInvoices: billing.session.list_invoices
+    createSessionCheckout: billing.session.checkout
+    cancelSessionSubscription: billing.session.cancel
+    reactivateSessionSubscription: billing.session.reactivate
+    setSessionAddonQuantity: billing.session.set_addon_quantity
+    createSessionPaymentMethodSession: billing.session.create_payment_method_session
+    completeSessionPaymentMethodSession: billing.session.complete_payment_method_session
+    createSessionPortalSession: billing.session.create_portal_session
+    validateSessionVoucher: billing.session.validate_voucher
+    redeemSessionVoucher: billing.session.redeem_voucher
+
+    # billing: an instance's subscription
+    getInstanceBilling: billing.subscriptions.get
+    subscribeInstance: billing.subscriptions.subscribe
+    updateInstanceBilling: billing.subscriptions.update
+    cancelSubscription: billing.subscriptions.cancel
+    reactivateSubscription: billing.subscriptions.reactivate
+    schedulePlanChange: billing.subscriptions.schedule_plan_change
+    cancelPlanChange: billing.subscriptions.cancel_plan_change
+    getUpcomingInvoice: billing.subscriptions.get_upcoming_invoice
+    listInstanceInvoices: billing.subscriptions.list_invoices
+
+    # billing: vouchers
+    listVouchers: billing.vouchers.list
+    getVoucher: billing.vouchers.get
+    createVoucher: billing.vouchers.create
+    updateVoucher: billing.vouchers.update
+    deleteVoucher: billing.vouchers.delete
+    publishVoucher: billing.vouchers.publish
+    archiveVoucher: billing.vouchers.archive
+    listVoucherRedemptions: billing.vouchers.list_redemptions
+    lookupVoucher: billing.vouchers.lookup
+    validateVoucher: billing.vouchers.validate
+
     # components
     list-components: components.list
     get-component: components.get
@@ -86,7 +212,13 @@ core:
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
     getEntitlementUsageMetrics: instances.get_usage
-    reportEntitlementUsageMetric: instances.report_usage
+    reportEntitlementUsageMetric: [instances.report_usage, instances.report_usage_detailed]
+    listUsageReports: instances.list_usage_reports
+    exportUsageReports: instances.export_usage_reports
+    exportOrganizationUsageReports: instances.export_organization_usage_reports
+    listEntitlementExceptions: instances.list_entitlement_exceptions
+    createEntitlementException: instances.create_entitlement_exception
+    revokeEntitlementException: instances.revoke_entitlement_exception
     get-instance-integration: instances.get_integration
     create-instance-integration: instances.create_integration
     update-instance-integration: instances.update_integration
@@ -116,6 +248,7 @@ core:
     # license families: the products whose versions the licenses above are
     list-license-families: license_families.list
     get-license-family: license_families.get
+    updateLicenseFamily: license_families.update
 
     # metadata fields
     list-metadata-fields: metadata_fields.list
@@ -163,9 +296,30 @@ core:
       every flag at once. (sdk-js does keep a bulk call, but only to feed the licensing
       snapshot its React components render; nothing in a Python SDK needs that.)
 
+    GetMe: >-
+      The signed-in person's own profile and access. A machine client holding an API token has
+      no human profile. kaiten's own operation-coverage test exempts this operation and the
+      eleven below as console authoring, for the same reasons.
+    GetAuthorization: >-
+      Request-time identity and grant introspection, which Kaiten's SaaS middleware consumes;
+      not product automation.
+    ListUsers: The human member directory, administered in the console and the operational CLI.
+    GetUser: An administrator's view of a human member's profile.
+    UpdateUser: An administrator's edit of a human identity, not machine account automation.
+    PutUserAuthorization: >-
+      An administrator's replacement of a person's roles and permissions -- never a service
+      token's.
+    SetUserAssignments: The console's role and direct-scope editor for a person.
+    SetUserEnabled: A person's membership access lifecycle, administered by a human.
+    ListRoles: The role directory of the console and the operational CLI.
+    CreateRole: Scope-group authoring by a human administrator.
+    UpdateRole: Scope-group authoring by a human administrator.
+    DeleteRole: Scope-group lifecycle, administered by a human.
+
 platform:
   operations:
     get-platform-me: me
+    platform-close-billing-periods: billing.close_periods
     register-connector: connectors.register
     ensure-organization: organizations.ensure
     get-organization: organizations.get

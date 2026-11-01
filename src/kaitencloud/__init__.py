@@ -37,11 +37,12 @@ from ._exceptions import (
     RateLimitError,
     ServiceUnavailableError,
     ThresholdExceededError,
+    TransactionIdReusedError,
     UnprocessableEntityError,
     WebhookPayloadError,
     WebhookVerificationError,
 )
-from ._models import KaitenModel
+from ._models import KaitenModel, UsageReportResult
 from ._sync.client import KaitenClient, KaitenPlatformClient
 from ._types import NOT_GIVEN, NotGiven
 from ._version import __version__
@@ -77,7 +78,9 @@ __all__ = [
     "RateLimitError",
     "ServiceUnavailableError",
     "ThresholdExceededError",
+    "TransactionIdReusedError",
     "UnprocessableEntityError",
+    "UsageReportResult",
     "WebhookPayloadError",
     "WebhookVerificationError",
     "__version__",

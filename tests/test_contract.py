@@ -14,7 +14,9 @@ what went on the wire:
   is ``additionalProperties: false``, so a key too many and a required key missing end the
   same way -- a 422 on every call, with no type error to catch it;
 - the rules the schema cannot express hold: a slug an update refuses, a license version a
-  create refuses.
+  create refuses;
+- the credential travels where the operation's security scheme says: a bearer token, or a
+  publishable key in its own header.
 
 A ``-minimal`` variant calls the method with its required arguments only, which is where a
 required-but-nullable key left out would show. Both clients run the whole table: the async
@@ -31,7 +33,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
-from contract import contract_api, find_operation, write_errors
+from contract import Operation, contract_api, document, find_operation, write_errors
 from helpers import ORG_ID, USER_ID, Recorder, body
 
 from kaitencloud import targeting
@@ -48,6 +50,32 @@ INTEGRATION = {
     "last_error": "timeout",
 }
 VARIANTS = [targeting.variant("on", True, description="Enabled"), targeting.variant("off", False)]
+VOUCHER: dict[str, Any] = {
+    "name": "Welcome",
+    "voucher_type": "COMPOSITE",
+    "duration": "REPEATING",
+    "code": "WELCOME-2026",
+    "description": "First three months at 20% off, and ten more seats",
+    "duration_in_periods": 3,
+    "starts_at": NOW,
+    "expires_at": LATER,
+    "max_redemptions": 100,
+    "restricted_customer_slug": "acme",
+    "price_discount_type": "PERCENTAGE",
+    "price_discount_value": "20",
+    "price_applies_to": "SELECTED_PRICES",
+    "applicable_license_ids": [ID],
+    "applicable_license_price_ids": [ID],
+    "applicable_addon_ids": [SAMPLE_ID],
+    "applicable_addon_price_ids": [SAMPLE_ID],
+    "grants": [{"entitlementSlug": "seats", "modifierType": "ADD", "modifierValue": "10"}],
+    "flag_grants": {"new-checkout": "on"},
+    "redemption_rules": {
+        "annualOnly": True,
+        "firstTimeOnly": True,
+        "minimumSubscriptionAmount": {"currency": "EUR", "unitAmountDecimal": "1000"},
+    },
+}
 RULES = [
     targeting.rule("Growth plan", "__kaiten.license.slug == 'growth'", "on"),
     targeting.split_rule("Progressive rollout", "true", {"on": 20, "off": 80}),
@@ -66,6 +94,7 @@ class Case:
     required: frozenset[str] = frozenset()
     surface: str = "core"
     name: str = ""
+    token: str | None = None
 
 
 CASES = [
@@ -117,13 +146,18 @@ CASES = [
             external_customer_id="crm-42",
             domain="acme.com",
             integrations={"attio": INTEGRATION},
+            billing_email="billing@acme.com",
         ),
         minimal=lambda c: c.customers.create(name="Acme"),
     ),
     Case(
         "update-customer",
         lambda c: c.customers.update(
-            "acme", name="Acme Corp", external_customer_id="crm-42", domain="acme.com"
+            "acme",
+            name="Acme Corp",
+            external_customer_id="crm-42",
+            domain="acme.com",
+            billing_email="billing@acme.com",
         ),
         minimal=lambda c: c.customers.update("acme", name="Acme Corp"),
         forbidden=frozenset({"slug", "integrations"}),
@@ -482,6 +516,10 @@ CASES = [
             family_slug="growth",
             family_id=ID,
             lifecycle_state="PUBLISHED",
+            pricing_type="PAID",
+            trial_period_days=14,
+            requires_payment_method=True,
+            self_serve_cta_url="https://acme.com/contact",
         ),
         minimal=lambda c: c.licenses.create(name="Growth", type="PAID"),
         forbidden=frozenset({"version"}),
@@ -504,6 +542,10 @@ CASES = [
             description="For scaling teams",
             is_default=True,
             version_name="Winter 2026",
+            pricing_type="CUSTOM",
+            trial_period_days=0,
+            requires_payment_method=False,
+            self_serve_cta_url="",
         ),
         minimal=lambda c: c.licenses.update("growth-v2", name="Growth", type="PAID"),
         # a version never changes family or number, and moves state only through the
@@ -539,7 +581,11 @@ CASES = [
     ),
     Case("delete-license-entitlement", lambda c: c.licenses.delete_entitlement("growth", "seats")),
     # metadata fields
-    Case("list-metadata-fields", lambda c: c.metadata_fields.list("INSTANCE")),
+    Case(
+        "list-metadata-fields",
+        lambda c: c.metadata_fields.list("INSTANCE", include_archived=True),
+        minimal=lambda c: c.metadata_fields.list("INSTANCE"),
+    ),
     Case(
         "create-metadata-field",
         lambda c: c.metadata_fields.create(
@@ -612,6 +658,688 @@ CASES = [
         "delete-service-account-token",
         lambda c: c.service_accounts.delete_token("billing-sync", "ci"),
     ),
+    # instances: keyed usage reports, the usage history, entitlement exceptions
+    Case(
+        "reportEntitlementUsageMetric",
+        lambda c: c.instances.report_usage_detailed(
+            "acme-production",
+            "seats",
+            3,
+            behavior="set",
+            metadata={"source": "billing"},
+            transaction_id="llm-call-9f2c:tokens",
+        ),
+        minimal=lambda c: c.instances.report_usage_detailed("acme-production", "seats", 1),
+        name="reportEntitlementUsageMetric-detailed",
+    ),
+    Case(
+        "listUsageReports",
+        # A ceiling: the fake API answers every page with the same nextAfterSeq.
+        lambda c: c.instances.list_usage_reports(
+            "acme-production", "seats", from_=NOW, to=LATER, transaction_id="call-1", limit=1
+        ),
+    ),
+    Case(
+        "exportUsageReports",
+        lambda c: c.instances.export_usage_reports(
+            "acme-production", "seats", from_=NOW, to=LATER, format="json"
+        ),
+        minimal=lambda c: c.instances.export_usage_reports("acme-production", "seats"),
+    ),
+    Case(
+        "exportOrganizationUsageReports",
+        lambda c: c.instances.export_organization_usage_reports(
+            from_=NOW,
+            to=LATER,
+            format="json",
+            instance_slug="acme-production",
+            instance_id=ID,
+            entitlement_slug="seats",
+            entitlement_id=SAMPLE_ID,
+        ),
+        minimal=lambda c: c.instances.export_organization_usage_reports(),
+    ),
+    Case(
+        "listEntitlementExceptions",
+        lambda c: c.instances.list_entitlement_exceptions("acme-production", include_inactive=True),
+        minimal=lambda c: c.instances.list_entitlement_exceptions("acme-production"),
+    ),
+    Case(
+        "createEntitlementException",
+        lambda c: c.instances.create_entitlement_exception(
+            "acme-production",
+            "seats",
+            kind="SET",
+            reason="Pilot extension",
+            value=200,
+            starts_at=NOW,
+            ends_at=LATER,
+        ),
+        minimal=lambda c: c.instances.create_entitlement_exception(
+            "acme-production", "seats", kind="UNLIMITED", reason="Pilot extension"
+        ),
+        required=frozenset({"entitlementSlug", "kind", "reason"}),
+    ),
+    Case(
+        "revokeEntitlementException",
+        lambda c: c.instances.revoke_entitlement_exception("acme-production", ID),
+    ),
+    # license families
+    Case(
+        "updateLicenseFamily",
+        lambda c: c.license_families.update(
+            "growth",
+            is_public=True,
+            fallback_license_family_slug="free",
+            trial_end_without_payment_method="CANCEL",
+            trial_reminder_days=3,
+        ),
+        minimal=lambda c: c.license_families.update("growth"),
+    ),
+    # billing
+    Case("getBillingSettings", lambda c: c.billing.get_settings()),
+    Case(
+        "updateBillingSettings",
+        lambda c: c.billing.update_settings(
+            default_collection_method="SEND_INVOICE",
+            default_days_until_due=30,
+            handoff_stripe_invoices=False,
+        ),
+    ),
+    Case("getBillingCapabilities", lambda c: c.billing.get_capabilities()),
+    Case("getBillingHealth", lambda c: c.billing.get_health()),
+    Case("syncBillingProvider", lambda c: c.billing.sync()),
+    Case(
+        "closeBillingPeriods",
+        lambda c: c.billing.close_periods(instance_slug="acme-production"),
+        minimal=lambda c: c.billing.close_periods(),
+    ),
+    # billing: add-ons
+    Case(
+        "listAddons",
+        lambda c: c.billing.addons.list(lifecycle_state="PUBLISHED", family_slug="extra-seats"),
+        minimal=lambda c: c.billing.addons.list(),
+    ),
+    Case("getAddon", lambda c: c.billing.addons.get("extra-seats-v1")),
+    Case(
+        "createAddon",
+        lambda c: c.billing.addons.create(
+            name="Extra seats",
+            pricing_type="PAID",
+            description="Ten more seats",
+            slug="extra-seats-v2",
+            family_slug="extra-seats",
+            family_id=ID,
+            version_name="Winter 2026",
+            lifecycle_state="DRAFT",
+            is_default=False,
+            max_quantity=10,
+            increase_billing="TRUE_UP",
+        ),
+        minimal=lambda c: c.billing.addons.create(name="Extra seats", pricing_type="PAID"),
+        required=frozenset({"description"}),
+    ),
+    Case(
+        "updateAddon",
+        lambda c: c.billing.addons.update(
+            "extra-seats-v1",
+            name="Extra seats",
+            description="Ten more seats",
+            is_default=True,
+            version_name="Autumn 2026",
+            max_quantity=20,
+        ),
+        minimal=lambda c: c.billing.addons.update("extra-seats-v1", name="Extra seats"),
+        required=frozenset({"description", "isDefault"}),
+    ),
+    Case("deleteAddon", lambda c: c.billing.addons.delete("extra-seats-v1")),
+    Case("publishAddon", lambda c: c.billing.addons.publish("extra-seats-v1")),
+    Case("archiveAddon", lambda c: c.billing.addons.archive("extra-seats-v1")),
+    Case("unarchiveAddon", lambda c: c.billing.addons.unarchive("extra-seats-v1")),
+    Case("listAddonCompatibility", lambda c: c.billing.addons.list_compatibility("extra-seats-v1")),
+    Case(
+        "setAddonCompatibility",
+        lambda c: c.billing.addons.set_compatibility("extra-seats-v1", "growth"),
+    ),
+    Case(
+        "removeAddonCompatibility",
+        lambda c: c.billing.addons.remove_compatibility("extra-seats-v1", "growth"),
+    ),
+    Case("listAddonEntitlements", lambda c: c.billing.addons.list_entitlements("extra-seats-v1")),
+    Case(
+        "getAddonEntitlement",
+        lambda c: c.billing.addons.get_entitlement("extra-seats-v1", "seats"),
+    ),
+    Case(
+        "assignAddonEntitlement",
+        lambda c: c.billing.addons.assign_entitlement(
+            "extra-seats-v1", "seats", 10, override_behavior="ADD", overage_percent=0
+        ),
+        minimal=lambda c: c.billing.addons.assign_entitlement("extra-seats-v1", "sso", True),
+        required=frozenset({"entitlementSlug", "value"}),
+    ),
+    Case(
+        "updateAddonEntitlement",
+        lambda c: c.billing.addons.update_entitlement(
+            "extra-seats-v1", "seats", 20, override_behavior="MAX", overage_percent=10
+        ),
+        minimal=lambda c: c.billing.addons.update_entitlement("extra-seats-v1", "seats", 20),
+        forbidden=frozenset({"entitlementSlug"}),
+    ),
+    Case(
+        "unassignAddonEntitlement",
+        lambda c: c.billing.addons.unassign_entitlement("extra-seats-v1", "seats"),
+    ),
+    Case(
+        "listAddonPrices",
+        lambda c: c.billing.addons.list_prices("extra-seats-v1", status="ACTIVE"),
+        minimal=lambda c: c.billing.addons.list_prices("extra-seats-v1"),
+    ),
+    Case(
+        "createAddonPrice",
+        lambda c: c.billing.addons.create_price(
+            "extra-seats-v1",
+            billing_model="FLAT_FEE",
+            currency="EUR",
+            unit_amount_decimal="1500",
+            billing_period="MONTHLY",
+            billing_timing="ADVANCE",
+            is_default=True,
+            display_label="Extra seats",
+            display_order=1,
+        ),
+        minimal=lambda c: c.billing.addons.create_price(
+            "extra-seats-v1", billing_model="USAGE_BASED", currency="EUR", unit_amount_decimal="2"
+        ),
+    ),
+    Case(
+        "deprecateAddonPrice",
+        lambda c: c.billing.addons.deprecate_price("extra-seats-v1", ID),
+    ),
+    Case("listAddonFamilies", lambda c: c.billing.addons.list_families()),
+    Case("getAddonFamily", lambda c: c.billing.addons.get_family("extra-seats")),
+    Case(
+        "updateAddonFamily",
+        lambda c: c.billing.addons.update_family(
+            "extra-seats", is_public=True, increase_billing="NEXT_BOUNDARY"
+        ),
+        minimal=lambda c: c.billing.addons.update_family("extra-seats"),
+    ),
+    # billing: anonymous checkouts, customer sessions, publishable keys
+    Case(
+        "listCheckoutSessions",
+        lambda c: c.billing.checkout_sessions.list(
+            status=["COMPLETED", "ABANDONED"],
+            email="ada@acme.com",
+            client_reference_id="ref-1",
+            limit=10,
+        ),
+        minimal=lambda c: c.billing.checkout_sessions.list(),
+    ),
+    Case("getCheckoutSessionAdmin", lambda c: c.billing.checkout_sessions.get(ID)),
+    Case(
+        "createCustomerSession",
+        lambda c: c.billing.customer_sessions.create(
+            customer_slug="acme", instance_slug="acme-production", ttl_seconds=900
+        ),
+        minimal=lambda c: c.billing.customer_sessions.create(customer_slug="acme"),
+    ),
+    Case("revokeCustomerSession", lambda c: c.billing.customer_sessions.revoke(ID)),
+    Case(
+        "listPublishableKeys",
+        lambda c: c.billing.publishable_keys.list(include_revoked=True),
+        minimal=lambda c: c.billing.publishable_keys.list(),
+    ),
+    Case(
+        "createPublishableKey",
+        lambda c: c.billing.publishable_keys.create(
+            label="Pricing page",
+            allowed_origins=["https://acme.com"],
+            anonymous_checkout=True,
+            turnstile_site_key="0x4AAAAAAA",
+            turnstile_secret="0x4BBBBBBB",
+        ),
+        minimal=lambda c: c.billing.publishable_keys.create(
+            label="Pricing page", allowed_origins=[]
+        ),
+        required=frozenset({"allowedOrigins"}),
+    ),
+    Case(
+        "updatePublishableKey",
+        lambda c: c.billing.publishable_keys.update(
+            ID,
+            label="Pricing page",
+            allowed_origins=["https://acme.com"],
+            anonymous_checkout=False,
+            turnstile_site_key="",
+            turnstile_secret="",
+        ),
+        minimal=lambda c: c.billing.publishable_keys.update(ID),
+    ),
+    Case("revokePublishableKey", lambda c: c.billing.publishable_keys.revoke(ID)),
+    # billing: a customer's payment method and portal
+    Case("getCustomerBilling", lambda c: c.billing.customers.get("acme")),
+    Case("detachPaymentMethod", lambda c: c.billing.customers.detach_payment_method("acme")),
+    Case(
+        "createPaymentMethodSession",
+        lambda c: c.billing.customers.create_payment_method_session(
+            "acme", return_url="https://acme.com/billing", currency="EUR"
+        ),
+        minimal=lambda c: c.billing.customers.create_payment_method_session(
+            "acme", return_url="https://acme.com/billing"
+        ),
+    ),
+    Case(
+        "completePaymentMethodSession",
+        lambda c: c.billing.customers.complete_payment_method_session("acme", "seti_1"),
+    ),
+    Case(
+        "createPortalSession",
+        lambda c: c.billing.customers.create_portal_session(
+            "acme", return_url="https://acme.com/billing"
+        ),
+    ),
+    # billing: the accounting handoff
+    Case(
+        "listHandoff",
+        lambda c: c.billing.handoff.list(status="ACKNOWLEDGED", limit=10),
+        minimal=lambda c: c.billing.handoff.list(),
+    ),
+    Case(
+        "claimHandoff",
+        lambda c: c.billing.handoff.claim(limit=25, lease_seconds=900),
+        minimal=lambda c: c.billing.handoff.claim(),
+    ),
+    Case(
+        "ackHandoff",
+        lambda c: c.billing.handoff.ack(ID, lease_id=SAMPLE_ID, external_reference="INV-0042"),
+        minimal=lambda c: c.billing.handoff.ack(ID),
+    ),
+    # billing: an instance's add-ons and vouchers
+    Case(
+        "listInstanceAddons",
+        lambda c: c.billing.instance_addons.list("acme-production", include_removed=True),
+        minimal=lambda c: c.billing.instance_addons.list("acme-production"),
+    ),
+    Case(
+        "attachInstanceAddon",
+        lambda c: c.billing.instance_addons.attach("acme-production", "extra-seats-v1", quantity=2),
+        minimal=lambda c: c.billing.instance_addons.attach("acme-production", "extra-seats-v1"),
+        required=frozenset({"addonSlug"}),
+    ),
+    Case(
+        "setInstanceAddonQuantity",
+        lambda c: c.billing.instance_addons.set_quantity("acme-production", "extra-seats-v1", 3),
+    ),
+    Case(
+        "detachInstanceAddon",
+        lambda c: c.billing.instance_addons.detach("acme-production", "extra-seats-v1"),
+    ),
+    Case(
+        "listInstanceVouchers",
+        lambda c: c.billing.instance_vouchers.list("acme-production", status="ACTIVE"),
+        minimal=lambda c: c.billing.instance_vouchers.list("acme-production"),
+    ),
+    Case(
+        "redeemVoucher",
+        lambda c: c.billing.instance_vouchers.redeem("acme-production", "WELCOME-2026"),
+    ),
+    Case(
+        "revokeInstanceVoucher",
+        lambda c: c.billing.instance_vouchers.revoke(
+            "acme-production", ID, reason="Granted by mistake"
+        ),
+    ),
+    # billing: invoices
+    Case(
+        "listInvoices",
+        lambda c: c.billing.invoices.list(
+            instance_slug="acme-production",
+            customer_slug="acme",
+            status=["MANUAL", "PAID"],
+            kind="RENEWAL",
+            provider_kind="NOOP",
+            overdue=True,
+            held=False,
+            handoff_status="PENDING",
+            issued_from=NOW,
+            issued_to=LATER,
+            boundary_from=NOW,
+            boundary_to=LATER,
+            updated_since=NOW,
+            limit=10,
+        ),
+        minimal=lambda c: c.billing.invoices.list(),
+    ),
+    Case("getInvoice", lambda c: c.billing.invoices.get(ID)),
+    Case(
+        "exportInvoices",
+        lambda c: c.billing.invoices.export(
+            format="json",
+            granularity="invoice",
+            instance_slug="acme-production",
+            customer_slug="acme",
+            status=["PAID"],
+            kind="RENEWAL",
+            provider_kind="STRIPE",
+            overdue=False,
+            held=False,
+            handoff_status="ACKNOWLEDGED",
+            issued_from=NOW,
+            issued_to=LATER,
+            boundary_from=NOW,
+            boundary_to=LATER,
+            updated_since=NOW,
+        ),
+        minimal=lambda c: c.billing.invoices.export(),
+    ),
+    Case("voidInvoice", lambda c: c.billing.invoices.void(ID, reason="Duplicate")),
+    Case("recomposeInvoice", lambda c: c.billing.invoices.recompose(ID)),
+    Case(
+        "markInvoicePaid",
+        lambda c: c.billing.invoices.mark_paid(
+            ID, paid_at=NOW, external_reference="INV-0042", note="Wire 7731"
+        ),
+        minimal=lambda c: c.billing.invoices.mark_paid(ID),
+    ),
+    Case("writeOffInvoice", lambda c: c.billing.invoices.write_off(ID, reason="Bankrupt")),
+    Case(
+        "releaseInvoiceHold",
+        lambda c: c.billing.invoices.release_hold(ID, reason="Usage checked by hand"),
+    ),
+    Case("retryInvoicePush", lambda c: c.billing.invoices.retry_push(ID)),
+    Case("syncInvoice", lambda c: c.billing.invoices.sync(ID)),
+    Case(
+        "listInvoiceLineReports",
+        # A ceiling: the fake API answers every page with the same nextAfterSeq.
+        lambda c: c.billing.invoices.list_line_reports(ID, SAMPLE_ID, limit=1),
+    ),
+    # billing: license prices
+    Case(
+        "listLicensePrices",
+        lambda c: c.billing.license_prices.list(
+            "growth-v2", status="ACTIVE", billing_model="FLAT_FEE"
+        ),
+        minimal=lambda c: c.billing.license_prices.list("growth-v2"),
+    ),
+    Case("getLicensePrice", lambda c: c.billing.license_prices.get("growth-v2", ID)),
+    Case(
+        "createLicensePrice",
+        lambda c: c.billing.license_prices.create(
+            "growth-v2",
+            billing_model="FLAT_FEE",
+            currency="EUR",
+            unit_amount_decimal="4900",
+            billing_period="ANNUAL",
+            billing_timing="ADVANCE",
+            is_default=True,
+            display_label="Growth, yearly",
+            display_order=1,
+        ),
+        minimal=lambda c: c.billing.license_prices.create(
+            "growth-v2",
+            billing_model="OVERAGE",
+            currency="EUR",
+            unit_amount_decimal="2",
+            metered_entitlement_slug="api-calls",
+        ),
+    ),
+    Case(
+        "updateLicensePrice",
+        lambda c: c.billing.license_prices.update(
+            "growth-v2",
+            ID,
+            unit_amount_decimal="5900",
+            billing_period="MONTHLY",
+            billing_timing="ARREARS",
+            metered_entitlement_slug="api-calls",
+            is_default=False,
+            display_label="Growth",
+            display_order=2,
+        ),
+        minimal=lambda c: c.billing.license_prices.update("growth-v2", ID),
+    ),
+    Case("deprecateLicensePrice", lambda c: c.billing.license_prices.deprecate("growth-v2", ID)),
+    Case(
+        "previewLicenseInvoice",
+        lambda c: c.billing.license_prices.preview_invoice(
+            "growth-v2",
+            base_price_id=ID,
+            add_ons={"extra-seats-v1": 2},
+            sample_usage={"api-calls": "120000"},
+            instance_slug="acme-production",
+            voucher_code="WELCOME-2026",
+        ),
+        minimal=lambda c: c.billing.license_prices.preview_invoice("growth-v2"),
+    ),
+    # billing: what a publishable key and an anonymous checkout's token reach
+    Case(
+        "getPublicCatalog",
+        lambda c: c.billing.public.get_catalog(family_slug="growth", include_addons=False),
+        minimal=lambda c: c.billing.public.get_catalog(),
+        token="pk_test",
+    ),
+    Case(
+        "createCheckoutSession",
+        lambda c: c.billing.public.create_checkout_session(
+            turnstile_token="0.turnstile",
+            license_slug="growth-v2",
+            billing_period="MONTHLY",
+            add_ons={"extra-seats-v1": 1},
+            email="ada@acme.com",
+            return_url="https://acme.com/welcome",
+            voucher_code="WELCOME-2026",
+            trial=False,
+            client_reference_id="ref-1",
+            dry_run=True,
+        ),
+        minimal=lambda c: c.billing.public.create_checkout_session(
+            turnstile_token="0.turnstile", price_id=ID
+        ),
+        required=frozenset({"turnstileToken"}),
+        token="pk_test",
+    ),
+    Case(
+        "getCheckoutSession",
+        lambda c: c.billing.public.get_checkout_session(ID),
+        token="ksc_test",
+    ),
+    Case(
+        "confirmCheckoutSession",
+        lambda c: c.billing.public.confirm_checkout_session(ID),
+        token="ksc_test",
+    ),
+    # billing: what a customer session reaches
+    Case("getSessionPortal", lambda c: c.billing.session.get_portal(), token="kst_test"),
+    Case(
+        "listSessionInvoices",
+        lambda c: c.billing.session.list_invoices(limit=10),
+        minimal=lambda c: c.billing.session.list_invoices(),
+        token="kst_test",
+    ),
+    Case(
+        "createSessionCheckout",
+        lambda c: c.billing.session.checkout(
+            license_price_id=ID,
+            add_ons={"extra-seats-v1": 2},
+            voucher_code="WELCOME-2026",
+            billing_email="billing@acme.com",
+            return_url="https://acme.com/billing",
+            setup_session_id="seti_1",
+            trial=False,
+            dry_run=True,
+        ),
+        minimal=lambda c: c.billing.session.checkout(license_price_id=ID),
+        token="kst_test",
+    ),
+    Case(
+        "cancelSessionSubscription",
+        lambda c: c.billing.session.cancel(reason="Too expensive"),
+        minimal=lambda c: c.billing.session.cancel(),
+        token="kst_test",
+    ),
+    Case(
+        "reactivateSessionSubscription",
+        lambda c: c.billing.session.reactivate(),
+        token="kst_test",
+    ),
+    Case(
+        "setSessionAddonQuantity",
+        lambda c: c.billing.session.set_addon_quantity("extra-seats-v1", 0),
+        token="kst_test",
+    ),
+    Case(
+        "createSessionPaymentMethodSession",
+        lambda c: c.billing.session.create_payment_method_session(
+            return_url="https://acme.com/billing", currency="EUR"
+        ),
+        minimal=lambda c: c.billing.session.create_payment_method_session(
+            return_url="https://acme.com/billing"
+        ),
+        token="kst_test",
+    ),
+    Case(
+        "completeSessionPaymentMethodSession",
+        lambda c: c.billing.session.complete_payment_method_session("seti_1"),
+        token="kst_test",
+    ),
+    Case(
+        "createSessionPortalSession",
+        lambda c: c.billing.session.create_portal_session(return_url="https://acme.com/billing"),
+        token="kst_test",
+    ),
+    Case(
+        "validateSessionVoucher",
+        lambda c: c.billing.session.validate_voucher("WELCOME-2026", license_price_id=ID),
+        minimal=lambda c: c.billing.session.validate_voucher("WELCOME-2026"),
+        token="kst_test",
+    ),
+    Case(
+        "redeemSessionVoucher",
+        lambda c: c.billing.session.redeem_voucher("WELCOME-2026", dry_run=True),
+        minimal=lambda c: c.billing.session.redeem_voucher("WELCOME-2026"),
+        token="kst_test",
+    ),
+    # billing: subscriptions
+    Case("getInstanceBilling", lambda c: c.billing.subscriptions.get("acme-production")),
+    Case(
+        "subscribeInstance",
+        lambda c: c.billing.subscriptions.subscribe(
+            "acme-production",
+            base_price_id=ID,
+            add_ons={"extra-seats-v1": 2},
+            voucher_code="WELCOME-2026",
+            trial_days=14,
+            start_at=NOW,
+            provider_kind="STRIPE",
+            collection_method="CHARGE_AUTOMATICALLY",
+            days_until_due=30,
+        ),
+        minimal=lambda c: c.billing.subscriptions.subscribe("acme-production", base_price_id=ID),
+    ),
+    Case(
+        "updateInstanceBilling",
+        lambda c: c.billing.subscriptions.update(
+            "acme-production",
+            provider_kind="STRIPE",
+            collection_method="CHARGE_AUTOMATICALLY",
+            days_until_due=14,
+        ),
+        minimal=lambda c: c.billing.subscriptions.update("acme-production"),
+    ),
+    Case(
+        "updateInstanceBilling",
+        # None is sent as null: back to the organization's default.
+        lambda c: c.billing.subscriptions.update(
+            "acme-production", collection_method=None, days_until_due=None
+        ),
+        required=frozenset({"collectionMethod", "daysUntilDue"}),
+        name="updateInstanceBilling-defaults",
+    ),
+    Case(
+        "cancelSubscription",
+        lambda c: c.billing.subscriptions.cancel(
+            "acme-production", mode="IMMEDIATE", reason="Churned"
+        ),
+        minimal=lambda c: c.billing.subscriptions.cancel("acme-production"),
+    ),
+    Case("reactivateSubscription", lambda c: c.billing.subscriptions.reactivate("acme-production")),
+    Case(
+        "schedulePlanChange",
+        lambda c: c.billing.subscriptions.schedule_plan_change("acme-production", ID),
+        required=frozenset({"licensePriceId"}),
+    ),
+    Case(
+        "cancelPlanChange",
+        lambda c: c.billing.subscriptions.cancel_plan_change("acme-production"),
+    ),
+    Case(
+        "getUpcomingInvoice",
+        lambda c: c.billing.subscriptions.get_upcoming_invoice("acme-production"),
+    ),
+    Case(
+        "listInstanceInvoices",
+        lambda c: c.billing.subscriptions.list_invoices(
+            "acme-production",
+            customer_slug="acme",
+            status=["PUSHED"],
+            kind="ACTIVATION",
+            provider_kind="STRIPE",
+            overdue=True,
+            held=False,
+            handoff_status="NOT_REQUIRED",
+            issued_from=NOW,
+            issued_to=LATER,
+            boundary_from=NOW,
+            boundary_to=LATER,
+            updated_since=NOW,
+            limit=5,
+        ),
+        minimal=lambda c: c.billing.subscriptions.list_invoices("acme-production"),
+    ),
+    # billing: vouchers
+    Case(
+        "listVouchers",
+        lambda c: c.billing.vouchers.list(
+            status="ACTIVE", voucher_type="PRICE", restricted_customer_slug="acme"
+        ),
+        minimal=lambda c: c.billing.vouchers.list(),
+    ),
+    Case("getVoucher", lambda c: c.billing.vouchers.get(ID)),
+    Case(
+        "createVoucher",
+        lambda c: c.billing.vouchers.create(**VOUCHER),
+        minimal=lambda c: c.billing.vouchers.create(
+            name="Welcome", voucher_type="PRICE", duration="ONE_TIME"
+        ),
+    ),
+    Case(
+        "updateVoucher",
+        lambda c: c.billing.vouchers.update(ID, **VOUCHER),
+        minimal=lambda c: c.billing.vouchers.update(
+            ID, name="Welcome", voucher_type="PRICE", duration="FOREVER"
+        ),
+    ),
+    Case("deleteVoucher", lambda c: c.billing.vouchers.delete(ID)),
+    Case("publishVoucher", lambda c: c.billing.vouchers.publish(ID)),
+    Case("archiveVoucher", lambda c: c.billing.vouchers.archive(ID)),
+    Case(
+        "listVoucherRedemptions",
+        lambda c: c.billing.vouchers.list_redemptions(ID, limit=10),
+        minimal=lambda c: c.billing.vouchers.list_redemptions(ID),
+    ),
+    Case(
+        "lookupVoucher",
+        lambda c: c.billing.vouchers.lookup("WELCOME-2026"),
+        required=frozenset({"code"}),
+    ),
+    Case(
+        "validateVoucher",
+        lambda c: c.billing.vouchers.validate(
+            "WELCOME-2026", instance_slug="acme-production", license_price_id=ID
+        ),
+        minimal=lambda c: c.billing.vouchers.validate("WELCOME-2026"),
+    ),
     # platform
     Case("get-platform-me", lambda p: p.me(), surface="platform"),
     Case(
@@ -654,6 +1382,12 @@ CASES = [
         surface="platform",
     ),
     Case("delete-user", lambda p: p.users.delete(USER_ID), surface="platform"),
+    Case(
+        "platform-close-billing-periods",
+        lambda p: p.billing.close_periods(ORG_ID, instance_slug="acme-production"),
+        minimal=lambda p: p.billing.close_periods(ORG_ID),
+        surface="platform",
+    ),
 ]
 
 
@@ -673,7 +1407,12 @@ def check(case: Case, recorder: Recorder) -> None:
         operation = find_operation(case.surface, request.method, request.url.path)
         assert operation.operation_id == case.operation_id
         assert set(request.url.params.keys()) <= operation.query_parameters
-        assert request.headers["authorization"].startswith("Bearer ")
+        header = credential_header(case.surface, operation)
+        if header == "Authorization":
+            assert request.headers["authorization"].startswith("Bearer ")
+        else:
+            assert "authorization" not in request.headers, "the API refuses this credential there"
+            assert request.headers[header]
 
         schema = operation.request_schema
         if schema is None:
@@ -685,6 +1424,19 @@ def check(case: Case, recorder: Recorder) -> None:
         assert case.required <= payload.keys(), f"missing {case.required - payload.keys()}"
 
 
+def credential_header(surface: str, operation: Operation) -> str:
+    """The header the operation's security scheme carries the credential in."""
+    contract = document(surface)
+    requirements = operation.definition.get("security", contract.get("security")) or [{}]
+    (scheme,) = {name for requirement in requirements for name in requirement}
+    definition = contract["components"]["securitySchemes"][scheme]
+    return str(definition["name"]) if definition["type"] == "apiKey" else "Authorization"
+
+
+def options(case: Case) -> dict[str, Any]:
+    return {"token": case.token} if case.token else {}
+
+
 @pytest.mark.parametrize(("case", "call"), _invocations())
 def test_sync_client_speaks_the_contract(
     case: Case,
@@ -693,7 +1445,7 @@ def test_sync_client_speaks_the_contract(
     make_platform_client: Callable[..., Any],
 ) -> None:
     factory = make_platform_client if case.surface == "platform" else make_client
-    client, recorder = factory(contract_api(case.surface))
+    client, recorder = factory(contract_api(case.surface), **options(case))
     call(client)
     check(case, recorder)
 
@@ -708,7 +1460,7 @@ def test_async_client_speaks_the_contract(
     factory = make_async_platform_client if case.surface == "platform" else make_async_client
 
     async def scenario() -> Recorder:
-        client, recorder = factory(contract_api(case.surface))
+        client, recorder = factory(contract_api(case.surface), **options(case))
         async with client:
             await call(client)
         return recorder

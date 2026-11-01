@@ -1,0 +1,379 @@
+# Copyright 2026 KAITEN INC
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import builtins
+from collections.abc import Sequence
+from datetime import datetime
+from typing import Any, Literal
+
+from ...._constants import EXPORT_MEDIA_TYPES
+from ...._utils import api_path, check_limit, compact, optional_datetime
+from ....types import (
+    BillingProviderKind,
+    HandoffClaim,
+    HandoffStatus,
+    Invoice,
+    InvoiceKind,
+    InvoiceStatus,
+    InvoiceSummary,
+    QueuedInvoice,
+    UsageReport,
+)
+from .._base import AsyncResource
+
+__all__ = ["AsyncBillingHandoff", "AsyncBillingInvoices"]
+
+
+class AsyncBillingInvoices(AsyncResource):
+    """The organization's invoices, addressed by id: an invoice outlives its instance and customer.
+
+    Amounts are integer minor units, as strings. An invoice is a ``DRAFT`` until it is issued:
+    ``MANUAL`` when the organization collects it, ``PUSHED`` to a payment provider otherwise.
+    """
+
+    async def list(
+        self,
+        *,
+        instance_slug: str | None = None,
+        customer_slug: str | None = None,
+        status: Sequence[InvoiceStatus] | None = None,
+        kind: InvoiceKind | None = None,
+        provider_kind: BillingProviderKind | None = None,
+        overdue: bool | None = None,
+        held: bool | None = None,
+        handoff_status: HandoffStatus | None = None,
+        issued_from: datetime | str | None = None,
+        issued_to: datetime | str | None = None,
+        boundary_from: datetime | str | None = None,
+        boundary_to: datetime | str | None = None,
+        updated_since: datetime | str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[InvoiceSummary]:
+        """Return the organization's invoices, newest first.
+
+        With ``updated_since``, the invoices changed since then, oldest change first: store the
+        last ``updated_at`` you read and pass it back for an incremental sync.
+
+        Args:
+            instance_slug: Only this instance's invoices.
+            customer_slug: Only this customer's invoices.
+            status: Only invoices in these statuses.
+            kind: ``ACTIVATION``, ``RENEWAL`` or ``FINAL``.
+            provider_kind: Only invoices issued by ``NOOP`` or by a payment provider.
+            overdue: Only issued invoices still unpaid past their due date.
+            held: Only drafts held for their usage journal.
+            handoff_status: ``NOT_REQUIRED``, ``PENDING`` or ``ACKNOWLEDGED``.
+            issued_from: Issued at or after this moment.
+            issued_to: Issued before this moment.
+            boundary_from: Billing a boundary at or after this moment.
+            boundary_to: Billing a boundary before this moment.
+            updated_since: Only invoices changed at or after this moment.
+            limit: The most invoices to return. Every page is walked when omitted.
+        """
+        return await self._api.list_all(
+            "/invoices",
+            InvoiceSummary,
+            params={
+                "instanceSlug": instance_slug,
+                **invoice_query(
+                    customer_slug=customer_slug,
+                    status=status,
+                    kind=kind,
+                    provider_kind=provider_kind,
+                    overdue=overdue,
+                    held=held,
+                    handoff_status=handoff_status,
+                    issued_from=issued_from,
+                    issued_to=issued_to,
+                    boundary_from=boundary_from,
+                    boundary_to=boundary_to,
+                    updated_since=updated_since,
+                ),
+            },
+            limit=check_limit(limit),
+        )
+
+    async def get(self, invoice_id: str) -> Invoice:
+        """Return an invoice with its lines.
+
+        It carries its hold and its handoff, and its customer and instance as they were when it
+        was composed.
+        """
+        return await self._api.get(api_path("invoices", invoice_id), Invoice)
+
+    async def export(
+        self,
+        *,
+        format: Literal["csv", "json"] = "csv",
+        granularity: Literal["line", "invoice"] | None = None,
+        instance_slug: str | None = None,
+        customer_slug: str | None = None,
+        status: Sequence[InvoiceStatus] | None = None,
+        kind: InvoiceKind | None = None,
+        provider_kind: BillingProviderKind | None = None,
+        overdue: bool | None = None,
+        held: bool | None = None,
+        handoff_status: HandoffStatus | None = None,
+        issued_from: datetime | str | None = None,
+        issued_to: datetime | str | None = None,
+        boundary_from: datetime | str | None = None,
+        boundary_to: datetime | str | None = None,
+        updated_since: datetime | str | None = None,
+    ) -> bytes:
+        """Return the invoices the filters of :meth:`list` select, exported.
+
+        Amounts are integer minor units with the currency's exponent beside them. The export
+        carries billing e-mails: treat it as the accounting read it is.
+
+        Args:
+            format: ``"csv"`` (the default), RFC 4180 with a header row, or ``"json"`` for
+                NDJSON, one invoice with its lines per line.
+            granularity: For CSV, ``"line"`` (the default) -- one row per invoice line -- or
+                ``"invoice"``, one row per invoice.
+            instance_slug: Only this instance's invoices. The other filters are
+                :meth:`list`'s.
+        """
+        response = await self._api.request(
+            "GET",
+            "/invoices/export",
+            params={
+                "format": format,
+                "granularity": granularity,
+                "instanceSlug": instance_slug,
+                **invoice_query(
+                    customer_slug=customer_slug,
+                    status=status,
+                    kind=kind,
+                    provider_kind=provider_kind,
+                    overdue=overdue,
+                    held=held,
+                    handoff_status=handoff_status,
+                    issued_from=issued_from,
+                    issued_to=issued_to,
+                    boundary_from=boundary_from,
+                    boundary_to=boundary_to,
+                    updated_since=updated_since,
+                ),
+            },
+            headers={"Accept": EXPORT_MEDIA_TYPES[format]},
+        )
+        return response.content
+
+    async def void(self, invoice_id: str, *, reason: str) -> Invoice:
+        """Void an invoice not yet settled, which frees its boundary for a recompose.
+
+        A payment provider's invoice is voided there first, and here only once it confirms.
+        Voiding a ``VOID`` invoice again answers it unchanged.
+
+        Args:
+            invoice_id: The invoice.
+            reason: Why, 1 to 500 characters.
+        """
+        return await self._api.send(
+            "POST",
+            api_path("invoices", invoice_id, "void"),
+            Invoice,
+            body={"reason": reason},
+            idempotent=True,
+        )
+
+    async def recompose(self, invoice_id: str) -> Invoice:
+        """Compose an invoice again from the usage journal as it is now, keeping its base lines.
+
+        A held draft is rewritten in place; a ``VOID`` invoice gets a replacement for the same
+        boundary, which is returned. Any other invoice must be voided first.
+        """
+        return await self._api.send("POST", api_path("invoices", invoice_id, "recompose"), Invoice)
+
+    async def mark_paid(
+        self,
+        invoice_id: str,
+        *,
+        paid_at: datetime | str | None = None,
+        external_reference: str | None = None,
+        note: str | None = None,
+    ) -> Invoice:
+        """Record that a ``MANUAL`` invoice was paid.
+
+        An invoice still waiting in the handoff queue is acknowledged by the same write. An
+        invoice a payment provider collects is settled there instead.
+
+        Args:
+            invoice_id: The invoice.
+            paid_at: When it was paid, now or earlier. Now when omitted.
+            external_reference: Its number in the accounting system, 1 to 255 characters.
+            note: A note, such as the transfer's reference, kept only in the paid event.
+        """
+        body = compact(
+            {
+                "paidAt": optional_datetime(paid_at),
+                "externalReference": external_reference,
+                "note": note,
+            }
+        )
+        return await self._api.send(
+            "POST", api_path("invoices", invoice_id, "mark-paid"), Invoice, body=body
+        )
+
+    async def write_off(self, invoice_id: str, *, reason: str) -> Invoice:
+        """Give up collecting a ``MANUAL`` invoice: it becomes ``UNCOLLECTIBLE``.
+
+        Args:
+            invoice_id: The invoice.
+            reason: Why, 1 to 500 characters.
+        """
+        return await self._api.send(
+            "POST",
+            api_path("invoices", invoice_id, "write-off"),
+            Invoice,
+            body={"reason": reason},
+            idempotent=True,
+        )
+
+    async def release_hold(self, invoice_id: str, *, reason: str) -> Invoice:
+        """Accept a held invoice as composed, and issue it.
+
+        Args:
+            invoice_id: The invoice.
+            reason: Why, 1 to 500 characters. The release keeps it, with who released it.
+
+        Raises:
+            ConflictError: The hold is ``PROVIDER_ITEM_LIMIT``, which the provider would refuse
+                (``ReleaseInvoiceHold.ProviderItemLimit``).
+        """
+        return await self._api.send(
+            "POST",
+            api_path("invoices", invoice_id, "release-hold"),
+            Invoice,
+            body={"reason": reason},
+        )
+
+    async def retry_push(self, invoice_id: str) -> Invoice:
+        """Put a ``DRAFT`` or ``PUSH_FAILED`` invoice of a payment provider back in the push queue."""
+        return await self._api.send("POST", api_path("invoices", invoice_id, "retry-push"), Invoice)
+
+    async def sync(self, invoice_id: str) -> Invoice:
+        """Read an invoice from its payment provider now, and apply what the provider says."""
+        return await self._api.send("POST", api_path("invoices", invoice_id, "sync"), Invoice)
+
+    async def list_line_reports(
+        self, invoice_id: str, line_id: str, *, limit: int | None = None
+    ) -> builtins.list[UsageReport]:
+        """Return the usage reports a ``USAGE`` or ``OVERAGE`` line was measured from.
+
+        Summed by reset window and floored at 0, they give the line's measured quantity. It
+        answers after the instance was deleted.
+
+        Args:
+            invoice_id: The invoice.
+            line_id: The line, as the invoice's lines carry it.
+            limit: The most reports to return. Every page is walked when omitted.
+        """
+        return await self._api.list_reports(
+            api_path("invoices", invoice_id, "lines", line_id, "reports"),
+            UsageReport,
+            limit=check_limit(limit),
+        )
+
+
+class AsyncBillingHandoff(AsyncResource):
+    """The accounting handoff: the invoices waiting for the organization's accounting system.
+
+    Claim a batch under a lease, book each invoice, then acknowledge it. An invoice not
+    acknowledged before its lease expires is claimed again: the queue delivers at least once,
+    so deduplicate on the invoice id.
+    """
+
+    async def list(
+        self,
+        *,
+        status: Literal["PENDING", "ACKNOWLEDGED"] | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[QueuedInvoice]:
+        """Return the queue, oldest issue first, without leasing anything.
+
+        Args:
+            status: ``PENDING`` (the default) or ``ACKNOWLEDGED``.
+            limit: The most invoices to return. Every page is walked when omitted.
+        """
+        return await self._api.list_all(
+            "/billing/handoff",
+            QueuedInvoice,
+            params={"status": status},
+            limit=check_limit(limit),
+        )
+
+    async def claim(
+        self, *, limit: int | None = None, lease_seconds: int | None = None
+    ) -> HandoffClaim:
+        """Lease the oldest invoices waiting, under one lease, and return them.
+
+        Two consumers claiming at once get different invoices. A claim is not idempotent: a lost
+        response leaves its invoices leased until ``leased_until``, so it is never retried.
+
+        Args:
+            limit: How many invoices to lease, 1 to 100. 25 when omitted.
+            lease_seconds: How long the lease lasts, 60 to 3600 seconds. 900 when omitted.
+        """
+        body = compact({"limit": limit, "leaseSeconds": lease_seconds})
+        return await self._api.send("POST", "/billing/handoff/claim", HandoffClaim, body=body)
+
+    async def ack(
+        self,
+        invoice_id: str,
+        *,
+        lease_id: str | None = None,
+        external_reference: str | None = None,
+    ) -> Invoice:
+        """Record that the accounting system booked an invoice of the queue. Safe to repeat.
+
+        Args:
+            invoice_id: The invoice.
+            lease_id: The claim's lease. When given, an invoice another claim took since is
+                refused (``AckHandoff.LeaseMismatch``).
+            external_reference: The invoice's number in the accounting system. Another
+                reference than the one it was acknowledged under is refused
+                (``AckHandoff.ReferenceMismatch``): take it as already handed off.
+        """
+        body = compact({"leaseId": lease_id, "externalReference": external_reference})
+        return await self._api.send(
+            "POST",
+            api_path("billing", "handoff", invoice_id, "ack"),
+            Invoice,
+            body=body,
+            idempotent=True,
+        )
+
+
+def invoice_query(
+    *,
+    customer_slug: str | None,
+    status: Sequence[InvoiceStatus] | None,
+    kind: InvoiceKind | None,
+    provider_kind: BillingProviderKind | None,
+    overdue: bool | None,
+    held: bool | None,
+    handoff_status: HandoffStatus | None,
+    issued_from: datetime | str | None,
+    issued_to: datetime | str | None,
+    boundary_from: datetime | str | None,
+    boundary_to: datetime | str | None,
+    updated_since: datetime | str | None,
+) -> dict[str, Any]:
+    """The filters every invoice listing takes, as query parameters."""
+    return {
+        "customerSlug": customer_slug,
+        "status": list(status) if status is not None else None,
+        "kind": kind,
+        "providerKind": provider_kind,
+        "overdue": overdue,
+        "held": held,
+        "handoffStatus": handoff_status,
+        "issuedFrom": optional_datetime(issued_from),
+        "issuedTo": optional_datetime(issued_to),
+        "boundaryFrom": optional_datetime(boundary_from),
+        "boundaryTo": optional_datetime(boundary_to),
+        "updatedSince": optional_datetime(updated_since),
+    }

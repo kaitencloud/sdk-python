@@ -14,17 +14,33 @@ from pydantic import Field
 
 from .._models import KaitenModel
 from ._core import (
-    Component,
-    Customer,
+    AddonDelivered,
+    AddonGrantUpdateDelivered,
+    AddonPriceUpdateDelivered,
+    AddonUpdateDelivered,
+    BillingStartedDelivered,
+    CancellationChangeDelivered,
+    CancellationDelivered,
+    ComponentDelivered,
+    ConnectionDelivered,
     CustomerCreationRejected,
+    CustomerEventDelivered,
+    DeletedAddonDelivered,
     Deployment,
-    DeploymentZone,
-    Entitlement,
-    EntitlementGroup,
-    EntitlementUsage,
-    FeatureFlag,
+    DeploymentZoneDelivered,
+    EntitlementDelivered,
+    EntitlementGroupDelivered,
+    EntitlementUsageDelivered,
+    EventHeaders,
+    ExceptionEventDelivered,
+    ExhaustedEventDelivered,
+    ExpiredEventDelivered,
+    FeatureFlagDelivered,
     FeatureFlagEvaluated,
-    Instance,
+    HandoffAcknowledgementDelivered,
+    HeldInvoiceDelivered,
+    InstanceAddonUpdateDelivered,
+    InstanceDelivered,
     InstanceEntitlementCapExceeded,
     InstanceEntitlementUsagePeriodRolledOver,
     InstanceEntitlementUsageReportAccepted,
@@ -32,23 +48,68 @@ from ._core import (
     InstanceEntitlementValueGet,
     InstanceLifecycleStageChanged,
     InstanceStatusChanged,
-    License,
-    LicenseEntitlement,
-    LicenseFamilyView,
-    MetadataField,
+    InstanceUpdateDelivered,
+    IssuedInvoiceDelivered,
+    LicenseDelivered,
+    LicenseEntitlementDelivered,
+    LicenseFamilyViewDelivered,
+    LicensePriceEventDelivered,
+    LicensePriceUpdatedEventDelivered,
+    MetadataFieldDelivered,
     MetadataFieldReordered,
-    Release,
+    MismatchedInvoiceDelivered,
+    PaidInvoiceDelivered,
+    PaymentFailedInvoiceDelivered,
+    PaymentMethodAttachedDelivered,
+    PaymentMethodDetachedDelivered,
+    PaymentMethodExpiringDelivered,
+    PlanChangeDelivered,
+    PlanChangeScheduleDelivered,
+    ProviderChangeDelivered,
+    PublishableKeyEventDelivered,
+    PushedInvoiceDelivered,
+    PushFailedInvoiceDelivered,
+    RedemptionDelivered,
+    ReleaseDelivered,
+    ReleasedInvoiceDelivered,
+    SessionEventDelivered,
+    StatusChangeDelivered,
+    SyncFailureDelivered,
     SystemTokenIssuance,
+    TrialWillEndDelivered,
+    UncollectibleInvoiceDelivered,
+    VoidedInvoiceDelivered,
+    VoucherDelivered,
 )
 
 __all__ = [
     "WEBHOOK_EVENTS",
+    "AddonArchivedEvent",
+    "AddonCreatedEvent",
+    "AddonDeletedEvent",
+    "AddonEntitlementAssignedEvent",
+    "AddonEntitlementUnassignedEvent",
+    "AddonEntitlementUpdatedEvent",
+    "AddonPriceCreatedEvent",
+    "AddonPriceDeprecatedEvent",
+    "AddonPublishedEvent",
+    "AddonUnarchivedEvent",
+    "AddonUpdatedEvent",
+    "BillingProviderConnectedEvent",
+    "BillingProviderDisconnectedEvent",
+    "BillingProviderSyncFailedEvent",
+    "CheckoutSessionAbandonedEvent",
+    "CheckoutSessionCompletedEvent",
+    "CheckoutSessionStartedEvent",
     "ComponentCreatedEvent",
     "ComponentDeletedEvent",
     "ComponentUpdatedEvent",
     "CustomerCreatedEvent",
     "CustomerCreationRejectedEvent",
     "CustomerDeletedEvent",
+    "CustomerPaymentMethodAttachedEvent",
+    "CustomerPaymentMethodDetachedEvent",
+    "CustomerPaymentMethodExpiringEvent",
     "CustomerUpdatedEvent",
     "DeploymentZoneCreatedEvent",
     "DeploymentZoneDeletedEvent",
@@ -63,20 +124,50 @@ __all__ = [
     "FeatureFlagDeletedEvent",
     "FeatureFlagEvaluatedEvent",
     "FeatureFlagUpdatedEvent",
+    "InstanceAddonAddedEvent",
+    "InstanceAddonQuantityChangedEvent",
+    "InstanceAddonRemovedEvent",
+    "InstanceBillingCanceledEvent",
+    "InstanceBillingCancellationRevertedEvent",
+    "InstanceBillingCancellationScheduledEvent",
+    "InstanceBillingPlanChangeCanceledEvent",
+    "InstanceBillingPlanChangeScheduledEvent",
+    "InstanceBillingPlanChangedEvent",
+    "InstanceBillingProviderChangedEvent",
+    "InstanceBillingStartedEvent",
+    "InstanceBillingStatusChangedEvent",
+    "InstanceBillingTrialWillEndEvent",
     "InstanceCreatedEvent",
     "InstanceDeletedEvent",
     "InstanceDeployedEvent",
     "InstanceEntitlementCapExceededEvent",
+    "InstanceEntitlementExceptionCreatedEvent",
+    "InstanceEntitlementExceptionExpiredEvent",
+    "InstanceEntitlementExceptionRevokedEvent",
     "InstanceEntitlementUsagePeriodRolledOverEvent",
     "InstanceEntitlementUsageReachedEvent",
     "InstanceEntitlementUsageReportAcceptedEvent",
     "InstanceEntitlementUsageReportRejectedEvent",
     "InstanceEntitlementUsageWarningThresholdReachedEvent",
     "InstanceEntitlementValueGetEvent",
+    "InstanceInvoiceHandoffAcknowledgedEvent",
+    "InstanceInvoiceHeldEvent",
+    "InstanceInvoiceIssuedEvent",
+    "InstanceInvoiceMarkedUncollectibleEvent",
+    "InstanceInvoicePaidEvent",
+    "InstanceInvoicePaymentFailedEvent",
+    "InstanceInvoicePushFailedEvent",
+    "InstanceInvoicePushedEvent",
+    "InstanceInvoiceReconciliationMismatchEvent",
+    "InstanceInvoiceReleasedEvent",
+    "InstanceInvoiceVoidedEvent",
     "InstanceLifecycleStageChangedEvent",
     "InstanceMigratedEvent",
     "InstanceStatusChangedEvent",
     "InstanceUpdatedEvent",
+    "InstanceVoucherExpiredEvent",
+    "InstanceVoucherRedeemedEvent",
+    "InstanceVoucherRevokedEvent",
     "LicenseArchivedEvent",
     "LicenseCreatedEvent",
     "LicenseDeletedEvent",
@@ -86,6 +177,9 @@ __all__ = [
     "LicenseFamilyCreatedEvent",
     "LicenseFamilyDeletedEvent",
     "LicenseFamilyUpdatedEvent",
+    "LicensePriceCreatedEvent",
+    "LicensePriceDeprecatedEvent",
+    "LicensePriceUpdatedEvent",
     "LicensePublishedEvent",
     "LicenseUnarchivedEvent",
     "LicenseUpdatedEvent",
@@ -94,12 +188,326 @@ __all__ = [
     "MetadataFieldReorderedEvent",
     "MetadataFieldUnarchivedEvent",
     "MetadataFieldUpdatedEvent",
+    "PublishableKeyCreatedEvent",
+    "PublishableKeyRevokedEvent",
     "ReleaseCreatedEvent",
     "ReleaseDeletedEvent",
     "ReleaseDeployedEvent",
     "SystemOrganizationTokenIssuedEvent",
+    "VoucherArchivedEvent",
+    "VoucherCreatedEvent",
+    "VoucherDeletedEvent",
+    "VoucherExhaustedEvent",
+    "VoucherExpiredEvent",
+    "VoucherPublishedEvent",
+    "VoucherUpdatedEvent",
     "WebhookEvent",
 ]
+
+
+class AddonEntitlementAssignedEvent(KaitenModel):
+    """Triggered when an add-on version grants an entitlement. Delivered as
+    ``com.kaiten.addon.entitlement.v1.assigned``.
+    """
+
+    name: Literal["ADDON_ENTITLEMENT_ASSIGNED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.entitlement.v1.assigned"]
+    """The event type: what tells one event from another."""
+
+    data: AddonGrantUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonEntitlementUnassignedEvent(KaitenModel):
+    """Triggered when an add-on grant is removed. Delivered as
+    ``com.kaiten.addon.entitlement.v1.unassigned``.
+    """
+
+    name: Literal["ADDON_ENTITLEMENT_UNASSIGNED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.entitlement.v1.unassigned"]
+    """The event type: what tells one event from another."""
+
+    data: AddonGrantUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonEntitlementUpdatedEvent(KaitenModel):
+    """Triggered when an add-on grant changes. Delivered as
+    ``com.kaiten.addon.entitlement.v1.updated``.
+    """
+
+    name: Literal["ADDON_ENTITLEMENT_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.entitlement.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: AddonGrantUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonPriceCreatedEvent(KaitenModel):
+    """Triggered when a price is added to an add-on version. Delivered as
+    ``com.kaiten.addon.price.v1.created``.
+    """
+
+    name: Literal["ADDON_PRICE_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.price.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: AddonPriceUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonPriceDeprecatedEvent(KaitenModel):
+    """Triggered when an add-on price stops being offered. Delivered as
+    ``com.kaiten.addon.price.v1.deprecated``.
+    """
+
+    name: Literal["ADDON_PRICE_DEPRECATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.price.v1.deprecated"]
+    """The event type: what tells one event from another."""
+
+    data: AddonPriceUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonArchivedEvent(KaitenModel):
+    """Triggered when an add-on version is withdrawn from sale. Delivered as
+    ``com.kaiten.addon.v1.archived``.
+    """
+
+    name: Literal["ADDON_ARCHIVED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.archived"]
+    """The event type: what tells one event from another."""
+
+    data: AddonDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonCreatedEvent(KaitenModel):
+    """Triggered when an add-on version is created. Delivered as ``com.kaiten.addon.v1.created``."""
+
+    name: Literal["ADDON_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: AddonDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonDeletedEvent(KaitenModel):
+    """Triggered when an add-on version is deleted. Delivered as ``com.kaiten.addon.v1.deleted``."""
+
+    name: Literal["ADDON_DELETED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.deleted"]
+    """The event type: what tells one event from another."""
+
+    data: DeletedAddonDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonPublishedEvent(KaitenModel):
+    """Triggered when a draft add-on version goes on sale. Delivered as
+    ``com.kaiten.addon.v1.published``.
+    """
+
+    name: Literal["ADDON_PUBLISHED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.published"]
+    """The event type: what tells one event from another."""
+
+    data: AddonDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonUnarchivedEvent(KaitenModel):
+    """Triggered when an archived add-on version goes back on sale. Delivered as
+    ``com.kaiten.addon.v1.unarchived``.
+    """
+
+    name: Literal["ADDON_UNARCHIVED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.unarchived"]
+    """The event type: what tells one event from another."""
+
+    data: AddonDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class AddonUpdatedEvent(KaitenModel):
+    """Triggered when an add-on version, its compatibility or its family's visibility changes.
+    Delivered as ``com.kaiten.addon.v1.updated``.
+    """
+
+    name: Literal["ADDON_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.addon.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: AddonUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class BillingProviderConnectedEvent(KaitenModel):
+    """Triggered when an organization connects a payment provider (activates its connector).
+    Delivered as ``com.kaiten.billing_provider.v1.connected``.
+    """
+
+    name: Literal["BILLING_PROVIDER_CONNECTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.billing_provider.v1.connected"]
+    """The event type: what tells one event from another."""
+
+    data: ConnectionDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class BillingProviderDisconnectedEvent(KaitenModel):
+    """Triggered when an organization disconnects a payment provider (deactivates its
+    connector). Delivered as ``com.kaiten.billing_provider.v1.disconnected``.
+    """
+
+    name: Literal["BILLING_PROVIDER_DISCONNECTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.billing_provider.v1.disconnected"]
+    """The event type: what tells one event from another."""
+
+    data: ConnectionDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class BillingProviderSyncFailedEvent(KaitenModel):
+    """Triggered when syncing with a payment provider has failed three passes in a row, once
+    per streak. Delivered as ``com.kaiten.billing_provider.v1.sync_failed``.
+    """
+
+    name: Literal["BILLING_PROVIDER_SYNC_FAILED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.billing_provider.v1.sync_failed"]
+    """The event type: what tells one event from another."""
+
+    data: SyncFailureDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CheckoutSessionAbandonedEvent(KaitenModel):
+    """Triggered when an anonymous checkout ends unpaid: still OPEN 24 h after its start
+    (status ABANDONED), or its INCOMPLETE subscription expired or was canceled (status
+    EXPIRED, with the customer and instance to clean up). Delivered as
+    ``com.kaiten.checkout_session.v1.abandoned``.
+    """
+
+    name: Literal["CHECKOUT_SESSION_ABANDONED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.checkout_session.v1.abandoned"]
+    """The event type: what tells one event from another."""
+
+    data: SessionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CheckoutSessionCompletedEvent(KaitenModel):
+    """Triggered when an anonymous checkout completes: its ACTIVATION invoice is paid, or
+    nothing was due. Carries the customer and instance it created; provision on this event,
+    never on instance.v1.created. Delivered as ``com.kaiten.checkout_session.v1.completed``.
+    """
+
+    name: Literal["CHECKOUT_SESSION_COMPLETED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.checkout_session.v1.completed"]
+    """The event type: what tells one event from another."""
+
+    data: SessionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CheckoutSessionStartedEvent(KaitenModel):
+    """Triggered when an anonymous checkout starts (POST /public/checkout-sessions). A dryRun
+    emits nothing. Delivered as ``com.kaiten.checkout_session.v1.started``.
+    """
+
+    name: Literal["CHECKOUT_SESSION_STARTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.checkout_session.v1.started"]
+    """The event type: what tells one event from another."""
+
+    data: SessionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ComponentCreatedEvent(KaitenModel):
@@ -113,8 +521,11 @@ class ComponentCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.component.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: Component
+    data: ComponentDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ComponentDeletedEvent(KaitenModel):
@@ -126,8 +537,11 @@ class ComponentDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.component.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: Component
+    data: ComponentDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ComponentUpdatedEvent(KaitenModel):
@@ -141,8 +555,66 @@ class ComponentUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.component.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: Component
+    data: ComponentDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CustomerPaymentMethodAttachedEvent(KaitenModel):
+    """Triggered when a customer's default payment method in a provider is set or replaced (a
+    completed setup session, or a change in the provider's portal). Carries no card data.
+    Delivered as ``com.kaiten.customer.payment_method.v1.attached``.
+    """
+
+    name: Literal["CUSTOMER_PAYMENT_METHOD_ATTACHED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.customer.payment_method.v1.attached"]
+    """The event type: what tells one event from another."""
+
+    data: PaymentMethodAttachedDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CustomerPaymentMethodDetachedEvent(KaitenModel):
+    """Triggered when a customer no longer has a payment method in a provider. Delivered as
+    ``com.kaiten.customer.payment_method.v1.detached``.
+    """
+
+    name: Literal["CUSTOMER_PAYMENT_METHOD_DETACHED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.customer.payment_method.v1.detached"]
+    """The event type: what tells one event from another."""
+
+    data: PaymentMethodDetachedDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class CustomerPaymentMethodExpiringEvent(KaitenModel):
+    """Triggered once, 30 days before the end of the expiry month of a customer's payment
+    method. Delivered as ``com.kaiten.customer.payment_method.v1.expiring``.
+    """
+
+    name: Literal["CUSTOMER_PAYMENT_METHOD_EXPIRING"]
+    """The event name."""
+
+    type: Literal["com.kaiten.customer.payment_method.v1.expiring"]
+    """The event type: what tells one event from another."""
+
+    data: PaymentMethodExpiringDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class CustomerCreatedEvent(KaitenModel):
@@ -154,8 +626,11 @@ class CustomerCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.customer.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: Customer
+    data: CustomerEventDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class CustomerCreationRejectedEvent(KaitenModel):
@@ -173,6 +648,9 @@ class CustomerCreationRejectedEvent(KaitenModel):
     data: CustomerCreationRejected
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class CustomerDeletedEvent(KaitenModel):
     """Triggered when a customer is deleted. Delivered as ``com.kaiten.customer.v1.deleted``."""
@@ -183,8 +661,11 @@ class CustomerDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.customer.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: Customer
+    data: CustomerEventDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class CustomerUpdatedEvent(KaitenModel):
@@ -196,8 +677,11 @@ class CustomerUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.customer.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: Customer
+    data: CustomerEventDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class DeploymentZoneCreatedEvent(KaitenModel):
@@ -211,8 +695,11 @@ class DeploymentZoneCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.deployment_zone.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: DeploymentZone
+    data: DeploymentZoneDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class DeploymentZoneDeletedEvent(KaitenModel):
@@ -226,8 +713,11 @@ class DeploymentZoneDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.deployment_zone.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: DeploymentZone
+    data: DeploymentZoneDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ReleaseDeployedEvent(KaitenModel):
@@ -245,6 +735,9 @@ class ReleaseDeployedEvent(KaitenModel):
     data: Deployment
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class DeploymentZoneUpdatedEvent(KaitenModel):
     """Triggered when a deployment zone is updated. Delivered as
@@ -257,8 +750,11 @@ class DeploymentZoneUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.deployment_zone.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: DeploymentZone
+    data: DeploymentZoneDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementCreatedEvent(KaitenModel):
@@ -272,8 +768,11 @@ class EntitlementCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: Entitlement
+    data: EntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementDeletedEvent(KaitenModel):
@@ -287,8 +786,11 @@ class EntitlementDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: Entitlement
+    data: EntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementUpdatedEvent(KaitenModel):
@@ -302,8 +804,11 @@ class EntitlementUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: Entitlement
+    data: EntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementGroupCreatedEvent(KaitenModel):
@@ -317,8 +822,11 @@ class EntitlementGroupCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement_group.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: EntitlementGroup
+    data: EntitlementGroupDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementGroupDeletedEvent(KaitenModel):
@@ -332,8 +840,11 @@ class EntitlementGroupDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement_group.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: EntitlementGroup
+    data: EntitlementGroupDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class EntitlementGroupUpdatedEvent(KaitenModel):
@@ -347,8 +858,11 @@ class EntitlementGroupUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.entitlement_group.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: EntitlementGroup
+    data: EntitlementGroupDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class FeatureFlagCreatedEvent(KaitenModel):
@@ -362,8 +876,11 @@ class FeatureFlagCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.feature_flag.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: FeatureFlag
+    data: FeatureFlagDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class FeatureFlagDeletedEvent(KaitenModel):
@@ -377,8 +894,11 @@ class FeatureFlagDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.feature_flag.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: FeatureFlag
+    data: FeatureFlagDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class FeatureFlagEvaluatedEvent(KaitenModel):
@@ -396,6 +916,9 @@ class FeatureFlagEvaluatedEvent(KaitenModel):
     data: FeatureFlagEvaluated
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class FeatureFlagUpdatedEvent(KaitenModel):
     """Triggered when a feature flag is updated. Delivered as
@@ -408,16 +931,20 @@ class FeatureFlagUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.feature_flag.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: FeatureFlag
+    data: FeatureFlagDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class SystemOrganizationTokenIssuedEvent(KaitenModel):
     """Triggered when a platform credential mints an organization-scoped credential for the
     `system:kaiten` platform identity inside this organization. Carries the platform
     credential that performed the mint and the scopes granted, never the credential value.
-    Expect this at the rate an integration refreshes: roughly 120 per day per process at a
-    15-minute lifetime. Delivered as ``com.kaiten.identity.v1.system_token_issued``.
+    Expect this at the rate an integration refreshes: 96 a day per process at a 15-minute
+    lifetime, more if it refreshes before expiry. Delivered as
+    ``com.kaiten.identity.v1.system_token_issued``.
     """
 
     name: Literal["SYSTEM_ORGANIZATION_TOKEN_ISSUED"]
@@ -428,6 +955,246 @@ class SystemOrganizationTokenIssuedEvent(KaitenModel):
 
     data: SystemTokenIssuance
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceAddonAddedEvent(KaitenModel):
+    """Triggered when an add-on is attached to an instance. Delivered as
+    ``com.kaiten.instance.addon.v1.added``.
+    """
+
+    name: Literal["INSTANCE_ADDON_ADDED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.addon.v1.added"]
+    """The event type: what tells one event from another."""
+
+    data: InstanceAddonUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceAddonQuantityChangedEvent(KaitenModel):
+    """Triggered when the quantity of an instance's add-on changes. Delivered as
+    ``com.kaiten.instance.addon.v1.quantity_changed``.
+    """
+
+    name: Literal["INSTANCE_ADDON_QUANTITY_CHANGED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.addon.v1.quantity_changed"]
+    """The event type: what tells one event from another."""
+
+    data: InstanceAddonUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceAddonRemovedEvent(KaitenModel):
+    """Triggered when an add-on is removed from an instance. Delivered as
+    ``com.kaiten.instance.addon.v1.removed``.
+    """
+
+    name: Literal["INSTANCE_ADDON_REMOVED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.addon.v1.removed"]
+    """The event type: what tells one event from another."""
+
+    data: InstanceAddonUpdateDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingCanceledEvent(KaitenModel):
+    """Triggered when a subscription is canceled: at its period's end, immediately, or during
+    its trial. Delivered as ``com.kaiten.instance.billing.v1.canceled``.
+    """
+
+    name: Literal["INSTANCE_BILLING_CANCELED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.canceled"]
+    """The event type: what tells one event from another."""
+
+    data: CancellationDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingCancellationRevertedEvent(KaitenModel):
+    """Triggered when a scheduled cancellation is reverted before the boundary. Delivered as
+    ``com.kaiten.instance.billing.v1.cancellation_reverted``.
+    """
+
+    name: Literal["INSTANCE_BILLING_CANCELLATION_REVERTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.cancellation_reverted"]
+    """The event type: what tells one event from another."""
+
+    data: CancellationChangeDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingCancellationScheduledEvent(KaitenModel):
+    """Triggered when a subscription is set to cancel at the end of its period. Delivered as
+    ``com.kaiten.instance.billing.v1.cancellation_scheduled``.
+    """
+
+    name: Literal["INSTANCE_BILLING_CANCELLATION_SCHEDULED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.cancellation_scheduled"]
+    """The event type: what tells one event from another."""
+
+    data: CancellationChangeDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingPlanChangeCanceledEvent(KaitenModel):
+    """Triggered when a scheduled plan change is dropped: by request, or by a cancellation.
+    Delivered as ``com.kaiten.instance.billing.v1.plan_change_canceled``.
+    """
+
+    name: Literal["INSTANCE_BILLING_PLAN_CHANGE_CANCELED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.plan_change_canceled"]
+    """The event type: what tells one event from another."""
+
+    data: PlanChangeScheduleDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingPlanChangeScheduledEvent(KaitenModel):
+    """Triggered when a plan change is scheduled for the next boundary, or replaced. Delivered
+    as ``com.kaiten.instance.billing.v1.plan_change_scheduled``.
+    """
+
+    name: Literal["INSTANCE_BILLING_PLAN_CHANGE_SCHEDULED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.plan_change_scheduled"]
+    """The event type: what tells one event from another."""
+
+    data: PlanChangeScheduleDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingPlanChangedEvent(KaitenModel):
+    """Triggered when a scheduled plan change is applied at a boundary. Delivered as
+    ``com.kaiten.instance.billing.v1.plan_changed``.
+    """
+
+    name: Literal["INSTANCE_BILLING_PLAN_CHANGED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.plan_changed"]
+    """The event type: what tells one event from another."""
+
+    data: PlanChangeDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingProviderChangedEvent(KaitenModel):
+    """Triggered when a subscription moves to another payment provider, from its next invoice
+    on. Delivered as ``com.kaiten.instance.billing.v1.provider_changed``.
+    """
+
+    name: Literal["INSTANCE_BILLING_PROVIDER_CHANGED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.provider_changed"]
+    """The event type: what tells one event from another."""
+
+    data: ProviderChangeDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingStartedEvent(KaitenModel):
+    """Triggered when an instance is subscribed, or a CANCELED subscription subscribed again.
+    Delivered as ``com.kaiten.instance.billing.v1.started``.
+    """
+
+    name: Literal["INSTANCE_BILLING_STARTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.started"]
+    """The event type: what tells one event from another."""
+
+    data: BillingStartedDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingStatusChangedEvent(KaitenModel):
+    """Triggered when a trial converts, or a subscription becomes PAST_DUE or leaves it.
+    Delivered as ``com.kaiten.instance.billing.v1.status_changed``.
+    """
+
+    name: Literal["INSTANCE_BILLING_STATUS_CHANGED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.status_changed"]
+    """The event type: what tells one event from another."""
+
+    data: StatusChangeDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceBillingTrialWillEndEvent(KaitenModel):
+    """Triggered once per trial, at reminderAt: its family's trialReminderDays before
+    trialEndsAt (3 by default), or at once when the trial is shorter. Carries what a
+    reminder e-mail needs, read when it is emitted: the customer and its billing e-mail, the
+    instance, the plan, daysLeft, the charge the conversion would make and the card it would
+    be made to. Delivered as ``com.kaiten.instance.billing.v1.trial_will_end``.
+    """
+
+    name: Literal["INSTANCE_BILLING_TRIAL_WILL_END"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.billing.v1.trial_will_end"]
+    """The event type: what tells one event from another."""
+
+    data: TrialWillEndDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceEntitlementCapExceededEvent(KaitenModel):
@@ -445,6 +1212,9 @@ class InstanceEntitlementCapExceededEvent(KaitenModel):
     data: InstanceEntitlementCapExceeded
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceEntitlementUsagePeriodRolledOverEvent(KaitenModel):
     """Triggered once per usage window closed by a report: the entitlement's own stored bucket,
@@ -461,6 +1231,9 @@ class InstanceEntitlementUsagePeriodRolledOverEvent(KaitenModel):
     data: InstanceEntitlementUsagePeriodRolledOver
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceEntitlementUsageReachedEvent(KaitenModel):
     """Triggered when an instance's entitlement usage reaches its threshold. Delivered as
@@ -473,8 +1246,11 @@ class InstanceEntitlementUsageReachedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.entitlement.v1.usage_reached"]
     """The event type: what tells one event from another."""
 
-    data: EntitlementUsage
+    data: EntitlementUsageDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceEntitlementUsageReportAcceptedEvent(KaitenModel):
@@ -490,6 +1266,9 @@ class InstanceEntitlementUsageReportAcceptedEvent(KaitenModel):
 
     data: InstanceEntitlementUsageReportAccepted
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceEntitlementUsageReportRejectedEvent(KaitenModel):
@@ -507,6 +1286,9 @@ class InstanceEntitlementUsageReportRejectedEvent(KaitenModel):
     data: InstanceEntitlementUsageReportAccepted
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceEntitlementUsageWarningThresholdReachedEvent(KaitenModel):
     """Triggered when an instance's entitlement usage crosses its configured early-warning
@@ -522,6 +1304,9 @@ class InstanceEntitlementUsageWarningThresholdReachedEvent(KaitenModel):
 
     data: InstanceEntitlementUsageWarningThresholdReached
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceEntitlementValueGetEvent(KaitenModel):
@@ -539,6 +1324,269 @@ class InstanceEntitlementValueGetEvent(KaitenModel):
     data: InstanceEntitlementValueGet
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceEntitlementExceptionCreatedEvent(KaitenModel):
+    """Triggered when an exception is created on one entitlement of an instance. Emitted
+    whether or not billing is enabled. Delivered as
+    ``com.kaiten.instance.entitlement_exception.v1.created``.
+    """
+
+    name: Literal["INSTANCE_ENTITLEMENT_EXCEPTION_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.entitlement_exception.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: ExceptionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceEntitlementExceptionExpiredEvent(KaitenModel):
+    """Triggered once per exception, when its endsAt passes; never for a revoked one. Delivered
+    as ``com.kaiten.instance.entitlement_exception.v1.expired``.
+    """
+
+    name: Literal["INSTANCE_ENTITLEMENT_EXCEPTION_EXPIRED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.entitlement_exception.v1.expired"]
+    """The event type: what tells one event from another."""
+
+    data: ExceptionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceEntitlementExceptionRevokedEvent(KaitenModel):
+    """Triggered when an exception is revoked. Revoking one already revoked or ended emits
+    nothing. Delivered as ``com.kaiten.instance.entitlement_exception.v1.revoked``.
+    """
+
+    name: Literal["INSTANCE_ENTITLEMENT_EXCEPTION_REVOKED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.entitlement_exception.v1.revoked"]
+    """The event type: what tells one event from another."""
+
+    data: ExceptionEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceHandoffAcknowledgedEvent(KaitenModel):
+    """Triggered when the organization's accounting system acknowledges an invoice from the
+    handoff queue, or the invoice is marked paid while still waiting there. Delivered as
+    ``com.kaiten.instance.invoice.v1.handoff_acknowledged``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_HANDOFF_ACKNOWLEDGED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.handoff_acknowledged"]
+    """The event type: what tells one event from another."""
+
+    data: HandoffAcknowledgementDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceHeldEvent(KaitenModel):
+    """Triggered when a period closes into an invoice held as a DRAFT, because the usage
+    journal it was measured from failed a consistency check. It is neither issued nor handed
+    off until released or recomposed. Delivered as ``com.kaiten.instance.invoice.v1.held``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_HELD"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.held"]
+    """The event type: what tells one event from another."""
+
+    data: HeldInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceIssuedEvent(KaitenModel):
+    """Triggered once per invoice with something owed, when it is issued. For an invoice the
+    organization collects itself, it is the signal to claim it from the handoff queue, which
+    stays the source of truth. Delivered as ``com.kaiten.instance.invoice.v1.issued``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_ISSUED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.issued"]
+    """The event type: what tells one event from another."""
+
+    data: IssuedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceMarkedUncollectibleEvent(KaitenModel):
+    """Triggered when an invoice is written off. Delivered as
+    ``com.kaiten.instance.invoice.v1.marked_uncollectible``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_MARKED_UNCOLLECTIBLE"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.marked_uncollectible"]
+    """The event type: what tells one event from another."""
+
+    data: UncollectibleInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoicePaidEvent(KaitenModel):
+    """Triggered when an invoice is paid: marked paid by the organization, or issued paid
+    because nothing was owed. Delivered as ``com.kaiten.instance.invoice.v1.paid``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_PAID"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.paid"]
+    """The event type: what tells one event from another."""
+
+    data: PaidInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoicePaymentFailedEvent(KaitenModel):
+    """Triggered when the automatic charge of an invoice is refused, or needs the customer to
+    authenticate it on the invoice's hosted page. Delivered as
+    ``com.kaiten.instance.invoice.v1.payment_failed``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_PAYMENT_FAILED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.payment_failed"]
+    """The event type: what tells one event from another."""
+
+    data: PaymentFailedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoicePushFailedEvent(KaitenModel):
+    """Triggered when pushing an invoice to its payment provider has failed as many times as
+    the alert threshold, then once a day while it keeps failing. Delivered as
+    ``com.kaiten.instance.invoice.v1.push_failed``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_PUSH_FAILED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.push_failed"]
+    """The event type: what tells one event from another."""
+
+    data: PushFailedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoicePushedEvent(KaitenModel):
+    """Triggered when an invoice's payment provider has issued it, right after
+    INSTANCE_INVOICE_ISSUED. Delivered as ``com.kaiten.instance.invoice.v1.pushed``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_PUSHED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.pushed"]
+    """The event type: what tells one event from another."""
+
+    data: PushedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceReconciliationMismatchEvent(KaitenModel):
+    """Triggered when an invoice's payment provider holds amounts that differ from Kaiten's.
+    Kaiten never corrects itself: void and recompose the invoice. Delivered as
+    ``com.kaiten.instance.invoice.v1.reconciliation_mismatch``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_RECONCILIATION_MISMATCH"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.reconciliation_mismatch"]
+    """The event type: what tells one event from another."""
+
+    data: MismatchedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceReleasedEvent(KaitenModel):
+    """Triggered when a held invoice leaves its hold: released by the organization, recomposed
+    from a sound journal, or found sound by a later check. It is issued in the same
+    transaction. Delivered as ``com.kaiten.instance.invoice.v1.released``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_RELEASED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.released"]
+    """The event type: what tells one event from another."""
+
+    data: ReleasedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceInvoiceVoidedEvent(KaitenModel):
+    """Triggered when an invoice is voided. Its boundary can then be recomposed into a
+    replacement. Delivered as ``com.kaiten.instance.invoice.v1.voided``.
+    """
+
+    name: Literal["INSTANCE_INVOICE_VOIDED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.invoice.v1.voided"]
+    """The event type: what tells one event from another."""
+
+    data: VoidedInvoiceDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceCreatedEvent(KaitenModel):
     """Triggered when a new instance is created. Delivered as ``com.kaiten.instance.v1.created``."""
@@ -549,8 +1597,11 @@ class InstanceCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: Instance
+    data: InstanceDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceDeletedEvent(KaitenModel):
@@ -562,8 +1613,11 @@ class InstanceDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: Instance
+    data: InstanceDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceDeployedEvent(KaitenModel):
@@ -577,8 +1631,11 @@ class InstanceDeployedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.v1.deployed"]
     """The event type: what tells one event from another."""
 
-    data: Instance
+    data: InstanceDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceLifecycleStageChangedEvent(KaitenModel):
@@ -595,6 +1652,9 @@ class InstanceLifecycleStageChangedEvent(KaitenModel):
     data: InstanceLifecycleStageChanged
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceMigratedEvent(KaitenModel):
     """Triggered when an instance is migrated from one deployment zone to another. Delivered as
@@ -607,8 +1667,11 @@ class InstanceMigratedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.v1.migrated"]
     """The event type: what tells one event from another."""
 
-    data: Instance
+    data: InstanceDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class InstanceStatusChangedEvent(KaitenModel):
@@ -625,9 +1688,15 @@ class InstanceStatusChangedEvent(KaitenModel):
     data: InstanceStatusChanged
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class InstanceUpdatedEvent(KaitenModel):
-    """Triggered when an instance is updated. Delivered as ``com.kaiten.instance.v1.updated``."""
+    """Triggered when an instance is updated, by a write or by billing: the licence version a
+    paid checkout bought, or the fallback a subscription that ended moves it to
+    (licenseChangeReason BILLING_FALLBACK). Delivered as ``com.kaiten.instance.v1.updated``.
+    """
 
     name: Literal["INSTANCE_UPDATED"]
     """The event name."""
@@ -635,8 +1704,65 @@ class InstanceUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: Instance
+    data: InstanceUpdateDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceVoucherExpiredEvent(KaitenModel):
+    """Triggered when a PRICE redemption has discounted its last invoice, or a boost's window
+    ends. Delivered as ``com.kaiten.instance.voucher.v1.expired``.
+    """
+
+    name: Literal["INSTANCE_VOUCHER_EXPIRED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.voucher.v1.expired"]
+    """The event type: what tells one event from another."""
+
+    data: RedemptionDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceVoucherRedeemedEvent(KaitenModel):
+    """Triggered when an instance redeems a voucher. Delivered as
+    ``com.kaiten.instance.voucher.v1.redeemed``.
+    """
+
+    name: Literal["INSTANCE_VOUCHER_REDEEMED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.voucher.v1.redeemed"]
+    """The event type: what tells one event from another."""
+
+    data: RedemptionDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class InstanceVoucherRevokedEvent(KaitenModel):
+    """Triggered when a redemption is revoked. Delivered as
+    ``com.kaiten.instance.voucher.v1.revoked``.
+    """
+
+    name: Literal["INSTANCE_VOUCHER_REVOKED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.instance.voucher.v1.revoked"]
+    """The event type: what tells one event from another."""
+
+    data: RedemptionDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseEntitlementAssignedEvent(KaitenModel):
@@ -650,8 +1776,11 @@ class LicenseEntitlementAssignedEvent(KaitenModel):
     type: Literal["com.kaiten.license.entitlement.v1.assigned"]
     """The event type: what tells one event from another."""
 
-    data: LicenseEntitlement
+    data: LicenseEntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseEntitlementUnassignedEvent(KaitenModel):
@@ -665,8 +1794,11 @@ class LicenseEntitlementUnassignedEvent(KaitenModel):
     type: Literal["com.kaiten.license.entitlement.v1.unassigned"]
     """The event type: what tells one event from another."""
 
-    data: LicenseEntitlement
+    data: LicenseEntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseEntitlementUpdatedEvent(KaitenModel):
@@ -680,8 +1812,65 @@ class LicenseEntitlementUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.license.entitlement.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: LicenseEntitlement
+    data: LicenseEntitlementDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class LicensePriceCreatedEvent(KaitenModel):
+    """Triggered when a price is added to a licence version. Delivered as
+    ``com.kaiten.license.price.v1.created``.
+    """
+
+    name: Literal["LICENSE_PRICE_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.price.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: LicensePriceEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class LicensePriceDeprecatedEvent(KaitenModel):
+    """Triggered when a licence price is deprecated. Delivered as
+    ``com.kaiten.license.price.v1.deprecated``.
+    """
+
+    name: Literal["LICENSE_PRICE_DEPRECATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.price.v1.deprecated"]
+    """The event type: what tells one event from another."""
+
+    data: LicensePriceEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class LicensePriceUpdatedEvent(KaitenModel):
+    """Triggered when a price of a DRAFT licence version is edited. Delivered as
+    ``com.kaiten.license.price.v1.updated``.
+    """
+
+    name: Literal["LICENSE_PRICE_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.license.price.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: LicensePriceUpdatedEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseArchivedEvent(KaitenModel):
@@ -695,8 +1884,11 @@ class LicenseArchivedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.archived"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseCreatedEvent(KaitenModel):
@@ -708,8 +1900,11 @@ class LicenseCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseDeletedEvent(KaitenModel):
@@ -721,8 +1916,11 @@ class LicenseDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicensePublishedEvent(KaitenModel):
@@ -736,8 +1934,11 @@ class LicensePublishedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.published"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseUnarchivedEvent(KaitenModel):
@@ -751,8 +1952,11 @@ class LicenseUnarchivedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.unarchived"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseUpdatedEvent(KaitenModel):
@@ -764,8 +1968,11 @@ class LicenseUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.license.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: License
+    data: LicenseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseFamilyCreatedEvent(KaitenModel):
@@ -781,8 +1988,11 @@ class LicenseFamilyCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.license_family.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: LicenseFamilyView
+    data: LicenseFamilyViewDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseFamilyDeletedEvent(KaitenModel):
@@ -798,8 +2008,11 @@ class LicenseFamilyDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.license_family.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: LicenseFamilyView
+    data: LicenseFamilyViewDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class LicenseFamilyUpdatedEvent(KaitenModel):
@@ -818,8 +2031,11 @@ class LicenseFamilyUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.license_family.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: LicenseFamilyView
+    data: LicenseFamilyViewDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class MetadataFieldArchivedEvent(KaitenModel):
@@ -833,8 +2049,11 @@ class MetadataFieldArchivedEvent(KaitenModel):
     type: Literal["com.kaiten.metadata_field.v1.archived"]
     """The event type: what tells one event from another."""
 
-    data: MetadataField
+    data: MetadataFieldDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class MetadataFieldCreatedEvent(KaitenModel):
@@ -848,8 +2067,11 @@ class MetadataFieldCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.metadata_field.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: MetadataField
+    data: MetadataFieldDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class MetadataFieldReorderedEvent(KaitenModel):
@@ -866,6 +2088,9 @@ class MetadataFieldReorderedEvent(KaitenModel):
     data: MetadataFieldReordered
     """What the event is about."""
 
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
 
 class MetadataFieldUnarchivedEvent(KaitenModel):
     """Triggered when an archived metadata field is restored to the active schema composition.
@@ -878,8 +2103,11 @@ class MetadataFieldUnarchivedEvent(KaitenModel):
     type: Literal["com.kaiten.metadata_field.v1.unarchived"]
     """The event type: what tells one event from another."""
 
-    data: MetadataField
+    data: MetadataFieldDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class MetadataFieldUpdatedEvent(KaitenModel):
@@ -893,8 +2121,47 @@ class MetadataFieldUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.metadata_field.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: MetadataField
+    data: MetadataFieldDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class PublishableKeyCreatedEvent(KaitenModel):
+    """Triggered when a publishable key is issued. The key is never in the payload, only its
+    hint. Delivered as ``com.kaiten.publishable_key.v1.created``.
+    """
+
+    name: Literal["PUBLISHABLE_KEY_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.publishable_key.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: PublishableKeyEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class PublishableKeyRevokedEvent(KaitenModel):
+    """Triggered once, when a publishable key is revoked. Delivered as
+    ``com.kaiten.publishable_key.v1.revoked``.
+    """
+
+    name: Literal["PUBLISHABLE_KEY_REVOKED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.publishable_key.v1.revoked"]
+    """The event type: what tells one event from another."""
+
+    data: PublishableKeyEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ReleaseCreatedEvent(KaitenModel):
@@ -906,8 +2173,11 @@ class ReleaseCreatedEvent(KaitenModel):
     type: Literal["com.kaiten.release.v1.created"]
     """The event type: what tells one event from another."""
 
-    data: Release
+    data: ReleaseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 class ReleaseDeletedEvent(KaitenModel):
@@ -919,14 +2189,159 @@ class ReleaseDeletedEvent(KaitenModel):
     type: Literal["com.kaiten.release.v1.deleted"]
     """The event type: what tells one event from another."""
 
-    data: Release
+    data: ReleaseDelivered
     """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherArchivedEvent(KaitenModel):
+    """Triggered when a voucher is archived. Delivered as ``com.kaiten.voucher.v1.archived``."""
+
+    name: Literal["VOUCHER_ARCHIVED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.archived"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherCreatedEvent(KaitenModel):
+    """Triggered when a voucher is created. The code is never in the payload. Delivered as
+    ``com.kaiten.voucher.v1.created``.
+    """
+
+    name: Literal["VOUCHER_CREATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.created"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherDeletedEvent(KaitenModel):
+    """Triggered when a voucher no instance ever redeemed is deleted, with its last state.
+    Delivered as ``com.kaiten.voucher.v1.deleted``.
+    """
+
+    name: Literal["VOUCHER_DELETED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.deleted"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherExhaustedEvent(KaitenModel):
+    """Triggered by the redemption that reaches maxRedemptions. Delivered as
+    ``com.kaiten.voucher.v1.exhausted``.
+    """
+
+    name: Literal["VOUCHER_EXHAUSTED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.exhausted"]
+    """The event type: what tells one event from another."""
+
+    data: ExhaustedEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherExpiredEvent(KaitenModel):
+    """Triggered when an active voucher reaches its expiresAt and can no longer be redeemed.
+    Delivered as ``com.kaiten.voucher.v1.expired``.
+    """
+
+    name: Literal["VOUCHER_EXPIRED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.expired"]
+    """The event type: what tells one event from another."""
+
+    data: ExpiredEventDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherPublishedEvent(KaitenModel):
+    """Triggered when a draft voucher becomes redeemable. Delivered as
+    ``com.kaiten.voucher.v1.published``.
+    """
+
+    name: Literal["VOUCHER_PUBLISHED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.published"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
+class VoucherUpdatedEvent(KaitenModel):
+    """Triggered when a voucher changes. Delivered as ``com.kaiten.voucher.v1.updated``."""
+
+    name: Literal["VOUCHER_UPDATED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.updated"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
 
 
 WebhookEvent = Annotated[
-    ComponentCreatedEvent
+    AddonEntitlementAssignedEvent
+    | AddonEntitlementUnassignedEvent
+    | AddonEntitlementUpdatedEvent
+    | AddonPriceCreatedEvent
+    | AddonPriceDeprecatedEvent
+    | AddonArchivedEvent
+    | AddonCreatedEvent
+    | AddonDeletedEvent
+    | AddonPublishedEvent
+    | AddonUnarchivedEvent
+    | AddonUpdatedEvent
+    | BillingProviderConnectedEvent
+    | BillingProviderDisconnectedEvent
+    | BillingProviderSyncFailedEvent
+    | CheckoutSessionAbandonedEvent
+    | CheckoutSessionCompletedEvent
+    | CheckoutSessionStartedEvent
+    | ComponentCreatedEvent
     | ComponentDeletedEvent
     | ComponentUpdatedEvent
+    | CustomerPaymentMethodAttachedEvent
+    | CustomerPaymentMethodDetachedEvent
+    | CustomerPaymentMethodExpiringEvent
     | CustomerCreatedEvent
     | CustomerCreationRejectedEvent
     | CustomerDeletedEvent
@@ -946,6 +2361,19 @@ WebhookEvent = Annotated[
     | FeatureFlagEvaluatedEvent
     | FeatureFlagUpdatedEvent
     | SystemOrganizationTokenIssuedEvent
+    | InstanceAddonAddedEvent
+    | InstanceAddonQuantityChangedEvent
+    | InstanceAddonRemovedEvent
+    | InstanceBillingCanceledEvent
+    | InstanceBillingCancellationRevertedEvent
+    | InstanceBillingCancellationScheduledEvent
+    | InstanceBillingPlanChangeCanceledEvent
+    | InstanceBillingPlanChangeScheduledEvent
+    | InstanceBillingPlanChangedEvent
+    | InstanceBillingProviderChangedEvent
+    | InstanceBillingStartedEvent
+    | InstanceBillingStatusChangedEvent
+    | InstanceBillingTrialWillEndEvent
     | InstanceEntitlementCapExceededEvent
     | InstanceEntitlementUsagePeriodRolledOverEvent
     | InstanceEntitlementUsageReachedEvent
@@ -953,6 +2381,20 @@ WebhookEvent = Annotated[
     | InstanceEntitlementUsageReportRejectedEvent
     | InstanceEntitlementUsageWarningThresholdReachedEvent
     | InstanceEntitlementValueGetEvent
+    | InstanceEntitlementExceptionCreatedEvent
+    | InstanceEntitlementExceptionExpiredEvent
+    | InstanceEntitlementExceptionRevokedEvent
+    | InstanceInvoiceHandoffAcknowledgedEvent
+    | InstanceInvoiceHeldEvent
+    | InstanceInvoiceIssuedEvent
+    | InstanceInvoiceMarkedUncollectibleEvent
+    | InstanceInvoicePaidEvent
+    | InstanceInvoicePaymentFailedEvent
+    | InstanceInvoicePushFailedEvent
+    | InstanceInvoicePushedEvent
+    | InstanceInvoiceReconciliationMismatchEvent
+    | InstanceInvoiceReleasedEvent
+    | InstanceInvoiceVoidedEvent
     | InstanceCreatedEvent
     | InstanceDeletedEvent
     | InstanceDeployedEvent
@@ -960,9 +2402,15 @@ WebhookEvent = Annotated[
     | InstanceMigratedEvent
     | InstanceStatusChangedEvent
     | InstanceUpdatedEvent
+    | InstanceVoucherExpiredEvent
+    | InstanceVoucherRedeemedEvent
+    | InstanceVoucherRevokedEvent
     | LicenseEntitlementAssignedEvent
     | LicenseEntitlementUnassignedEvent
     | LicenseEntitlementUpdatedEvent
+    | LicensePriceCreatedEvent
+    | LicensePriceDeprecatedEvent
+    | LicensePriceUpdatedEvent
     | LicenseArchivedEvent
     | LicenseCreatedEvent
     | LicenseDeletedEvent
@@ -977,16 +2425,45 @@ WebhookEvent = Annotated[
     | MetadataFieldReorderedEvent
     | MetadataFieldUnarchivedEvent
     | MetadataFieldUpdatedEvent
+    | PublishableKeyCreatedEvent
+    | PublishableKeyRevokedEvent
     | ReleaseCreatedEvent
-    | ReleaseDeletedEvent,
+    | ReleaseDeletedEvent
+    | VoucherArchivedEvent
+    | VoucherCreatedEvent
+    | VoucherDeletedEvent
+    | VoucherExhaustedEvent
+    | VoucherExpiredEvent
+    | VoucherPublishedEvent
+    | VoucherUpdatedEvent,
     Field(discriminator="type"),
 ]
 """Any event Kaiten delivers to a webhook endpoint, discriminated by ``type``."""
 
 WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
+    "com.kaiten.addon.entitlement.v1.assigned": AddonEntitlementAssignedEvent,
+    "com.kaiten.addon.entitlement.v1.unassigned": AddonEntitlementUnassignedEvent,
+    "com.kaiten.addon.entitlement.v1.updated": AddonEntitlementUpdatedEvent,
+    "com.kaiten.addon.price.v1.created": AddonPriceCreatedEvent,
+    "com.kaiten.addon.price.v1.deprecated": AddonPriceDeprecatedEvent,
+    "com.kaiten.addon.v1.archived": AddonArchivedEvent,
+    "com.kaiten.addon.v1.created": AddonCreatedEvent,
+    "com.kaiten.addon.v1.deleted": AddonDeletedEvent,
+    "com.kaiten.addon.v1.published": AddonPublishedEvent,
+    "com.kaiten.addon.v1.unarchived": AddonUnarchivedEvent,
+    "com.kaiten.addon.v1.updated": AddonUpdatedEvent,
+    "com.kaiten.billing_provider.v1.connected": BillingProviderConnectedEvent,
+    "com.kaiten.billing_provider.v1.disconnected": BillingProviderDisconnectedEvent,
+    "com.kaiten.billing_provider.v1.sync_failed": BillingProviderSyncFailedEvent,
+    "com.kaiten.checkout_session.v1.abandoned": CheckoutSessionAbandonedEvent,
+    "com.kaiten.checkout_session.v1.completed": CheckoutSessionCompletedEvent,
+    "com.kaiten.checkout_session.v1.started": CheckoutSessionStartedEvent,
     "com.kaiten.component.v1.created": ComponentCreatedEvent,
     "com.kaiten.component.v1.deleted": ComponentDeletedEvent,
     "com.kaiten.component.v1.updated": ComponentUpdatedEvent,
+    "com.kaiten.customer.payment_method.v1.attached": CustomerPaymentMethodAttachedEvent,
+    "com.kaiten.customer.payment_method.v1.detached": CustomerPaymentMethodDetachedEvent,
+    "com.kaiten.customer.payment_method.v1.expiring": CustomerPaymentMethodExpiringEvent,
     "com.kaiten.customer.v1.created": CustomerCreatedEvent,
     "com.kaiten.customer.v1.creation_rejected": CustomerCreationRejectedEvent,
     "com.kaiten.customer.v1.deleted": CustomerDeletedEvent,
@@ -1006,6 +2483,19 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.feature_flag.v1.evaluated": FeatureFlagEvaluatedEvent,
     "com.kaiten.feature_flag.v1.updated": FeatureFlagUpdatedEvent,
     "com.kaiten.identity.v1.system_token_issued": SystemOrganizationTokenIssuedEvent,
+    "com.kaiten.instance.addon.v1.added": InstanceAddonAddedEvent,
+    "com.kaiten.instance.addon.v1.quantity_changed": InstanceAddonQuantityChangedEvent,
+    "com.kaiten.instance.addon.v1.removed": InstanceAddonRemovedEvent,
+    "com.kaiten.instance.billing.v1.canceled": InstanceBillingCanceledEvent,
+    "com.kaiten.instance.billing.v1.cancellation_reverted": InstanceBillingCancellationRevertedEvent,
+    "com.kaiten.instance.billing.v1.cancellation_scheduled": InstanceBillingCancellationScheduledEvent,
+    "com.kaiten.instance.billing.v1.plan_change_canceled": InstanceBillingPlanChangeCanceledEvent,
+    "com.kaiten.instance.billing.v1.plan_change_scheduled": InstanceBillingPlanChangeScheduledEvent,
+    "com.kaiten.instance.billing.v1.plan_changed": InstanceBillingPlanChangedEvent,
+    "com.kaiten.instance.billing.v1.provider_changed": InstanceBillingProviderChangedEvent,
+    "com.kaiten.instance.billing.v1.started": InstanceBillingStartedEvent,
+    "com.kaiten.instance.billing.v1.status_changed": InstanceBillingStatusChangedEvent,
+    "com.kaiten.instance.billing.v1.trial_will_end": InstanceBillingTrialWillEndEvent,
     "com.kaiten.instance.entitlement.v1.cap_exceeded": InstanceEntitlementCapExceededEvent,
     "com.kaiten.instance.entitlement.v1.usage_period_rolled_over": InstanceEntitlementUsagePeriodRolledOverEvent,
     "com.kaiten.instance.entitlement.v1.usage_reached": InstanceEntitlementUsageReachedEvent,
@@ -1013,6 +2503,20 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.instance.entitlement.v1.usage_report_rejected": InstanceEntitlementUsageReportRejectedEvent,
     "com.kaiten.instance.entitlement.v1.usage_warning_threshold_reached": InstanceEntitlementUsageWarningThresholdReachedEvent,
     "com.kaiten.instance.entitlement.v1.value_get": InstanceEntitlementValueGetEvent,
+    "com.kaiten.instance.entitlement_exception.v1.created": InstanceEntitlementExceptionCreatedEvent,
+    "com.kaiten.instance.entitlement_exception.v1.expired": InstanceEntitlementExceptionExpiredEvent,
+    "com.kaiten.instance.entitlement_exception.v1.revoked": InstanceEntitlementExceptionRevokedEvent,
+    "com.kaiten.instance.invoice.v1.handoff_acknowledged": InstanceInvoiceHandoffAcknowledgedEvent,
+    "com.kaiten.instance.invoice.v1.held": InstanceInvoiceHeldEvent,
+    "com.kaiten.instance.invoice.v1.issued": InstanceInvoiceIssuedEvent,
+    "com.kaiten.instance.invoice.v1.marked_uncollectible": InstanceInvoiceMarkedUncollectibleEvent,
+    "com.kaiten.instance.invoice.v1.paid": InstanceInvoicePaidEvent,
+    "com.kaiten.instance.invoice.v1.payment_failed": InstanceInvoicePaymentFailedEvent,
+    "com.kaiten.instance.invoice.v1.push_failed": InstanceInvoicePushFailedEvent,
+    "com.kaiten.instance.invoice.v1.pushed": InstanceInvoicePushedEvent,
+    "com.kaiten.instance.invoice.v1.reconciliation_mismatch": InstanceInvoiceReconciliationMismatchEvent,
+    "com.kaiten.instance.invoice.v1.released": InstanceInvoiceReleasedEvent,
+    "com.kaiten.instance.invoice.v1.voided": InstanceInvoiceVoidedEvent,
     "com.kaiten.instance.v1.created": InstanceCreatedEvent,
     "com.kaiten.instance.v1.deleted": InstanceDeletedEvent,
     "com.kaiten.instance.v1.deployed": InstanceDeployedEvent,
@@ -1020,9 +2524,15 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.instance.v1.migrated": InstanceMigratedEvent,
     "com.kaiten.instance.v1.status_changed": InstanceStatusChangedEvent,
     "com.kaiten.instance.v1.updated": InstanceUpdatedEvent,
+    "com.kaiten.instance.voucher.v1.expired": InstanceVoucherExpiredEvent,
+    "com.kaiten.instance.voucher.v1.redeemed": InstanceVoucherRedeemedEvent,
+    "com.kaiten.instance.voucher.v1.revoked": InstanceVoucherRevokedEvent,
     "com.kaiten.license.entitlement.v1.assigned": LicenseEntitlementAssignedEvent,
     "com.kaiten.license.entitlement.v1.unassigned": LicenseEntitlementUnassignedEvent,
     "com.kaiten.license.entitlement.v1.updated": LicenseEntitlementUpdatedEvent,
+    "com.kaiten.license.price.v1.created": LicensePriceCreatedEvent,
+    "com.kaiten.license.price.v1.deprecated": LicensePriceDeprecatedEvent,
+    "com.kaiten.license.price.v1.updated": LicensePriceUpdatedEvent,
     "com.kaiten.license.v1.archived": LicenseArchivedEvent,
     "com.kaiten.license.v1.created": LicenseCreatedEvent,
     "com.kaiten.license.v1.deleted": LicenseDeletedEvent,
@@ -1037,7 +2547,16 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.metadata_field.v1.reordered": MetadataFieldReorderedEvent,
     "com.kaiten.metadata_field.v1.unarchived": MetadataFieldUnarchivedEvent,
     "com.kaiten.metadata_field.v1.updated": MetadataFieldUpdatedEvent,
+    "com.kaiten.publishable_key.v1.created": PublishableKeyCreatedEvent,
+    "com.kaiten.publishable_key.v1.revoked": PublishableKeyRevokedEvent,
     "com.kaiten.release.v1.created": ReleaseCreatedEvent,
     "com.kaiten.release.v1.deleted": ReleaseDeletedEvent,
+    "com.kaiten.voucher.v1.archived": VoucherArchivedEvent,
+    "com.kaiten.voucher.v1.created": VoucherCreatedEvent,
+    "com.kaiten.voucher.v1.deleted": VoucherDeletedEvent,
+    "com.kaiten.voucher.v1.exhausted": VoucherExhaustedEvent,
+    "com.kaiten.voucher.v1.expired": VoucherExpiredEvent,
+    "com.kaiten.voucher.v1.published": VoucherPublishedEvent,
+    "com.kaiten.voucher.v1.updated": VoucherUpdatedEvent,
 }
 """Every published event type, mapped to the model that parses it."""
