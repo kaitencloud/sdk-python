@@ -30,6 +30,7 @@ __all__ = [
     "RateLimitError",
     "ServiceUnavailableError",
     "ThresholdExceededError",
+    "TransactionIdReusedError",
     "UnprocessableEntityError",
     "WebhookPayloadError",
     "WebhookVerificationError",
@@ -44,8 +45,10 @@ class CredentialError(KaitenError, ValueError):
     """A credential is missing, or belongs to a class the target API refuses.
 
     Raised before anything is sent: a platform credential (``ksm_...``) handed to the Core
-    client, an organization token handed to the platform client, or a webhook signing secret
-    (``whsec_...``) handed to either.
+    client, an organization token handed to the platform client, a webhook signing secret
+    (``whsec_...``) handed to either, or a route under ``/public`` called without the
+    credential it takes -- a publishable key (``pk_...``), a customer session (``kst_...``) or a
+    checkout session's token (``ksc_...``).
     """
 
 
@@ -159,6 +162,15 @@ class ThresholdExceededError(ConflictError):
 
     That maximum is the grant's value plus its overage allowance. The report was refused and
     nothing was recorded.
+    """
+
+
+class TransactionIdReusedError(ConflictError):
+    """A usage report reused a ``transaction_id`` already spent on a different report.
+
+    The same key with the same behavior and value is a replay, applied once; with another
+    behavior or value, it is this error. Nothing was recorded, and sending it again will not
+    change the answer: give the report a key of its own.
     """
 
 

@@ -3,7 +3,7 @@
 # Kaiten Python SDK
 
 **The official Python client for [Kaiten](https://kaiten.sh), the control plane of your SaaS:<br>
-customers, instances, licenses, entitlements, usage metering, feature flags and releases.**
+customers, instances, licenses, entitlements, usage metering, billing, feature flags and releases.**
 
 [![PyPI](https://img.shields.io/pypi/v/kaitencloud.svg?label=pypi&color=4c1)](https://pypi.org/project/kaitencloud/)
 [![Python](https://img.shields.io/pypi/pyversions/kaitencloud.svg)](https://pypi.org/project/kaitencloud/)
@@ -42,10 +42,10 @@ client.instances.report_usage("acme-production", "seats", 1)
   problem: `code`, `detail`, `error_id`.
 - **Both APIs.** The Core API your product talks to, and the Platform API that provisions
   organizations and mints their tokens.
-- **Webhooks included.** Svix signatures verified, all 55 event types parsed into models.
+- **Webhooks included.** Svix signatures verified, all 117 event types parsed into models.
 - **Flags through OpenFeature.** Kaiten speaks OFREP, so flags are defined here and
   evaluated with the [OpenFeature SDK](#feature-flags) — a vendor-neutral API, not ours.
-- **Contract-tested.** All 111 operations the SDK wraps are exercised against the contract, and
+- **Contract-tested.** All 221 operations the SDK wraps are exercised against the contract, and
   every request body is validated against the API's own schema.
 
 ## Contents
@@ -54,7 +54,7 @@ client.instances.report_usage("acme-production", "seats", 1)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
 - [Guide](#guide)
-  - [Catalog and licenses](#catalog-and-licenses) · [Customers and instances](#customers-and-instances) · [Usage metering](#usage-metering)
+  - [Catalog and licenses](#catalog-and-licenses) · [Customers and instances](#customers-and-instances) · [Usage metering](#usage-metering) · [Billing](#billing)
   - [Feature flags](#feature-flags) · [Releases and deployment zones](#releases-and-deployment-zones) · [Webhooks](#webhooks)
   - [The Platform API](#the-platform-api)
 - [The playbook](#the-playbook)
@@ -131,6 +131,7 @@ Organization              you: a SaaS vendor using Kaiten
         ├── License       client.licenses          the contract it runs under, granting values
         │                 client.entitlements      ...of the entitlements in your catalog
         ├── Usage         client.instances.report_usage()   what it consumed
+        ├── Subscription  client.billing.subscriptions      how it is billed, invoice after invoice
         └── Zone          client.deployment_zones  where it runs, and the release deployed there
                           client.releases → client.components
 ```
@@ -160,7 +161,14 @@ anything when one ends up in the wrong place.
 | Organization token | `ksh_...` | `KaitenClient` |
 | Identity-provider JWT | `eyJ...` | `KaitenClient` |
 | Platform credential | `ksm_...` | `KaitenPlatformClient` |
+| Publishable key | `pk_...` | `KaitenClient`, for `client.billing.public` |
+| Customer session | `kst_...` | `KaitenClient`, for `client.billing.session` |
+| Anonymous checkout session | `ksc_...` | `KaitenClient`, to read or confirm that checkout |
 | Webhook signing secret | `whsec_...` | `kaitencloud.webhooks` |
+
+The routes under `/public` — a pricing page's, a customer portal's — each take one of the three
+public credentials and refuse any other, so the SDK refuses the mix-up before sending. It sends a
+publishable key in `X-Kaiten-Publishable-Key`, as the API requires, never as a bearer token.
 
 A credential that rotates can be supplied as a callable — it is read before every request, so
 there is no client to rebuild:
@@ -264,6 +272,29 @@ except ThresholdExceededError as error:
 `behavior="append"` (the default) folds the value into the total through the entitlement's
 aggregation method; `behavior="set"` replaces the total, which is also how to correct it.
 
+A report retried after a lost response would count twice, so the SDK never retries one. To make
+resending safe — after a timeout, or from a queue that delivers at least once — report under
+the id of the business event it counts. Kaiten applies a report at most once per key, instance
+and entitlement within its idempotency window (35 days by default):
+
+```python
+result = client.instances.report_usage_detailed(
+    "acme-production", "tokens", 1200, transaction_id="llm-call-9f2c:tokens"
+)
+if result.replayed:
+    print("Counted already: nothing was added")
+```
+
+The same key with another value raises `TransactionIdReusedError`. Every accepted report is kept
+in the usage history, with the counter before and after it:
+
+```python
+for report in client.instances.list_usage_reports("acme-production", "tokens", limit=100):
+    print(report.report_seq, report.reported_at, report.delta, report.value_after)
+
+csv = client.instances.export_usage_reports("acme-production", "tokens", format="csv")
+```
+
 `kaitencloud.usage` computes the same boundaries the server enforces, to render a meter or check
 a report before sending it:
 
@@ -278,6 +309,55 @@ usage.maximum_allowed_usage(included, grant.limit_cap_exceeded_overage_percent) 
 usage.remaining(included, used, grant.limit_cap_exceeded_overage_percent)  # left before refusal
 usage.percentage_used(included, used)  # passes 100 once the allowance is in use
 ```
+
+### Billing
+
+`client.billing` composes invoices from what you sell and what your customers used. Prices belong
+to license versions; a subscription pins an instance to one of them, and each period closes into
+an invoice. Most of it requires billing to be enabled for the organization:
+`client.billing.get_capabilities()` says whether it is, and why not.
+
+```python
+price = client.billing.license_prices.create(
+    "growth-v2",
+    billing_model="FLAT_FEE",
+    currency="EUR",
+    unit_amount_decimal="4900",  # minor units: 49.00 EUR
+    billing_period="MONTHLY",
+    is_default=True,
+)
+
+client.billing.subscriptions.subscribe("acme-production", base_price_id=price.id)
+client.billing.instance_addons.attach("acme-production", "extra-seats-v1", quantity=2)
+client.billing.instance_vouchers.redeem("acme-production", "WELCOME-2026")
+```
+
+Each subscription says who issues and collects its invoices: `NOOP`, your organization itself, or
+a connected payment provider. Invoices of your own reach your accounting system through the
+handoff queue, claimed in leased batches and acknowledged one by one — a lost acknowledgement is
+claimed again, so book each invoice once by its id:
+
+```python
+claim = client.billing.handoff.claim(limit=25)
+for invoice in claim.invoices:
+    number = book(invoice)  # your accounting system
+    client.billing.handoff.ack(invoice.id, lease_id=claim.lease_id, external_reference=number)
+```
+
+A pricing page reads the public catalog with a publishable key, and a customer's own billing page
+acts with a customer session your backend mints for it:
+
+```python
+session = client.billing.customer_sessions.create(
+    customer_slug="acme", instance_slug="acme-production"
+)
+hand_to_the_page(session.token)  # kst_..., shown this once
+
+storefront = KaitenClient(token="pk_...")
+catalog = storefront.billing.public.get_catalog()
+```
+
+Amounts are decimal strings in minor units, exactly as Kaiten stores them.
 
 ### Feature flags
 
@@ -493,7 +573,8 @@ Every `list()` returns the **whole** collection: the SDK walks the cursor at the
 size the API accepts. If the API ever reports more rows without a usable cursor, `list()` raises
 `PaginationError` rather than return a list it knows is partial.
 
-The audit trail grows without bound, so it takes a ceiling instead:
+Collections that grow without bound — the audit trail, invoices, the usage history — also
+take a ceiling:
 
 ```python
 entries = client.instances.list_audit_trails(
@@ -516,7 +597,8 @@ KaitenError
 │   ├── PermissionDeniedError        403  a scope is missing
 │   ├── NotFoundError                404
 │   ├── ConflictError                409
-│   │   └── ThresholdExceededError       a usage report refused at the cap
+│   │   ├── ThresholdExceededError       a usage report refused at the cap
+│   │   └── TransactionIdReusedError     a usage report key spent on another report
 │   ├── UnprocessableEntityError     422
 │   ├── RateLimitError               429
 │   └── InternalServerError          5xx
@@ -551,8 +633,8 @@ backoff and jitter, honouring `Retry-After` — but only when repeating it is sa
 | Request | Retried |
 | --- | --- |
 | `GET`, `PUT`, `DELETE` | ✓ |
-| Instance status and lifecycle updates, metadata dry runs and reorders, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
-| Any other `POST` or `PATCH`: creations, usage reports, upserts | only if the connection never opened |
+| Instance status and lifecycle updates, add-on quantities, metadata dry runs and reorders, invoice previews, voucher lookups and checks, invoice voids and write-offs, handoff acknowledgements, payment-method confirmations, revocations, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
+| Any other `POST` or `PATCH`: creations, usage reports — keyed or not — handoff claims, upserts | only if the connection never opened |
 | A `401` or `403` | never |
 
 Tune it per client, or per call with `with_options()`, which shares the connection pool:
@@ -595,10 +677,158 @@ logging.getLogger("kaitencloud").setLevel(logging.INFO)
 
 ## API reference
 
-The Core API clients cover 101 of its 107 operations. Of the six left out, four are a signed-in
-person's own notification feed and preferences — which an API token has no equivalent of — and
-two are the OFREP evaluation endpoints, which an [OpenFeature provider](#feature-flags) calls. The Platform API clients cover
-all 10 of its operations. The async clients have the same methods.
+The Core API clients cover 210 of its 228 operations. Of the eighteen left out, twelve administer
+the people of an organization and their roles, which the console and the operational CLI do; four
+are a signed-in person's own notification feed and preferences — which an API token has no
+equivalent of — and two are the OFREP evaluation endpoints, which an
+[OpenFeature provider](#feature-flags) calls. The Platform API clients cover all 11 of its
+operations. The async clients have the same methods.
+
+<details>
+<summary><b>client.billing</b> · <b>client.billing.subscriptions</b> · <b>client.billing.invoices</b> · <b>client.billing.handoff</b></summary>
+
+| Method | Operation |
+| --- | --- |
+| `client.billing.get_settings()` | `GET /billing/settings` |
+| `client.billing.get_capabilities()` | `GET /billing/capabilities` |
+| `client.billing.get_health()` | `GET /billing/health` |
+| `client.billing.update_settings()` | `PUT /billing/settings` |
+| `client.billing.sync()` | `POST /billing/sync` |
+| `client.billing.close_periods()` | `POST /billing/close-periods` |
+| `client.billing.subscriptions.get()` | `GET /instances/{instanceSlug}/billing` |
+| `client.billing.subscriptions.subscribe()` | `POST /instances/{instanceSlug}/billing` |
+| `client.billing.subscriptions.update()` | `PATCH /instances/{instanceSlug}/billing` |
+| `client.billing.subscriptions.cancel()` | `POST /instances/{instanceSlug}/billing/cancel` |
+| `client.billing.subscriptions.reactivate()` | `POST /instances/{instanceSlug}/billing/reactivate` |
+| `client.billing.subscriptions.schedule_plan_change()` | `PUT /instances/{instanceSlug}/billing/scheduled-change` |
+| `client.billing.subscriptions.cancel_plan_change()` | `DELETE /instances/{instanceSlug}/billing/scheduled-change` |
+| `client.billing.subscriptions.get_upcoming_invoice()` | `GET /instances/{instanceSlug}/billing/upcoming-invoice` |
+| `client.billing.subscriptions.list_invoices()` | `GET /instances/{instanceSlug}/invoices` |
+| `client.billing.invoices.list()` | `GET /invoices` |
+| `client.billing.invoices.get()` | `GET /invoices/{invoiceId}` |
+| `client.billing.invoices.export()` | `GET /invoices/export` |
+| `client.billing.invoices.void()` | `POST /invoices/{invoiceId}/void` |
+| `client.billing.invoices.recompose()` | `POST /invoices/{invoiceId}/recompose` |
+| `client.billing.invoices.mark_paid()` | `POST /invoices/{invoiceId}/mark-paid` |
+| `client.billing.invoices.write_off()` | `POST /invoices/{invoiceId}/write-off` |
+| `client.billing.invoices.release_hold()` | `POST /invoices/{invoiceId}/release-hold` |
+| `client.billing.invoices.retry_push()` | `POST /invoices/{invoiceId}/retry-push` |
+| `client.billing.invoices.sync()` | `POST /invoices/{invoiceId}/sync` |
+| `client.billing.invoices.list_line_reports()` | `GET /invoices/{invoiceId}/lines/{lineId}/reports` |
+| `client.billing.handoff.list()` | `GET /billing/handoff` |
+| `client.billing.handoff.claim()` | `POST /billing/handoff/claim` |
+| `client.billing.handoff.ack()` | `POST /billing/handoff/{invoiceId}/ack` |
+
+</details>
+
+<details>
+<summary><b>client.billing.license_prices</b> · <b>client.billing.addons</b></summary>
+
+| Method | Operation |
+| --- | --- |
+| `client.billing.license_prices.list()` | `GET /licenses/{licenseSlug}/prices` |
+| `client.billing.license_prices.get()` | `GET /licenses/{licenseSlug}/prices/{priceId}` |
+| `client.billing.license_prices.create()` | `POST /licenses/{licenseSlug}/prices` |
+| `client.billing.license_prices.update()` | `PATCH /licenses/{licenseSlug}/prices/{priceId}` |
+| `client.billing.license_prices.deprecate()` | `POST /licenses/{licenseSlug}/prices/{priceId}/deprecate` |
+| `client.billing.license_prices.preview_invoice()` | `POST /licenses/{licenseSlug}/invoice-preview` |
+| `client.billing.addons.list()` | `GET /addons` |
+| `client.billing.addons.get()` | `GET /addons/{addonSlug}` |
+| `client.billing.addons.create()` | `POST /addons` |
+| `client.billing.addons.update()` | `PUT /addons/{addonSlug}` |
+| `client.billing.addons.delete()` | `DELETE /addons/{addonSlug}` |
+| `client.billing.addons.publish()` | `POST /addons/{addonSlug}/publish` |
+| `client.billing.addons.archive()` | `POST /addons/{addonSlug}/archive` |
+| `client.billing.addons.unarchive()` | `POST /addons/{addonSlug}/unarchive` |
+| `client.billing.addons.list_compatibility()` | `GET /addons/{addonSlug}/compatible-license-families` |
+| `client.billing.addons.set_compatibility()` | `PUT /addons/{addonSlug}/compatible-license-families/{familySlug}` |
+| `client.billing.addons.remove_compatibility()` | `DELETE /addons/{addonSlug}/compatible-license-families/{familySlug}` |
+| `client.billing.addons.list_entitlements()` | `GET /addons/{addonSlug}/entitlements` |
+| `client.billing.addons.get_entitlement()` | `GET /addons/{addonSlug}/entitlements/{entitlementSlug}` |
+| `client.billing.addons.assign_entitlement()` | `POST /addons/{addonSlug}/entitlements` |
+| `client.billing.addons.update_entitlement()` | `PUT /addons/{addonSlug}/entitlements/{entitlementSlug}` |
+| `client.billing.addons.unassign_entitlement()` | `DELETE /addons/{addonSlug}/entitlements/{entitlementSlug}` |
+| `client.billing.addons.list_prices()` | `GET /addons/{addonSlug}/prices` |
+| `client.billing.addons.create_price()` | `POST /addons/{addonSlug}/prices` |
+| `client.billing.addons.deprecate_price()` | `POST /addons/{addonSlug}/prices/{priceId}/deprecate` |
+| `client.billing.addons.list_families()` | `GET /addon-families` |
+| `client.billing.addons.get_family()` | `GET /addon-families/{familySlug}` |
+| `client.billing.addons.update_family()` | `PATCH /addon-families/{familySlug}` |
+
+</details>
+
+<details>
+<summary><b>client.billing.instance_addons</b> · <b>client.billing.instance_vouchers</b> · <b>client.billing.vouchers</b></summary>
+
+| Method | Operation |
+| --- | --- |
+| `client.billing.instance_addons.list()` | `GET /instances/{instanceSlug}/addons` |
+| `client.billing.instance_addons.attach()` | `POST /instances/{instanceSlug}/addons` |
+| `client.billing.instance_addons.set_quantity()` | `PATCH /instances/{instanceSlug}/addons/{addonSlug}` |
+| `client.billing.instance_addons.detach()` | `DELETE /instances/{instanceSlug}/addons/{addonSlug}` |
+| `client.billing.instance_vouchers.list()` | `GET /instances/{instanceSlug}/vouchers` |
+| `client.billing.instance_vouchers.redeem()` | `POST /instances/{instanceSlug}/vouchers/redeem` |
+| `client.billing.instance_vouchers.revoke()` | `POST /instances/{instanceSlug}/vouchers/{instanceVoucherId}/revoke` |
+| `client.billing.vouchers.list()` | `GET /vouchers` |
+| `client.billing.vouchers.get()` | `GET /vouchers/{voucherId}` |
+| `client.billing.vouchers.create()` | `POST /vouchers` |
+| `client.billing.vouchers.update()` | `PUT /vouchers/{voucherId}` |
+| `client.billing.vouchers.delete()` | `DELETE /vouchers/{voucherId}` |
+| `client.billing.vouchers.publish()` | `POST /vouchers/{voucherId}/publish` |
+| `client.billing.vouchers.archive()` | `POST /vouchers/{voucherId}/archive` |
+| `client.billing.vouchers.list_redemptions()` | `GET /vouchers/{voucherId}/redemptions` |
+| `client.billing.vouchers.lookup()` | `POST /vouchers/lookup` |
+| `client.billing.vouchers.validate()` | `POST /vouchers/validate` |
+
+</details>
+
+<details>
+<summary><b>client.billing.customers</b> · <b>client.billing.customer_sessions</b> · <b>client.billing.publishable_keys</b> · <b>client.billing.checkout_sessions</b></summary>
+
+| Method | Operation |
+| --- | --- |
+| `client.billing.customers.get()` | `GET /customers/{customerSlug}/billing` |
+| `client.billing.customers.detach_payment_method()` | `DELETE /customers/{customerSlug}/billing/payment-method` |
+| `client.billing.customers.create_payment_method_session()` | `POST /customers/{customerSlug}/billing/payment-method-session` |
+| `client.billing.customers.complete_payment_method_session()` | `POST /customers/{customerSlug}/billing/payment-method-session/{sessionId}/complete` |
+| `client.billing.customers.create_portal_session()` | `POST /customers/{customerSlug}/billing/portal-session` |
+| `client.billing.customer_sessions.create()` | `POST /customer-sessions` |
+| `client.billing.customer_sessions.revoke()` | `POST /customer-sessions/{sessionId}/revoke` |
+| `client.billing.publishable_keys.list()` | `GET /publishable-keys` |
+| `client.billing.publishable_keys.create()` | `POST /publishable-keys` |
+| `client.billing.publishable_keys.update()` | `PATCH /publishable-keys/{keyId}` |
+| `client.billing.publishable_keys.revoke()` | `POST /publishable-keys/{keyId}/revoke` |
+| `client.billing.checkout_sessions.list()` | `GET /checkout-sessions` |
+| `client.billing.checkout_sessions.get()` | `GET /checkout-sessions/{sessionId}` |
+
+</details>
+
+<details>
+<summary><b>client.billing.public</b> · <b>client.billing.session</b> — with a public credential</summary>
+
+`client.billing.public` takes a publishable key (`pk_...`), and an anonymous checkout's own
+session token (`ksc_...`) to read or confirm it; `client.billing.session` takes a customer
+session (`kst_...`). Build the client with that token.
+
+| Method | Operation |
+| --- | --- |
+| `client.billing.public.get_catalog()` | `GET /public/catalog` |
+| `client.billing.public.create_checkout_session()` | `POST /public/checkout-sessions` |
+| `client.billing.public.get_checkout_session()` | `GET /public/checkout-sessions/{sessionId}` |
+| `client.billing.public.confirm_checkout_session()` | `POST /public/checkout-sessions/{sessionId}/confirm` |
+| `client.billing.session.get_portal()` | `GET /public/session/portal` |
+| `client.billing.session.list_invoices()` | `GET /public/session/invoices` |
+| `client.billing.session.checkout()` | `POST /public/session/checkout` |
+| `client.billing.session.cancel()` | `POST /public/session/billing/cancel` |
+| `client.billing.session.reactivate()` | `POST /public/session/billing/reactivate` |
+| `client.billing.session.set_addon_quantity()` | `PUT /public/session/addons/{addonSlug}` |
+| `client.billing.session.create_payment_method_session()` | `POST /public/session/billing/payment-method-session` |
+| `client.billing.session.complete_payment_method_session()` | `POST /public/session/billing/payment-method-session/{sessionId}/complete` |
+| `client.billing.session.create_portal_session()` | `POST /public/session/billing/portal-session` |
+| `client.billing.session.validate_voucher()` | `POST /public/session/vouchers/validate` |
+| `client.billing.session.redeem_voucher()` | `POST /public/session/vouchers/redeem` |
+
+</details>
 
 <details>
 <summary><b>client.components</b> · <b>client.connectors</b> · <b>client.customers</b></summary>
@@ -690,6 +920,13 @@ all 10 of its operations. The async clients have the same methods.
 | `client.instances.list_usage()` | `GET /instances/{instanceSlug}/entitlements/usage` |
 | `client.instances.get_usage()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
 | `client.instances.report_usage()` | `POST /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
+| `client.instances.report_usage_detailed()` | `POST /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage` |
+| `client.instances.list_usage_reports()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/reports` |
+| `client.instances.export_usage_reports()` | `GET /instances/{instanceSlug}/entitlements/{entitlementSlug}/usage/reports/export` |
+| `client.instances.export_organization_usage_reports()` | `GET /usage/reports/export` |
+| `client.instances.list_entitlement_exceptions()` | `GET /instances/{instanceSlug}/entitlement-exceptions` |
+| `client.instances.create_entitlement_exception()` | `POST /instances/{instanceSlug}/entitlement-exceptions` |
+| `client.instances.revoke_entitlement_exception()` | `DELETE /instances/{instanceSlug}/entitlement-exceptions/{exceptionId}` |
 | `client.instances.get_integration()` | `GET /instances/{instanceSlug}/integrations/{integrationName}` |
 | `client.instances.create_integration()` | `POST /instances/{instanceSlug}/integrations/{integrationName}` |
 | `client.instances.update_integration()` | `PUT /instances/{instanceSlug}/integrations/{integrationName}` |
@@ -702,12 +939,13 @@ all 10 of its operations. The async clients have the same methods.
 </details>
 
 <details>
-<summary><b>client.licenses</b> · <b>client.metadata_fields</b></summary>
+<summary><b>client.license_families</b> · <b>client.licenses</b> · <b>client.metadata_fields</b></summary>
 
 | Method | Operation |
 | --- | --- |
 | `client.license_families.list()` | `GET /license-families` |
 | `client.license_families.get()` | `GET /license-families/{familySlug}` |
+| `client.license_families.update()` | `PATCH /license-families/{familySlug}` |
 | `client.licenses.list()` | `GET /licenses` |
 | `client.licenses.get()` | `GET /licenses/{licenseSlug}` |
 | `client.licenses.create()` | `POST /licenses` |
@@ -756,6 +994,7 @@ all 10 of its operations. The async clients have the same methods.
 | Method | Operation |
 | --- | --- |
 | `platform.me()` | `GET /platform/me` |
+| `platform.billing.close_periods()` | `POST /platform/organizations/{orgId}/billing/close-periods` |
 | `platform.connectors.register()` | `POST /platform/connectors` |
 | `platform.organizations.ensure()` | `POST /platform/organizations` |
 | `platform.organizations.get()` | `GET /platform/organizations/{orgId}` |

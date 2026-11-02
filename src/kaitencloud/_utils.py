@@ -146,6 +146,50 @@ def integrations_body(
     return {name: dict(integration) for name, integration in integrations.items()}
 
 
+def price_body(
+    *,
+    billing_model: str,
+    currency: str,
+    unit_amount_decimal: str,
+    billing_period: str | None,
+    billing_timing: str | None,
+    metered_entitlement_slug: str | None,
+    is_default: bool | None,
+    display_label: str | None,
+    display_order: int | None,
+) -> dict[str, Any]:
+    """The body of a new price: a license version's or an add-on version's."""
+    return {
+        "billingModel": billing_model,
+        "currency": currency,
+        "unitAmountDecimal": unit_amount_decimal,
+        **compact(
+            {
+                "billingPeriod": billing_period,
+                "billingTiming": billing_timing,
+                "meteredEntitlementSlug": metered_entitlement_slug,
+                "isDefault": is_default,
+                "displayLabel": display_label,
+                "displayOrder": display_order,
+            }
+        ),
+    }
+
+
+def addon_quantities(add_ons: Mapping[str, int] | None) -> list[dict[str, Any]] | None:
+    """``{addon_slug: quantity}``, as the list of add-ons a billing request carries."""
+    if add_ons is None:
+        return None
+    return [{"addonSlug": slug, "quantity": quantity} for slug, quantity in add_ons.items()]
+
+
+def check_limit(limit: int | None) -> int | None:
+    """``limit``, refused below 1: a ceiling of zero rows is a mistake, not a request."""
+    if limit is not None and limit < 1:
+        raise ValueError(f"limit must be at least 1, got {limit}")
+    return limit
+
+
 def validate_uuid(value: str, name: str) -> str:
     try:
         return str(uuid.UUID(str(value)))
@@ -153,12 +197,29 @@ def validate_uuid(value: str, name: str) -> str:
         raise ValueError(f"{name} must be a UUID, got {value!r}") from None
 
 
-def check_token(token: object, surface: Surface) -> str:
+PUBLISHABLE_KEY_PREFIX = "pk_"
+
+# The routes under /public take a credential of their own, chosen by path as the API chooses
+# it: a customer session on /public/session, an anonymous checkout's own session on one
+# checkout session, and a publishable key on the rest.
+_PUBLIC_CREDENTIALS = (
+    (
+        "/public/session/",
+        "kst_",
+        "a customer session (kst_...), from billing.customer_sessions.create()",
+    ),
+    ("/public/checkout-sessions/", "ksc_", "the checkout session's own token (ksc_...)"),
+    ("/public/", PUBLISHABLE_KEY_PREFIX, "a publishable key (pk_...)"),
+)
+
+
+def check_token(token: object, surface: Surface, path: str = "") -> str:
     """Return ``token`` when the API ``surface`` accepts its credential class; raise otherwise.
 
     Each Kaiten listener refuses the other's credential with a deliberately uninformative
     error. Catching the mix-up here, before a request leaves, is the only place a useful
-    message can come from.
+    message can come from. A route under ``/public`` takes the one credential its path calls
+    for, and nothing else.
     """
     if not isinstance(token, str) or not token.strip():
         raise CredentialError("The token is empty.")
@@ -178,6 +239,14 @@ def check_token(token: object, surface: Surface) -> str:
             "The Platform API only accepts platform credentials (ksm_...). Organization "
             "tokens (ksh_...) and identity-provider JWTs belong to KaitenClient."
         )
+    for prefix, required, credential in _PUBLIC_CREDENTIALS:
+        if path.startswith(prefix):
+            if not token.startswith(required):
+                raise CredentialError(
+                    f"{path} takes {credential}, and refuses any other credential. Build a "
+                    "KaitenClient with that token to call it."
+                )
+            break
     return token
 
 

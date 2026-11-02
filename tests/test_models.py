@@ -102,6 +102,7 @@ def test_discriminated_values_parse_into_their_own_class() -> None:
             "entitlementSlug": "seats",
             "licenseId": "l1",
             "licenseSlug": "growth",
+            "source": "license",
             "value": {"type": "number", "value": 7, "event_count": 3},
             "limit": {"type": "number", "value": 10},
         }

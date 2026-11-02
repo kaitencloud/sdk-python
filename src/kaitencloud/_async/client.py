@@ -26,6 +26,7 @@ from .._utils import normalize_base_url
 from ..types import PlatformCredential
 from ._http import AsyncAPIClient
 from .resources import (
+    AsyncBilling,
     AsyncComponents,
     AsyncConnectors,
     AsyncCustomers,
@@ -42,6 +43,7 @@ from .resources import (
     AsyncServiceAccounts,
 )
 from .resources.platform import (
+    AsyncPlatformBilling,
     AsyncPlatformConnectors,
     AsyncPlatformOrganizations,
     AsyncPlatformTokens,
@@ -113,7 +115,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
 
     The Core API is what an organization's own credential talks to: an organization token
     (``ksh_...``) or a JWT from your identity provider. It covers customers, instances,
-    licenses, entitlements and usage, feature flags, releases and connectors::
+    licenses, entitlements and usage, billing, feature flags, releases and connectors::
 
         async with AsyncKaitenClient(
             base_url="https://kaiten.example.com", token="ksh_..."
@@ -135,6 +137,9 @@ class AsyncKaitenClient(_AsyncBaseClient):
         http_client: An :class:`httpx.AsyncClient` to send requests with, for proxies, custom
             TLS or transports. The Kaiten client never closes a client it did not create.
     """
+
+    billing: AsyncBilling
+    """Billing: prices, subscriptions, invoices, add-ons, vouchers and the public catalog."""
 
     components: AsyncComponents
     """Components: the versioned building blocks releases are made of."""
@@ -210,6 +215,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
 
     def _bind(self) -> None:
         api = self._api
+        self.billing = AsyncBilling(api)
         self.components = AsyncComponents(api)
         self.connectors = AsyncConnectors(api)
         self.customers = AsyncCustomers(api)
@@ -250,6 +256,9 @@ class AsyncKaitenPlatformClient(_AsyncBaseClient):
         default_headers: Headers sent with every request.
         http_client: An :class:`httpx.AsyncClient` to send requests with.
     """
+
+    billing: AsyncPlatformBilling
+    """Billing across organizations: closing their due periods."""
 
     connectors: AsyncPlatformConnectors
     """The deployment-wide connector registry."""
@@ -306,6 +315,7 @@ class AsyncKaitenPlatformClient(_AsyncBaseClient):
 
     def _bind(self) -> None:
         api = self._api
+        self.billing = AsyncPlatformBilling(api)
         self.connectors = AsyncPlatformConnectors(api)
         self.organizations = AsyncPlatformOrganizations(api)
         self.tokens = AsyncPlatformTokens(api)

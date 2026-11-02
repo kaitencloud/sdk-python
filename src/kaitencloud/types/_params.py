@@ -24,6 +24,8 @@ __all__ = [
     "BasicVariantParam",
     "DefaultVariantParam",
     "IntegrationParam",
+    "MinimumAmountParam",
+    "RedemptionRulesParam",
     "RolloutDateTargetingParam",
     "RolloutDateVariantParam",
     "RolloutPercentageTargetingParam",
@@ -31,6 +33,7 @@ __all__ = [
     "RolloutStepParam",
     "TargetingParam",
     "VariantParam",
+    "VoucherGrantParam",
 ]
 
 
@@ -124,3 +127,38 @@ class RolloutDateTargetingParam(TypedDict):
 TargetingParam: TypeAlias = (
     BasicTargetingParam | RolloutPercentageTargetingParam | RolloutDateTargetingParam
 )
+
+
+class VoucherGrantParam(TypedDict, total=False):
+    """What an entitlement boost voucher grants on one entitlement."""
+
+    entitlementSlug: Required[str]
+    modifierType: Required[Literal["SET", "ADD", "MULTIPLY", "UNLIMITED"]]
+    """``SET``, ``ADD`` and ``MULTIPLY`` take a ``modifierValue``; a BOOLEAN or CONFIG
+    entitlement takes ``SET`` only, with a ``value``."""
+
+    modifierValue: str
+    """A NUMBER grant's decimal, as a string: ``"10"``."""
+
+    value: bool | dict[str, Any]
+    """What a BOOLEAN or CONFIG ``SET`` grant sets."""
+
+
+class MinimumAmountParam(TypedDict):
+    """An amount in minor units, in a currency."""
+
+    currency: str
+    unitAmountDecimal: str
+
+
+class RedemptionRulesParam(TypedDict, total=False):
+    """Who may redeem a voucher, beyond its dates and its redemption count."""
+
+    annualOnly: bool
+    """Only an instance with a live ``ANNUAL`` subscription."""
+
+    firstTimeOnly: bool
+    """Only a customer none of whose instances has paid an invoice."""
+
+    minimumSubscriptionAmount: MinimumAmountParam
+    """Only a live subscription whose base price is at least this."""
