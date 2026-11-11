@@ -8,8 +8,8 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from ._ai import Estimator
-from ._async.ai import AsyncMeter
+from ._ai import Estimator, ProviderVendorCostOf
+from ._async.ai import AsyncMeter, CommitFailureHandler
 from ._async.client import AsyncKaitenClient
 from ._async.providers import AsyncProvider
 from ._sync.ai import Meter
@@ -25,18 +25,20 @@ def wrap(
     instance: str,
     entitlement: str,
     estimator: Estimator | None = None,
+    vendor_cost: ProviderVendorCostOf | None = None,
+    on_commit_failure: CommitFailureHandler | None = None,
 ) -> Any:
+    options: dict[str, Any] = {
+        "instance": instance,
+        "entitlement": entitlement,
+        "estimator": estimator,
+        "on_commit_failure": on_commit_failure,
+    }
     if isinstance(kaiten, AsyncKaitenClient):
         return AsyncProvider(
-            client,
-            AsyncMeter(kaiten, instance=instance, entitlement=entitlement, estimator=estimator),
-            provider,
+            client, AsyncMeter(kaiten, **options), provider, vendor_cost=vendor_cost
         )
-    return Provider(
-        client,
-        Meter(kaiten, instance=instance, entitlement=entitlement, estimator=estimator),
-        provider,
-    )
+    return Provider(client, Meter(kaiten, **options), provider, vendor_cost=vendor_cost)
 
 
 def drop_in(provider: str, name: str, module: str) -> type[Any]:
@@ -52,6 +54,8 @@ def drop_in(provider: str, name: str, module: str) -> type[Any]:
         instance: str | None = None,
         entitlement: str | None = None,
         estimator: Estimator | None = None,
+        vendor_cost: ProviderVendorCostOf | None = None,
+        on_commit_failure: CommitFailureHandler | None = None,
         **kwargs: Any,
     ) -> None:
         if "pool" in kwargs:
@@ -73,6 +77,8 @@ def drop_in(provider: str, name: str, module: str) -> type[Any]:
                 instance=instance,
                 entitlement=entitlement,
                 estimator=estimator,
+                vendor_cost=vendor_cost,
+                on_commit_failure=on_commit_failure,
             )
             roots = (
                 ("chat", "responses", "embeddings", "images", "audio")
@@ -89,7 +95,9 @@ def drop_in(provider: str, name: str, module: str) -> type[Any]:
 
                     def copied(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
                         copied_client = _original(self, *args, **kwargs)
-                        return type(proxy)(copied_client, proxy._meter, provider)
+                        return type(proxy)(
+                            copied_client, proxy._meter, provider, vendor_cost=vendor_cost
+                        )
 
                     setattr(self, method, copied)
 

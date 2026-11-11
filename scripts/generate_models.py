@@ -13,7 +13,7 @@ Usage::
     uv run python scripts/generate_models.py          # rewrite src/kaitencloud/types/
     uv run python scripts/generate_models.py --check  # exit 1 when the committed files are stale
 
-Three rules shape the output, each because the alternative breaks a caller:
+Five rules shape the output, each because the alternative breaks a caller:
 
 - Only what the SDK can return is generated: the response schemas of the operations
   ``openapi/coverage.yaml`` maps, and the payloads of the published webhooks. Request bodies
@@ -24,6 +24,12 @@ Three rules shape the output, each because the alternative breaks a caller:
 - Nothing is guessed. A new multi-value enum or inline union must be named below, and an
   attribute that would shadow a pydantic member must be renamed below; the generator stops
   until it is.
+- A model keeps its class. A webhook payload the contract renamed keeps the name it was
+  published under, and one that is a resource plus who wrote the change subclasses that
+  resource's model, so an event's ``data`` stays an instance of the class it had.
+- A model reads the servers it may meet. A property the contract made required after a
+  release this SDK supports is named in ``LATE_REQUIRED`` and generated with a default --
+  an empty list, or ``None`` -- so an older server that does not send it still parses.
 """
 
 from __future__ import annotations
@@ -68,6 +74,71 @@ CLASS_NAMES: dict[str, str] = {
     "ImpactSample": "MetadataFieldImpactSample",
     "RolloutDate": "RolloutDateVariant",
     "RolloutPercentage": "RolloutPercentageVariant",
+    # Webhook payloads the contract renamed when it named every delivered shape ...Delivered.
+    # They keep the name the SDK published them under.
+    "CustomerCreationRejectedDelivered": "CustomerCreationRejected",
+    "DeploymentDelivered": "Deployment",
+    "FeatureFlagEvaluatedDelivered": "FeatureFlagEvaluated",
+    "InstanceEntitlementCapExceededDelivered": "InstanceEntitlementCapExceeded",
+    "InstanceEntitlementUsagePeriodRolledOverDelivered": "InstanceEntitlementUsagePeriodRolledOver",
+    "InstanceEntitlementUsageReportAcceptedDelivered": "InstanceEntitlementUsageReportAccepted",
+    "InstanceEntitlementUsageWarningThresholdReachedDelivered": (
+        "InstanceEntitlementUsageWarningThresholdReached"
+    ),
+    "InstanceEntitlementValueGetDelivered": "InstanceEntitlementValueGet",
+    "InstanceLifecycleStageChangedDelivered": "InstanceLifecycleStageChanged",
+    "InstanceStatusChangedDelivered": "InstanceStatusChanged",
+    "MetadataFieldReorderedDelivered": "MetadataFieldReordered",
+    "SystemTokenIssuanceDelivered": "SystemTokenIssuance",
+    "ConversionRuleUpdatedDelivered": "ConversionRuleUpdated",
+    "InstanceAIModelUsageUnauthorizedDelivered": "InstanceAIModelUsageUnauthorized",
+    "ModelUpdatedDelivered": "ModelUpdated",
+}
+
+# Webhook payloads that are a resource plus who wrote the change, keyed to that resource's
+# schema. Each is generated as a subclass of the resource's model, so an event's ``data`` stays
+# an instance of the class it was before the contract gave it a delivered shape. The generator
+# checks the claim: every property of the resource must keep its type in the payload.
+EXTENDS: dict[str, str] = {
+    "AddonDelivered": "Addon",
+    "AddonGrantUpdateDelivered": "AddonEntitlement",
+    "AddonPriceUpdateDelivered": "Price",
+    "AddonUpdateDelivered": "Addon",
+    "BillingStartedDelivered": "InstanceBilling",
+    "CancellationChangeDelivered": "InstanceBilling",
+    "CancellationDelivered": "InstanceBilling",
+    "ComponentDelivered": "Component",
+    "ConversionRuleDelivered": "ConversionRule",
+    "CustomerEventDelivered": "Customer",
+    "DeploymentZoneDelivered": "DeploymentZone",
+    "EntitlementDelivered": "Entitlement",
+    "EntitlementGroupDelivered": "EntitlementGroup",
+    "EntitlementUsageDelivered": "EntitlementUsage",
+    "FeatureFlagDelivered": "FeatureFlag",
+    "HeldInvoiceDelivered": "InvoiceSummary",
+    "InstanceAddonUpdateDelivered": "InstanceAddon",
+    "InstanceDelivered": "Instance",
+    "InstanceUpdateDelivered": "Instance",
+    "IssuedInvoiceDelivered": "InvoiceSummary",
+    "LicenseDelivered": "License",
+    "LicenseEntitlementDelivered": "LicenseEntitlement",
+    "LicenseFamilyViewDelivered": "LicenseFamilyView",
+    "LicensePriceEventDelivered": "Price",
+    "LicensePriceUpdatedEventDelivered": "Price",
+    "MetadataFieldDelivered": "MetadataField",
+    "ModelDelivered": "Model",
+    "MismatchedInvoiceDelivered": "InvoiceSummary",
+    "PaidInvoiceDelivered": "InvoiceSummary",
+    "PaymentFailedInvoiceDelivered": "InvoiceSummary",
+    "PushFailedInvoiceDelivered": "InvoiceSummary",
+    "PushedInvoiceDelivered": "InvoiceSummary",
+    "RedemptionDelivered": "Redemption",
+    "ReleaseDelivered": "Release",
+    "ReleasedInvoiceDelivered": "InvoiceSummary",
+    "TrialWillEndDelivered": "InstanceBilling",
+    "UncollectibleInvoiceDelivered": "InvoiceSummary",
+    "VoidedInvoiceDelivered": "InvoiceSummary",
+    "VoucherDelivered": "Voucher",
 }
 
 # Names for inline unions, keyed by their members.
@@ -99,16 +170,18 @@ ENUM_NAMES: dict[tuple[str, str], str] = {
     ("AiUsageOutcome", "phase"): "AiUsagePhase",
     ("AiUsage", "unitType"): "AiUnitType",
     ("AiInference", "denialReason"): "AiDenialReason",
+    ("AiInferencePricing", "chargeOnError"): "AiChargeOnError",
+    ("AiInferencePricing", "specificity"): "AiRuleSpecificity",
+    ("AiUsageRule", "specificity"): "AiRuleSpecificity",
+    ("OrganizationAiInference", "status"): "AiInferenceStatus",
+    ("OrganizationAiInference", "requestType"): "AiRequestType",
+    ("Addon", "lifecycleState"): "AddonLifecycleState",
     ("Entitlement", "aggregationMethod"): "AggregationMethod",
     ("Entitlement", "resetAnchor"): "ResetAnchor",
     ("Entitlement", "resetPeriod"): "ResetPeriod",
     ("Entitlement", "type"): "EntitlementType",
     ("FeatureFlag", "type"): "FeatureFlagType",
     ("Instance", "status"): "InstanceStatus",
-    ("InstanceEntitlementUsageReportAccepted", "behavior"): "UsageBehavior",
-    ("InstanceEntitlementUsageReportAccepted", "status"): "UsageReportStatus",
-    ("InstanceStatusChanged", "new_status"): "InstanceStatus",
-    ("InstanceStatusChanged", "previous_status"): "InstanceStatus",
     ("License", "lifecycleState"): "LicenseLifecycleState",
     ("License", "type"): "LicenseType",
     ("LicenseEntitlement", "entitlementType"): "LicenseEntitlementType",
@@ -116,18 +189,257 @@ ENUM_NAMES: dict[tuple[str, str], str] = {
     ("TargetingContextNode", "type"): "TargetingFactType",
 }
 
-# Attribute names that would shadow a pydantic.BaseModel member, keyed by (schema, property).
+# Names for the enums several schemas share -- an invoice's status, a billing period -- keyed by
+# (property, values). A property must match as well as the values for a name to apply.
+ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
+    ("aggregationMethod", frozenset({"COUNT", "SUM", "AVERAGE", "MIN", "MAX", "LATEST"})): (
+        "AggregationMethod"
+    ),
+    ("appliesTo", frozenset({"LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"})): (
+        "DiscountAppliesTo"
+    ),
+    ("behavior", frozenset({"append", "set"})): "UsageBehavior",
+    ("billingModel", frozenset({"FLAT_FEE", "USAGE_BASED", "OVERAGE"})): "BillingModel",
+    ("billingPeriod", frozenset({"MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"})): (
+        "BillingPeriod"
+    ),
+    ("billingStatus", frozenset({"INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"})): (
+        "SubscriptionStatus"
+    ),
+    ("billingTiming", frozenset({"ADVANCE", "ARREARS"})): "BillingTiming",
+    (
+        "cancellationReason",
+        frozenset({"TRIAL_ENDED_WITHOUT_PAYMENT_METHOD", "INCOMPLETE_EXPIRED"}),
+    ): ("CancellationReason"),
+    ("collectionMethod", frozenset({"SEND_INVOICE", "CHARGE_AUTOMATICALLY"})): "CollectionMethod",
+    ("defaultCollectionMethod", frozenset({"SEND_INVOICE", "CHARGE_AUTOMATICALLY"})): (
+        "CollectionMethod"
+    ),
+    ("disabledReason", frozenset({"DEPLOYMENT_DISABLED", "NOT_ENTITLED"})): (
+        "BillingDisabledReason"
+    ),
+    ("discountType", frozenset({"PERCENTAGE", "FIXED_AMOUNT"})): "DiscountType",
+    ("duration", frozenset({"ONE_TIME", "REPEATING", "FOREVER"})): "VoucherDuration",
+    ("from", frozenset({"NOOP", "STRIPE"})): "BillingProviderKind",
+    ("from", frozenset({"INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"})): (
+        "SubscriptionStatus"
+    ),
+    ("entitlementType", frozenset({"BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"})): (
+        "EntitlementType"
+    ),
+    ("handoffStatus", frozenset({"NOT_REQUIRED", "PENDING", "ACKNOWLEDGED"})): "HandoffStatus",
+    (
+        "holdReason",
+        frozenset(
+            {
+                "LEDGER_SEQUENCE_GAP",
+                "LEDGER_CHAIN_BREAK",
+                "LEDGER_COUNTER_MISMATCH",
+                "PROVIDER_ITEM_LIMIT",
+            }
+        ),
+    ): "InvoiceHoldReason",
+    ("increaseBilling", frozenset({"TRUE_UP", "NEXT_BOUNDARY"})): "IncreaseBilling",
+    ("kind", frozenset({"ACTIVATION", "RENEWAL", "FINAL"})): "InvoiceKind",
+    ("kind", frozenset({"NOOP", "STRIPE"})): "BillingProviderKind",
+    ("kind", frozenset({"SET", "ADD", "UNLIMITED"})): "ExceptionKind",
+    ("kind", frozenset({"USER", "SERVICE", "SYSTEM"})): "ActorKind",
+    ("lastSyncStatus", frozenset({"SUCCESS", "PARTIAL", "FAILED"})): "SyncStatus",
+    ("mode", frozenset({"AT_PERIOD_END", "IMMEDIATE"})): "CancellationMode",
+    ("modifierType", frozenset({"SET", "ADD", "MULTIPLY", "UNLIMITED"})): "GrantModifier",
+    ("new_status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): "InstanceStatus",
+    ("overrideBehavior", frozenset({"ADD", "OVERRIDE", "MAX"})): "OverrideBehavior",
+    ("previous_status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): (
+        "InstanceStatus"
+    ),
+    ("priceAppliesTo", frozenset({"LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"})): (
+        "DiscountAppliesTo"
+    ),
+    ("priceDiscountType", frozenset({"PERCENTAGE", "FIXED_AMOUNT"})): "DiscountType",
+    ("pricingType", frozenset({"FREE", "PAID", "CUSTOM"})): "PricingType",
+    ("providerKind", frozenset({"NOOP", "STRIPE"})): "BillingProviderKind",
+    ("reason", frozenset({"PERIOD_ENDED", "ANCHOR_CHANGED"})): "PeriodRolloverReason",
+    ("reason", frozenset({"TRIAL_ENDED", "INVOICE_OVERDUE", "PAYMENT_FAILED", "SETTLED"})): (
+        "SubscriptionStatusChangeReason"
+    ),
+    (
+        "reason",
+        frozenset(
+            {
+                "NOT_FOUND",
+                "NOT_ACTIVE",
+                "NOT_YET_VALID",
+                "EXPIRED",
+                "EXHAUSTED",
+                "ALREADY_REDEEMED",
+                "NOT_ELIGIBLE",
+                "CURRENCY_MISMATCH",
+                "DISCOUNT_LIMIT_EXCEEDED",
+            }
+        ),
+    ): "VoucherInvalidReason",
+    ("reconciliationStatus", frozenset({"MATCHED", "MISMATCH"})): "ReconciliationStatus",
+    ("retentionSource", frozenset({"KBK", "ENV", "UNKNOWN"})): "RetentionSource",
+    (
+        "rule",
+        frozenset(
+            {
+                "RESTRICTED_CUSTOMER",
+                "LICENSE_NOT_APPLICABLE",
+                "ADDON_NOT_APPLICABLE",
+                "FIRST_TIME_ONLY",
+                "ANNUAL_ONLY",
+                "MINIMUM_SUBSCRIPTION_AMOUNT",
+                "NOTHING_TO_BOOST",
+            }
+        ),
+    ): "VoucherRule",
+    ("source", frozenset({"license", "addon", "exception"})): "EntitlementSource",
+    ("source", frozenset({"MARK_PAID", "PROVIDER", "ZERO_TOTAL"})): "PaymentSource",
+    ("status", frozenset({"ACCEPTED", "REJECTED"})): "UsageReportStatus",
+    ("status", frozenset({"ACTIVE", "DEPRECATED"})): "PriceStatus",
+    ("status", frozenset({"ACTIVE", "EXPIRED", "FAILED"})): "PaymentMethodStatus",
+    ("status", frozenset({"ACTIVE", "EXPIRED", "REVOKED"})): "RedemptionStatus",
+    ("status", frozenset({"DRAFT", "ACTIVE", "EXPIRED", "EXHAUSTED", "ARCHIVED"})): "VoucherStatus",
+    (
+        "status",
+        frozenset(
+            {
+                "DRAFT",
+                "PUSHED",
+                "PUSH_FAILED",
+                "MANUAL",
+                "PAID",
+                "PAYMENT_FAILED",
+                "UNCOLLECTIBLE",
+                "VOID",
+            }
+        ),
+    ): "InvoiceStatus",
+    ("status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): "InstanceStatus",
+    ("status", frozenset({"INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"})): (
+        "SubscriptionStatus"
+    ),
+    (
+        "status",
+        frozenset({"MANUAL", "PUSHED", "PAID", "PAYMENT_FAILED", "UNCOLLECTIBLE", "VOID"}),
+    ): ("SessionInvoiceStatus"),
+    ("status", frozenset({"NOT_REQUIRED", "PENDING", "ACKNOWLEDGED"})): "HandoffStatus",
+    ("status", frozenset({"OPEN", "AWAITING_PAYMENT", "COMPLETED", "ABANDONED", "EXPIRED"})): (
+        "CheckoutSessionStatus"
+    ),
+    ("status", frozenset({"OPEN", "COMPLETED", "ABANDONED", "EXPIRED"})): (
+        "CheckoutSessionEventStatus"
+    ),
+    ("status", frozenset({"SCHEDULED", "ACTIVE", "EXPIRED", "REVOKED"})): "ExceptionStatus",
+    ("status", frozenset({"SUCCESS", "PARTIAL", "FAILED"})): "SyncStatus",
+    ("status", frozenset({"draft", "open", "paid", "uncollectible", "void"})): (
+        "ProviderInvoiceStatus"
+    ),
+    ("status", frozenset({"paid", "requires_action", "failed", "processing", "not_required"})): (
+        "PaymentStatus"
+    ),
+    ("status", frozenset({"preview", "open"})): "CheckoutStartStatus",
+    ("status", frozenset({"preview", "requires_payment_method", "subscribed"})): (
+        "SessionCheckoutStatus"
+    ),
+    ("status", frozenset({"requires_payment_method", "awaiting_payment", "completed"})): (
+        "CheckoutConfirmationStatus"
+    ),
+    ("to", frozenset({"NOOP", "STRIPE"})): "BillingProviderKind",
+    ("to", frozenset({"INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"})): (
+        "SubscriptionStatus"
+    ),
+    ("trialEndWithoutPaymentMethod", frozenset({"CANCEL", "CONVERT"})): (
+        "TrialEndWithoutPaymentMethod"
+    ),
+    ("type", frozenset({"BASE", "ADDON", "USAGE", "OVERAGE", "DISCOUNT"})): "InvoiceLineType",
+    ("type", frozenset({"BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"})): "EntitlementType",
+    ("type", frozenset({"PERCENTAGE", "FIXED_AMOUNT"})): "DiscountType",
+    ("unavailableReason", frozenset({"NOT_ENTITLED", "VAULT_NOT_CONFIGURED"})): (
+        "ProviderUnavailableReason"
+    ),
+    ("usageHistoryRetentionSource", frozenset({"KBK", "ENV", "UNKNOWN"})): "RetentionSource",
+    ("via", frozenset({"customer_session", "checkout_session"})): "EventVia",
+    ("voucherType", frozenset({"PRICE", "ENTITLEMENT_BOOST", "FLAG_GRANT", "COMPOSITE"})): (
+        "VoucherType"
+    ),
+}
+
+# Required properties a server this SDK still supports may not send, keyed by (schema, property).
+# Each is generated with a default instead -- an empty list for an array, ``None`` otherwise --
+# so a response from that older server parses. The value says which servers omit it.
+LATE_REQUIRED: dict[tuple[str, str], str] = {
+    ("AiInference", "warnings"): "AI credits before explainable charges",
+    ("AiInference", "refunds"): "AI credits before explainable charges",
+    ("ConversionRule", "createdBy"): "AI credits before explainable charges",
+    ("ConversionRule", "updatedBy"): "AI credits before explainable charges",
+    ("ConversionRule", "grantedByAddons"): "AI credits before explainable charges",
+}
+
+# Attribute names that would shadow a pydantic.BaseModel member or a Python keyword, keyed by
+# (schema, property).
 FIELD_NAMES: dict[tuple[str, str], str] = {
     ("ConnectorSettingsSchema", "schema"): "json_schema",
+    ("ProviderChangeDelivered", "from"): "from_",
+    ("StatusChangeDelivered", "from"): "from_",
 }
 
 ALIAS_DOCS: dict[str, str] = {
+    "ActorKind": "Who acted: a person, a service account, or Kaiten itself.",
+    "AddonLifecycleState": (
+        "Whether an add-on version may be sold: ``DRAFT`` before it goes on sale, ``PUBLISHED`` "
+        "while it is on sale, ``ARCHIVED`` once it has been withdrawn."
+    ),
     "AggregationMethod": "How each reported usage value folds into an entitlement's stored total.",
+    "BillingDisabledReason": "Why billing is off: the deployment disabled it, or the plan does not include it.",
+    "BillingModel": (
+        "How a price bills: ``FLAT_FEE`` per period, ``USAGE_BASED`` per sale unit of usage, "
+        "``OVERAGE`` per sale unit above the license's limit."
+    ),
+    "BillingPeriod": "How often a subscription bills its flat fees.",
+    "BillingProviderKind": (
+        "Who issues and collects an invoice: ``NOOP``, the organization itself through the "
+        "handoff queue, or ``STRIPE``."
+    ),
+    "BillingTiming": "When a price bills: in ``ADVANCE`` of its period, or in ``ARREARS`` after it.",
+    "CancellationMode": "When a cancellation takes effect: at the end of the period paid for, or now.",
+    "CancellationReason": "Why Kaiten canceled a subscription on its own.",
+    "CheckoutConfirmationStatus": "Where an anonymous checkout stands after a confirmation.",
+    "CheckoutSessionEventStatus": "The status of an anonymous checkout session, as its events report it.",
+    "CheckoutSessionStatus": "The status of an anonymous checkout session.",
+    "CheckoutStartStatus": "What starting an anonymous checkout did: ``preview`` for a dry run, ``open`` otherwise.",
+    "CollectionMethod": (
+        "How an invoice is collected: ``SEND_INVOICE`` sends it for payment, "
+        "``CHARGE_AUTOMATICALLY`` charges the customer's payment method."
+    ),
     "DefaultVariant": "What a feature flag serves when no targeting rule matches, discriminated by ``type``.",
+    "DiscountAppliesTo": "What a price voucher discounts.",
+    "DiscountType": "How a discount is expressed: a percentage, or a fixed amount in minor units.",
+    "EntitlementSource": (
+        "Where an instance's entitlement comes from: its ``license``, an ``addon``, or an "
+        "``exception`` alone."
+    ),
     "EntitlementType": "The value type of an entitlement in the catalog.",
     "EntitlementValue": "A typed entitlement value, discriminated by ``type``: a number, a boolean or a config object.",
+    "EventVia": (
+        "What wrote the change an event reports, when it was not an organization credential: "
+        "a customer session, or an anonymous checkout."
+    ),
+    "ExceptionKind": "How an entitlement exception overrides a value: ``SET`` it, ``ADD`` to it, or lift it (``UNLIMITED``).",
+    "ExceptionStatus": "Where an entitlement exception stands.",
     "FeatureFlagType": "The value type of a feature flag's variants.",
+    "GrantModifier": "How a voucher grant changes an entitlement: ``SET``, ``ADD``, ``MULTIPLY`` or ``UNLIMITED``.",
+    "HandoffStatus": "Where an invoice stands in the accounting handoff.",
+    "IncreaseBilling": (
+        "How a mid-period increase of an add-on billed in advance is billed: a ``TRUE_UP`` line, "
+        "or from the ``NEXT_BOUNDARY``."
+    ),
     "InstanceStatus": "The operational status of an instance.",
+    "InvoiceHoldReason": "Why an invoice is held as a draft.",
+    "InvoiceKind": "What an invoice bills: a subscription's ``ACTIVATION``, a ``RENEWAL``, or its ``FINAL`` period.",
+    "InvoiceLineType": "What an invoice line bills.",
+    "InvoiceStatus": "Where an invoice stands, from ``DRAFT`` to ``PAID``, ``UNCOLLECTIBLE`` or ``VOID``.",
     "LicenseEntitlementType": "The value type of an entitlement granted by a license.",
     "LicenseLifecycleState": (
         "Whether a license version may be served: ``DRAFT`` before it goes on sale, "
@@ -135,8 +447,25 @@ ALIAS_DOCS: dict[str, str] = {
     ),
     "LicenseType": "The kind of a license.",
     "MetadataResourceType": "The resource a metadata field applies to.",
+    "OverrideBehavior": "How an add-on's number grant combines with the license's: ``ADD``, ``OVERRIDE`` or ``MAX``.",
+    "PaymentMethodStatus": "Whether a saved payment method can be charged.",
+    "PaymentSource": "What recorded an invoice as paid.",
+    "PaymentStatus": "How a checkout's first payment went.",
+    "PeriodRolloverReason": "Why a usage window closed: its period ended, or its anchor changed.",
+    "PriceStatus": "Whether a price is ``ACTIVE``, or ``DEPRECATED``: still billing the subscriptions on it, and no new one.",
+    "PricingType": "How a version is sold: ``FREE`` or ``PAID`` self-serve, or ``CUSTOM``, through a conversation.",
+    "ProviderInvoiceStatus": "An invoice's status at its payment provider.",
+    "ProviderUnavailableReason": "Why a payment provider cannot be connected.",
+    "ReconciliationStatus": "Whether an invoice matches its copy at the payment provider.",
+    "RedemptionStatus": "Where a voucher redemption stands.",
     "ResetAnchor": "What a periodic usage window is aligned on.",
     "ResetPeriod": "How often a periodic entitlement's usage resets.",
+    "RetentionSource": "Where the usage history's retention period comes from.",
+    "SessionCheckoutStatus": "What a customer session's checkout did.",
+    "SessionInvoiceStatus": "An issued invoice's status, as the customer's portal shows it.",
+    "SubscriptionStatus": "Where a subscription stands.",
+    "SubscriptionStatusChangeReason": "Why a subscription's status changed.",
+    "SyncStatus": "How a sync with a payment provider went.",
     "TargetingFactType": "The shape of a fact a targeting rule can read.",
     "Scope": (
         "A permission an organization credential can carry, ``read:<resource>`` or "
@@ -144,8 +473,17 @@ ALIAS_DOCS: dict[str, str] = {
     ),
     "Targeting": "One targeting rule of a feature flag, discriminated by ``type``.",
     "Targetings": "A feature flag's targeting rules, evaluated in order; the first match wins.",
+    "TrialEndWithoutPaymentMethod": (
+        "What a trial charged automatically becomes at its end without a payment method: "
+        "``CANCEL`` or ``CONVERT``."
+    ),
     "UsageBehavior": "How a usage report applies: ``append`` folds the value in, ``set`` overwrites it.",
     "UsageReportStatus": "Whether a usage report was persisted.",
+    "VoucherDuration": "How long a price voucher's discount lasts.",
+    "VoucherInvalidReason": "Why a voucher code would not apply.",
+    "VoucherRule": "The redemption rule a voucher code failed.",
+    "VoucherStatus": "Where a voucher stands.",
+    "VoucherType": "What a voucher gives: a price discount, an entitlement boost, flag grants, or several.",
 }
 
 # Docstrings for the schemas the contract leaves undescribed.
@@ -222,6 +560,10 @@ def main() -> int:
     coverage = load(COVERAGE)
     core = load(CORE_SPEC)
     platform = load(PLATFORM_SPEC)
+    for schema, prop in LATE_REQUIRED:
+        node = core["components"]["schemas"].get(schema) or {}
+        if prop not in (node.get("required") or []):
+            raise SystemExit(f"LATE_REQUIRED: {schema}.{prop} is no longer a required property")
 
     core_source, core_names, core_exports = core_module(
         core, excluded=set(coverage["core"]["excluded"] or {})
@@ -251,11 +593,16 @@ def core_module(
     roots = response_roots(spec, excluded) | refs_in(spec.get("webhooks") or {})
     # AI reports have a write-only discriminator union; generate it without widening reads.
     roots.add("ReportEntitlementUsageBody")
-    emitted = sorted(name for name in closure(schemas, roots) if not PAGE.match(name))
+    # A payload that extends a resource needs the resource's class, even when no mapped
+    # operation returns that resource.
+    reached = closure(schemas, roots)
+    reached = closure(schemas, roots | {EXTENDS[name] for name in reached if name in EXTENDS})
+    emitted = sorted(name for name in reached if not PAGE.match(name))
     names = {name: CLASS_NAMES.get(name, name) for name in emitted}
 
     module = ModelModule(source="openapi/openapi.yaml", schemas=schemas, names=names)
-    for name in sorted(emitted, key=names.__getitem__):
+    # A subclass is defined after the class it extends.
+    for name in sorted(emitted, key=lambda name: (name in EXTENDS, names[name])):
         module.add_schema(name)
     module.enums["Scope"] = scopes(spec)
     return module.render(), names, module.exports
@@ -352,10 +699,18 @@ def webhooks_module(spec: dict[str, Any], core_names: dict[str, str]) -> str:
     ]
 
     events: list[tuple[str, str, str, str, str]] = []
+    headers: set[str] = set()
     for key, item in sorted((spec.get("webhooks") or {}).items()):
         operation = item["post"]
         schema = operation["requestBody"]["content"]["application/json"]["schema"]
         properties = schema["properties"]
+        unknown = set(properties) - {"name", "type", "data", "headers"}
+        if unknown:
+            raise SystemExit(f"webhook {key}: the envelope has unsupported properties {unknown}")
+        # Every envelope carries the same headers, or none does: one rule renders them all.
+        headers.add(
+            core_names[ref_name(properties["headers"]["$ref"])] if "headers" in properties else ""
+        )
         event_type = only_enum_value(properties["type"], f"webhook {key}.type")
         if event_type != key:
             raise SystemExit(f"webhook {key}: its type enum says {event_type!r}")
@@ -365,7 +720,10 @@ def webhooks_module(spec: dict[str, Any], core_names: dict[str, str]) -> str:
         summary = operation.get("description") or operation.get("summary") or ""
         events.append((python, event_name, event_type, data, summary))
 
-    data_types = sorted({data for _, _, _, data, _ in events})
+    if len(headers) > 1:
+        raise SystemExit(f"webhooks: the envelopes disagree on their headers: {sorted(headers)}")
+    header = next(iter(headers), "")
+    data_types = sorted({data for _, _, _, data, _ in events} | ({header} - {""}))
     lines.append(f"from ._core import {', '.join(data_types)}")
     lines += ["", "__all__ = [", '    "WEBHOOK_EVENTS",', '    "WebhookEvent",']
     lines += [f'    "{python}",' for python, *_ in sorted(events)]
@@ -386,6 +744,12 @@ def webhooks_module(spec: dict[str, Any], core_names: dict[str, str]) -> str:
             '    """What the event is about."""',
             "",
         ]
+        if header:
+            lines += [
+                f"    headers: {header} | None = None",
+                '    """The trace context of the request that produced the event."""',
+                "",
+            ]
 
     members = "\n".join(f"    | {python}" for python, *_ in events).lstrip(" |")
     lines += [
@@ -437,15 +801,19 @@ class ModelModule:
 
     def render_class(self, name: str, schema: dict[str, Any]) -> list[str]:
         python = self.names[name]
-        lines = [f"class {python}(KaitenModel):"]
+        base = EXTENDS.get(name)
+        lines = [f"class {python}({self.names[base] if base else 'KaitenModel'}):"]
         lines += docstring(schema.get("description") or CLASS_DOCS.get(python), "    ")
 
         required = set(schema.get("required") or [])
         properties: dict[str, Any] = schema.get("properties") or {}
-        if not properties and len(lines) == 1:
+        inherited = self.inherited(name, base) if base else set()
+        if not set(properties) - inherited and len(lines) == 1:
             lines.append("    pass")
 
         for wire, node in properties.items():
+            if wire in inherited:
+                continue
             attribute = FIELD_NAMES.get((name, wire), snake_case(wire))
             if keyword.iskeyword(attribute) or hasattr(BaseModel, attribute):
                 raise SystemExit(
@@ -454,7 +822,14 @@ class ModelModule:
                 )
 
             annotation = self.annotation(node, owner=name, prop=wire)
-            if wire in required:
+            if wire in required and (name, wire) in LATE_REQUIRED:
+                if annotation.startswith("list["):
+                    default = f" = Field(default_factory=list, alias={json.dumps(wire)})"
+                else:
+                    if not self.is_nullable(annotation):
+                        annotation += " | None"
+                    default = f" = Field(default=None, alias={json.dumps(wire)})"
+            elif wire in required:
                 default = f" = Field(alias={json.dumps(wire)})" if attribute != wire else ""
             else:
                 if not self.is_nullable(annotation):
@@ -468,6 +843,30 @@ class ModelModule:
             lines += ["", f"    {attribute}: {annotation}{default}"]
             lines += docstring(node.get("description"), "    ")
         return lines
+
+    def inherited(self, name: str, base: str) -> set[str]:
+        """The properties ``name`` takes from ``base`` as they are, checking it really extends it.
+
+        Each property of the base must keep its type in the derived schema -- rendered as the
+        base's, so their enums get the base's names -- and stay required where the base requires
+        it. A property the base has and the derived schema lacks must be optional in the base.
+        """
+        own = self.schemas[name].get("properties") or {}
+        parent = self.schemas[base]
+        required = set(self.schemas[name].get("required") or [])
+        for wire, node in (parent.get("properties") or {}).items():
+            where = f"{name}.{wire}"
+            if wire not in own:
+                if wire in (parent.get("required") or []):
+                    raise SystemExit(f"{where}: missing, but required by {base}, which it extends")
+                continue
+            if wire in (parent.get("required") or []) and wire not in required:
+                raise SystemExit(f"{where}: optional, but required by {base}, which it extends")
+            ours = self.annotation(own[wire], owner=base, prop=wire)
+            theirs = self.annotation(node, owner=base, prop=wire)
+            if ours != theirs:
+                raise SystemExit(f"{where}: {ours}, but {theirs} in {base}, which it extends")
+        return set(own) & set(parent.get("properties") or {})
 
     def annotation(self, node: dict[str, Any], *, owner: str, prop: str | None) -> str:
         where = f"{owner}.{prop}" if prop else owner
@@ -513,15 +912,20 @@ class ModelModule:
         return f"{text} | None" if nullable else text
 
     def string(self, node: dict[str, Any], *, owner: str, prop: str | None) -> str:
-        values = [value for value in node.get("enum", []) if value is not None]
+        # A nullable enum lists null among its values; its type already says it is nullable.
+        values = [value for value in node.get("enum") or [] if value is not None]
         if values:
             if len(values) == 1:
                 return f"Literal[{json.dumps(values[0])}]"
-            name = ENUM_NAMES.get((owner, prop or ""))
+            name = ENUM_NAMES.get((owner, prop or "")) or ENUM_VOCABULARY.get(
+                (prop or "", frozenset(values))
+            )
             if name is None:
-                raise SystemExit(f"{owner}.{prop}: name this enum in ENUM_NAMES ({values})")
+                raise SystemExit(
+                    f"{owner}.{prop}: name this enum in ENUM_NAMES or ENUM_VOCABULARY ({values})"
+                )
             known = self.enums.setdefault(name, tuple(values))
-            if known != tuple(values):
+            if set(known) != set(values):
                 raise SystemExit(f"{name}: {owner}.{prop} has {values}, elsewhere {list(known)}")
             return f"{name} | str"
         if node.get("format") == "date-time":
@@ -531,17 +935,35 @@ class ModelModule:
     def union(self, node: dict[str, Any], *, owner: str, name: str | None = None) -> str:
         key = "oneOf" if "oneOf" in node else "anyOf"
         members: list[str] = []
+        scalars: list[dict[str, Any]] = []
+        nullable = False
         for member in node[key]:
-            if "$ref" not in member:
+            if member.get("type") == "null":
+                # A null member makes the union nullable: `X | None`, not a model of its own.
+                nullable = True
+            elif "$ref" in member:
+                members.append(ref_name(member["$ref"]))
+            elif member.get("type") in ("boolean", "number", "integer", "string", "object") and (
+                not member.get("properties") and not member.get("enum")
+            ):
+                scalars.append(member)
+            else:
                 raise SystemExit(f"{owner}: inline union members are not supported")
-            members.append(ref_name(member["$ref"]))
 
-        name = name or UNION_NAMES.get(frozenset(members))
-        if name is None:
-            raise SystemExit(f"{owner}: name the union of {members} in UNION_NAMES")
-        tag = (node.get("discriminator") or {}).get("propertyName") or self.shared_tag(members)
-        self.unions[name] = (tag, [self.names[member] for member in members])
-        return name
+        if scalars:
+            if members or name:
+                raise SystemExit(f"{owner}: a union mixes inline values and schemas")
+            text = " | ".join(self.annotation(member, owner=owner, prop=None) for member in scalars)
+        elif len(members) == 1 and name is None:
+            text = self.names[members[0]]
+        else:
+            name = name or UNION_NAMES.get(frozenset(members))
+            if name is None:
+                raise SystemExit(f"{owner}: name the union of {members} in UNION_NAMES")
+            tag = (node.get("discriminator") or {}).get("propertyName") or self.shared_tag(members)
+            self.unions[name] = (tag, [self.names[member] for member in members])
+            text = name
+        return f"{text} | None" if nullable else text
 
     def shared_tag(self, members: Iterable[str]) -> str | None:
         """``type``, when every member pins it to its own single value."""

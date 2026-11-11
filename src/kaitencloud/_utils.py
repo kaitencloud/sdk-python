@@ -12,9 +12,9 @@ import platform
 import random
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Awaitable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 from urllib.parse import quote
 
 import httpx
@@ -32,6 +32,8 @@ USER_AGENT = (
 )
 
 Surface = Literal["core", "platform"]
+
+T = TypeVar("T")
 
 
 def normalize_base_url(url: str) -> str:
@@ -224,6 +226,28 @@ def _parse_retry_after(value: str) -> float | None:
 
 async def async_sleep(seconds: float) -> None:
     await asyncio.sleep(seconds)
+
+
+# Settlements still running after the task that started them was cancelled. Holding them here
+# keeps them from being garbage-collected half-way.
+_SETTLING: set[asyncio.Future[Any]] = set()
+
+
+async def async_shielded(awaitable: Awaitable[T]) -> T:
+    """Run ``awaitable`` to its end even when the calling task is cancelled meanwhile.
+
+    The caller still sees the cancellation, at once; the work it shielded -- a commit, which
+    settles a call that already happened -- carries on in the background until it is done.
+    """
+    future = asyncio.ensure_future(awaitable)
+    _SETTLING.add(future)
+    future.add_done_callback(_SETTLING.discard)
+    return await asyncio.shield(future)
+
+
+def shielded(value: T) -> T:
+    """The synchronous twin of :func:`async_shielded`: a blocking call cannot be cancelled."""
+    return value
 
 
 def sleep(seconds: float) -> None:

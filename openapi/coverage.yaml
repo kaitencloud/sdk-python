@@ -23,6 +23,9 @@ core:
     archiveConversionRule: licenses.archive_conversion_rule
     listAiInferences: instances.list_ai_inferences
     listAiReservations: instances.list_ai_reservations
+    listOrganizationAiInferences: instances.list_organization_ai_inferences
+    refundAiInference: instances.refund_ai_inference
+    getAiUsageCapabilities: instances.get_ai_capabilities
 
     # components
     list-components: components.list
@@ -181,6 +184,138 @@ core:
       every flag at once. (sdk-js does keep a bulk call, but only to feed the licensing
       snapshot its React components render; nothing in a Python SDK needs that.)
 
+    GetMe: >-
+      The signed-in person's own profile and access. A machine client holding an API token has
+      no human profile. kaiten's own operation-coverage test exempts this operation and the
+      eleven below as console authoring, for the same reasons.
+    GetAuthorization: >-
+      Request-time identity and grant introspection, which Kaiten's SaaS middleware consumes;
+      not product automation.
+    ListUsers: The human member directory, administered in the console and the operational CLI.
+    GetUser: An administrator's view of a human member's profile.
+    UpdateUser: An administrator's edit of a human identity, not machine account automation.
+    PutUserAuthorization: >-
+      An administrator's replacement of a person's roles and permissions -- never a service
+      token's.
+    SetUserAssignments: The console's role and direct-scope editor for a person.
+    SetUserEnabled: A person's membership access lifecycle, administered by a human.
+    ListRoles: The role directory of the console and the operational CLI.
+    CreateRole: Scope-group authoring by a human administrator.
+    UpdateRole: Scope-group authoring by a human administrator.
+    DeleteRole: Scope-group lifecycle, administered by a human.
+
+    # Billing, usage reports and entitlement exceptions: wrapped on main since 1.1.0, which this
+    # branch predates. They are excluded here only so the AI contract can be regenerated without
+    # re-doing that release; the rebase onto main replaces this block with main's mappings.
+    ackHandoff: &on-main Wrapped on main since 1.1.0; mapped again when this branch is rebased.
+    archiveAddon: *on-main
+    archiveVoucher: *on-main
+    assignAddonEntitlement: *on-main
+    attachInstanceAddon: *on-main
+    cancelPlanChange: *on-main
+    cancelSessionSubscription: *on-main
+    cancelSubscription: *on-main
+    claimHandoff: *on-main
+    closeBillingPeriods: *on-main
+    completePaymentMethodSession: *on-main
+    completeSessionPaymentMethodSession: *on-main
+    confirmCheckoutSession: *on-main
+    createAddon: *on-main
+    createAddonPrice: *on-main
+    createCheckoutSession: *on-main
+    createCustomerSession: *on-main
+    createEntitlementException: *on-main
+    createLicensePrice: *on-main
+    createPaymentMethodSession: *on-main
+    createPortalSession: *on-main
+    createPublishableKey: *on-main
+    createSessionCheckout: *on-main
+    createSessionPaymentMethodSession: *on-main
+    createSessionPortalSession: *on-main
+    createVoucher: *on-main
+    deleteAddon: *on-main
+    deprecateAddonPrice: *on-main
+    deprecateLicensePrice: *on-main
+    detachInstanceAddon: *on-main
+    detachPaymentMethod: *on-main
+    exportInvoices: *on-main
+    exportOrganizationUsageReports: *on-main
+    exportUsageReports: *on-main
+    getAddon: *on-main
+    getAddonEntitlement: *on-main
+    getAddonFamily: *on-main
+    getBillingCapabilities: *on-main
+    getBillingHealth: *on-main
+    getBillingSettings: *on-main
+    getCheckoutSession: *on-main
+    getCheckoutSessionAdmin: *on-main
+    getCustomerBilling: *on-main
+    getInstanceBilling: *on-main
+    getInvoice: *on-main
+    getLicensePrice: *on-main
+    getPublicCatalog: *on-main
+    getSessionPortal: *on-main
+    getUpcomingInvoice: *on-main
+    getVoucher: *on-main
+    listAddonCompatibility: *on-main
+    listAddonEntitlements: *on-main
+    listAddonFamilies: *on-main
+    listAddonPrices: *on-main
+    listAddons: *on-main
+    listCheckoutSessions: *on-main
+    listEntitlementExceptions: *on-main
+    listHandoff: *on-main
+    listInstanceAddons: *on-main
+    listInstanceInvoices: *on-main
+    listInstanceVouchers: *on-main
+    listInvoiceLineReports: *on-main
+    listInvoices: *on-main
+    listLicensePrices: *on-main
+    listPublishableKeys: *on-main
+    listSessionInvoices: *on-main
+    listUsageReports: *on-main
+    listVoucherRedemptions: *on-main
+    listVouchers: *on-main
+    lookupVoucher: *on-main
+    markInvoicePaid: *on-main
+    previewLicenseInvoice: *on-main
+    publishAddon: *on-main
+    publishVoucher: *on-main
+    reactivateSessionSubscription: *on-main
+    reactivateSubscription: *on-main
+    recomposeInvoice: *on-main
+    redeemSessionVoucher: *on-main
+    redeemVoucher: *on-main
+    releaseInvoiceHold: *on-main
+    removeAddonCompatibility: *on-main
+    retryInvoicePush: *on-main
+    revokeCustomerSession: *on-main
+    revokeEntitlementException: *on-main
+    revokeInstanceVoucher: *on-main
+    revokePublishableKey: *on-main
+    schedulePlanChange: *on-main
+    setAddonCompatibility: *on-main
+    setInstanceAddonQuantity: *on-main
+    setSessionAddonQuantity: *on-main
+    subscribeInstance: *on-main
+    syncBillingProvider: *on-main
+    syncInvoice: *on-main
+    unarchiveAddon: *on-main
+    unassignAddonEntitlement: *on-main
+    updateAddon: *on-main
+    updateAddonEntitlement: *on-main
+    updateAddonFamily: *on-main
+    updateBillingSettings: *on-main
+    updateInstanceBilling: *on-main
+    updateLicenseFamily: *on-main
+    updateLicensePrice: *on-main
+    updatePublishableKey: *on-main
+    updateVoucher: *on-main
+    validateSessionVoucher: *on-main
+    validateVoucher: *on-main
+    voidInvoice: *on-main
+    writeOffInvoice: *on-main
+
 platform:
   operations:
     get-platform-me: me
@@ -194,4 +329,5 @@ platform:
     revoke-organization-token: tokens.revoke
     delete-user: users.delete
 
-  excluded: {}
+  excluded:
+    platform-close-billing-periods: Wrapped on main since 1.1.0; mapped again when this branch is rebased.

@@ -858,3 +858,38 @@ one page at a time via `instances.list_ai_inferences(..., cursor=...)`; its
 `next_cursor` continues the history. `instances.list_ai_reservations` returns
 open reservations. Usage gauges now expose generated `reserved`/`ai` fields.
 The vendored contract's exact revision is recorded in `openapi/source.yaml`.
+
+#### Explainable charges (preview)
+
+Requires a Kaiten release with explainable AI charges (version to be set); AI credits are
+behind a deployment flag, off by default, and `instances.get_ai_capabilities()` says whether
+they are on. Each answer names the rule that priced it (`ai.rule`), and each inference row
+carries its pricing snapshot, license, warnings, report sequence, vendor cost and refunds:
+
+```python
+from decimal import Decimal
+
+kaiten.instances.commit_ai_usage(
+    "acme-prod", "chat-credits", transaction_id=tx, usage=usage, vendor_cost=Decimal("0.0125")
+)
+rows = kaiten.instances.list_organization_ai_inferences(model_slug="gpt-4o", limit=100)
+refund = kaiten.instances.refund_ai_inference(
+    "acme-prod", "chat-credits", tx, credits="3.5", reason="duplicate call"
+)
+```
+
+- `vendor_cost` is commit-only: a `Decimal`, a decimal string or an int, never a float. It is
+  sent exactly as spelled and is part of the commit's identity, so a commit sent again must
+  carry the same string (`"0.01"` and `"0.010"` are two bodies). The SDK computes no price:
+  `ai.run(..., vendor_cost=lambda result: ...)` and the provider wrappers'
+  `vendor_cost=callback(request, usage, response)` take yours.
+- `refund_ai_inference` sends an `Idempotency-Key` — a fresh UUIDv7 unless you pass one — and
+  reuses it on its own retries; each `RefundAiInference.*` refusal raises its own error.
+- `warnings` is an open set of strings; `kaitencloud.ai.AI_WARNINGS` names the known ones. A
+  release (`ai.release`) of a transaction that never reserved answers `NO_RESERVATION` and
+  closes its id: a later reserve or commit raises `TransactionIdReusedError`.
+- Metering fails closed: an entitlement that is not an AI credit pool, a deployment without AI
+  credits (`AiUsageUnsupportedError`) or with them off (`AiUsageDisabledError`) raises before
+  the provider is called, on every call. A commit that still fails after its retries raises
+  `AiCommitFailedError` — with the call's `result` and the `arguments` to send again — unless
+  the meter or wrapper was given `on_commit_failure=`.
