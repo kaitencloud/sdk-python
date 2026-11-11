@@ -18,19 +18,30 @@ __all__ = [
     "APIResponseValidationError",
     "APIStatusError",
     "APITimeoutError",
+    "AiCommitFailedError",
+    "AiInferenceNotCommittedError",
+    "AiInferenceNotFoundError",
+    "AiPoolNotFoundError",
+    "AiPoolNotGrantedError",
+    "AiUsageDisabledError",
     "AiUsageUnsupportedError",
     "AuthenticationError",
     "BadRequestError",
     "ConflictError",
     "CredentialError",
+    "IdempotencyKeyReusedError",
     "InsufficientCreditsError",
     "InternalServerError",
+    "InvalidIdempotencyKeyError",
+    "InvalidRefundError",
     "KaitenError",
     "ModelNotAuthorizedError",
     "NotFoundError",
+    "NothingToRefundError",
     "PaginationError",
     "PermissionDeniedError",
     "RateLimitError",
+    "RefundExceedsRefundableError",
     "ServiceUnavailableError",
     "ThresholdExceededError",
     "TransactionIdReusedError",
@@ -181,8 +192,12 @@ class InsufficientCreditsError(ThresholdExceededError):
 class TransactionIdReusedError(ConflictError):
     """An AI usage transaction id was already used for another call.
 
-    The same id and phase arrived with another body, or a reservation was made on an id that is
-    already reserved or closed. A bug in the caller, never a transient failure: not retried.
+    The same id and phase arrived with another body -- a retried commit whose ``vendor_cost``
+    is spelled differently, ``"0.01"`` then ``"0.010"``, is another body -- or a reservation was
+    made on an id that is already reserved or closed. A release of a transaction that never
+    reserved (answered with the ``NO_RESERVATION`` warning) closes its id for good: a reserve or
+    commit sent under it afterwards lands here too. A bug in the caller, never a transient
+    failure: not retried.
     """
 
 
@@ -197,9 +212,102 @@ class UnknownModelError(UnprocessableEntityError):
 class AiUsageUnsupportedError(UnprocessableEntityError):
     """The API cannot take an AI usage report on this entitlement.
 
-    Either the deployment predates AI credits, or the entitlement is not an AI credit pool
-    aggregated by ``SUM``. The provider wrappers log it once and keep serving calls unreported.
+    Either the entitlement is not an AI credit pool aggregated by ``SUM`` -- a configuration
+    error -- or the deployment predates AI credits, which ``GET /ai/capabilities`` answering
+    404 proves. Never a reason to let a call through unmetered: the meters and the provider
+    wrappers raise it on every call, before the provider is called.
     """
+
+
+class AiUsageDisabledError(PermissionDeniedError):
+    """AI credits are turned off on this Kaiten deployment (``AIUsage.Disabled``).
+
+    Raised by every AI operation while the deployment's AI credits flag is off, before anything
+    is recorded. ``instances.get_ai_capabilities()`` answers ``enabled=False`` meanwhile.
+    """
+
+
+class AiCommitFailedError(KaitenError):
+    """A metered call ran, and its commit still failed after its retries.
+
+    The call already happened; the cause is the :attr:`__cause__`. Unless the commit's answer
+    was lost on the way back, nothing was charged, and the reservation will expire on its own.
+    Settle it by sending the same commit again, :attr:`arguments` unchanged, through
+    ``instances.commit_ai_usage(instance, entitlement, **arguments)``: an identical commit is
+    applied once, however many times it is sent. A cause that is a refusal -- a 4xx, such as
+    ``TransactionIdReusedError`` -- will be refused again: it is a bug to fix, not to retry.
+
+    :attr:`result` holds what the metered call returned, so a caller that prefers serving the
+    answer to failing the request can still do so. A meter given ``on_commit_failure`` hands
+    this error to it instead of raising it.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        instance: str,
+        entitlement: str,
+        transaction_id: str,
+        arguments: Mapping[str, Any],
+        result: Any = None,
+    ) -> None:
+        super().__init__(message)
+        self.instance = instance
+        self.entitlement = entitlement
+        self.transaction_id = transaction_id
+        self.arguments: dict[str, Any] = dict(arguments)
+        self.result = result
+
+
+class AiPoolNotFoundError(NotFoundError):
+    """No such instance, or the instance has no such AI credit pool (``*.ContextNotFound``)."""
+
+
+class AiInferenceNotFoundError(NotFoundError):
+    """The pool has no inference under this transaction id (``*.InferenceNotFound``)."""
+
+
+class AiInferenceNotCommittedError(ConflictError):
+    """Only a committed inference can be refunded: this one is reserved, released or expired."""
+
+
+class NothingToRefundError(ConflictError):
+    """The inference charged nothing, or was already refunded in full."""
+
+
+class RefundExceedsRefundableError(ConflictError):
+    """The refund asks for more credits than the inference has left to refund.
+
+    :attr:`refundable` is what is left, as the API reports it, when it does.
+    """
+
+    @property
+    def refundable(self) -> str | None:
+        """The credits still refundable on the inference, as a decimal string."""
+        for error in self.errors:
+            if error.value is not None:
+                return str(error.value)
+        return None
+
+
+class IdempotencyKeyReusedError(ConflictError):
+    """The idempotency key was already spent on another refund, or on another request body.
+
+    Send a new key for a new refund; resend the same key only with the same body.
+    """
+
+
+class AiPoolNotGrantedError(ConflictError):
+    """The instance no longer holds the AI credit pool the inference was charged to."""
+
+
+class InvalidRefundError(UnprocessableEntityError):
+    """The refund's amount or reason is refused (``*.InvalidAmount``, ``*.InvalidReason``)."""
+
+
+class InvalidIdempotencyKeyError(UnprocessableEntityError):
+    """The idempotency key is missing or malformed: 1 to 128 of letters, digits and ``._:-``."""
 
 
 class RateLimitError(APIStatusError):
@@ -252,31 +360,51 @@ def make_status_error(
     return error_class(_message(response, problem), response=response, problem=problem)
 
 
-# Only known capability/legacy validation responses mean AI usage is unsupported.
-# Unknown validation codes must remain caller errors, not enable unmetered fallback.
-_AI_UNSUPPORTED_CODES = frozenset({"", "InvalidValueType", "AiUsageUnsupportedEntitlement"})
+AI_DISABLED_CODE = "AIUsage.Disabled"
+"""The code every AI operation answers, with a 403, while AI credits are turned off."""
+
+# The typed error of an AI answer, by status and by the last segment of its code. Only codes
+# the API documents are here: an unknown code stays the plain status error, never a guess.
+_AI_ERRORS: Mapping[tuple[int, str], type[APIStatusError]] = {
+    (404, "ContextNotFound"): AiPoolNotFoundError,
+    (409, "ThresholdExceeded"): InsufficientCreditsError,
+    (409, "TransactionIdReused"): TransactionIdReusedError,
+    (422, "UnknownModel"): UnknownModelError,
+    (422, "ModelNotAuthorized"): ModelNotAuthorizedError,
+    (422, "AiUsageUnsupportedEntitlement"): AiUsageUnsupportedError,
+}
+
+# The refund's own codes, ``RefundAiInference.<reason>``.
+_REFUND_ERRORS: Mapping[tuple[int, str], type[APIStatusError]] = {
+    (404, "ContextNotFound"): AiPoolNotFoundError,
+    (404, "InferenceNotFound"): AiInferenceNotFoundError,
+    (409, "NotCommitted"): AiInferenceNotCommittedError,
+    (409, "NothingToRefund"): NothingToRefundError,
+    (409, "ExceedsRefundable"): RefundExceedsRefundableError,
+    (409, "IdempotencyKeyReused"): IdempotencyKeyReusedError,
+    (409, "PoolNotGranted"): AiPoolNotGrantedError,
+    (422, "IdempotencyKeyRequired"): InvalidIdempotencyKeyError,
+    (422, "InvalidIdempotencyKey"): InvalidIdempotencyKeyError,
+    (422, "InvalidAmount"): InvalidRefundError,
+    (422, "InvalidReason"): InvalidRefundError,
+}
 
 
 def make_ai_error(error: APIStatusError) -> APIStatusError:
-    """The typed error an AI usage report answered with ``error`` stands for.
+    """The typed error an AI operation answered with ``error`` stands for.
 
     The status alone does not say it: a 409 is a full pool or a reused transaction id, and a
-    422 is a refused model, a malformed body or a deployment without AI credits.
+    422 is a refused model, a malformed body or an entitlement that is not an AI credit pool.
+    A 403 ``AIUsage.Disabled`` is the deployment's AI credits being off. An unknown code is
+    returned as it is: it is never read as "AI credits are unsupported here".
     """
-    reason = (error.code or "").rsplit(".", 1)[-1]
-    target: type[APIStatusError] | None = None
-    if error.status_code == 409:
-        target = {
-            "ThresholdExceeded": InsufficientCreditsError,
-            "TransactionIdReused": TransactionIdReusedError,
-        }.get(reason)
-    elif error.status_code == 422:
-        target = {
-            "UnknownModel": UnknownModelError,
-            "ModelNotAuthorized": ModelNotAuthorizedError,
-        }.get(reason)
-        if target is None and reason in _AI_UNSUPPORTED_CODES:
-            target = AiUsageUnsupportedError
+    code = error.code or ""
+    if error.status_code == 403 and code == AI_DISABLED_CODE:
+        target: type[APIStatusError] | None = AiUsageDisabledError
+    else:
+        operation, _, reason = code.rpartition(".")
+        table = _REFUND_ERRORS if operation == "RefundAiInference" else _AI_ERRORS
+        target = table.get((error.status_code, reason))
     if target is None:
         return error
     return target(str(error), response=error.response, problem=error.problem)

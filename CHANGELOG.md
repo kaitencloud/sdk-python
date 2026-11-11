@@ -9,6 +9,18 @@ public API, a minor version adds to it, and a patch version fixes it.
 
 ### Added
 
+- Explainable AI charges (preview; requires a Kaiten release with explainable AI charges,
+  version to be set): `commit_ai_usage(..., vendor_cost=...)`, sent exactly as spelled;
+  `ai.rule` on report answers; inference rows with their pricing snapshot, license, warnings,
+  report sequence, vendor cost and refunds; history filters `authorized`, `model_slug`,
+  `model`, `request_type`; `instances.list_organization_ai_inferences()`;
+  `instances.refund_ai_inference()` under a generated, retried `Idempotency-Key`, with one
+  error class per refusal; `instances.get_ai_capabilities()`; `ai.release()`; the known
+  warnings in `ai.AI_WARNINGS`, `NO_RESERVATION` and `COUNTER_PRECISION_DEGRADED` included.
+- `vendor_cost=` and `on_commit_failure=` on `ai.run`, the meters, the OpenAI and Anthropic
+  drop-ins and `wrap_openai` / `wrap_anthropic`.
+- `AiUsageDisabledError` for 403 `AIUsage.Disabled`, and `AiCommitFailedError`.
+
 - Regenerated the AI credits contract, including write-only `ReportUsageValue`,
   typed usage outcomes/gauges and model/conversion-rule events. Original AI
   response bridge names now alias generated models.
@@ -28,11 +40,25 @@ public API, a minor version adds to it, and a patch version fixes it.
 
 ### Changed
 
+- AI metering fails closed. An entitlement that is not an AI credit pool, or a deployment
+  without AI credits, raises `AiUsageUnsupportedError` on every call instead of disabling
+  metering for the rest of the process; a deployment without AI credits is detected through
+  `GET /ai/capabilities`, not guessed from a 422.
+- A commit that fails after its retries raises `AiCommitFailedError` instead of being logged
+  and dropped, unless `on_commit_failure=` is given.
+- AI report answers are `ReportedEntitlementUsage`, the shape every usage report answers with.
+
 - Unreleased AI helpers, meters and provider wrappers select the AI credit entitlement
   with `entitlement=` rather than `pool=`; the old keyword is not accepted.
   Low-level instance methods still use `entitlement_slug`, and HTTP routes are unchanged.
 
 ### Fixed
+
+- A metered call whose task is cancelled, or interrupted, is committed (`CUSTOMER_ERROR`)
+  before the cancellation propagates, and an async commit completes even when its task is
+  cancelled.
+- A provider stream closed before its first event is settled `CUSTOMER_ERROR`, not released
+  as `NOT_SENT`: the request was sent.
 
 - `feature_flags.update` sends the flag's slug. Without it, Kaiten blanked the slug and the flag
   could no longer be reached.

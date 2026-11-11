@@ -97,6 +97,8 @@ ignore = [
     # Docstrings and contract descriptions run long; the formatter owns code width.
     "E501",
 ]
+# The contract's descriptions write their arithmetic with these, and the models keep them.
+allowed-confusables = ["×", "−"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["kaitencloud"]

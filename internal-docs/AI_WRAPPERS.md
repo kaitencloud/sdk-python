@@ -1,12 +1,14 @@
 # AI credit wrappers
 
-The server prices every call. The SDK sends only model, request type and usage;
-no prompts, responses or vendor prices are sent to Kaiten.
+The server prices every call. The SDK sends only model, request type and usage,
+and on a commit the vendor cost the caller supplies; no prompts or responses are
+sent to Kaiten, and the SDK never computes a price.
 
 AI pools are `NUMBER_AI_CREDIT` entitlements with numeric `SUM` usage. Grants
 and usage reads still use the `number` value shape; `ai_usage` is only the
-reserve/commit calculation input. Credit adjustments/refunds use numeric
-`report_usage(..., behavior="append")`, never `set`.
+reserve/commit calculation input. A charge is corrected with
+`instances.refund_ai_inference`, tied to the inference it corrects, never with a
+numeric `set`.
 
 Reserve and commit share `value.transactionId`; retries repeat the identical
 phase/body. The server rejects `Idempotency-Key` on AI reports, so these phases
@@ -16,6 +18,13 @@ numeric reports keep their configured headers. Decimal units accept integers, st
 rates and credit outcomes remain decimal strings. An omitted cache rate is
 unknown policy, not an explicit zero/free rate; leave it omitted unless a rate
 is known, and let the server determine pricing and warnings.
+
+`vendor_cost` (commit only, refused with `NOT_SENT`) is converted once per
+commit: a string is kept as written and a `Decimal` keeps its digits, trailing
+zeros included. The string is part of the commit's identity -- a retry must
+resend the same one, which the SDK's own retries do -- so callers persisting a
+commit for later must persist the string, not a float. `AiCommitFailedError.arguments`
+is that persisted commit.
 
 ## Provider clients
 
@@ -53,10 +62,31 @@ Unlisted methods/resources stay provider-owned, including raw/streaming HTTP
 response helpers, parsing helpers, batches, realtime and tool runners. They are
 not metered: use generic `kaitencloud.ai.run` when you need explicit accounting.
 
-A refused reserve raises its typed error before the provider is called. An
-unsupported server is logged once per meter and subsequent calls pass through
-unreported. Settlement is best effort under the original transaction ID; a
-failed commit is logged, never substituted for the provider result.
+A refused reserve raises its typed error before the provider is called, and so
+does a reserve Kaiten cannot take: an entitlement that is not an AI credit pool
+(`AiUsageUnsupportedError`), AI credits turned off (`AiUsageDisabledError`, 403
+`AIUsage.Disabled`), or a deployment that predates AI credits. The last one is
+told apart from a malformed body by `GET /ai/capabilities` answering 404, never
+guessed from a 422's code. Nothing is cached: every call reserves again, and no
+call ever runs unmetered.
+
+A commit that still fails after its retries raises `AiCommitFailedError`, which
+carries the provider result and the commit to resend (the same policy as
+sdk-go's `ErrAICommitFailed`). `on_commit_failure=` on the drop-ins, the
+`wrap_*` helpers, `Meter`/`AsyncMeter` and `ai.run` receives it instead, and the
+provider result is returned -- for products that would rather queue the
+settlement than fail the request. When the provider call itself failed, its
+error is raised and the failed commit goes to `on_commit_failure` or the log.
+
+`vendor_cost=callback(request, usage, response)` on the same entry points reports
+each call's vendor cost from the caller's own price table or the provider's
+response (`None` for a stream). A callback that raises is logged and the call is
+settled without it.
+
+Cancellation and interruption are settled too: a cancelled task or a
+`KeyboardInterrupt` during the provider call commits `CUSTOMER_ERROR` and
+re-raises. An async commit is shielded: a task cancelled while it is committing
+sees the cancellation at once, and the commit still completes.
 
 ### Streams
 
@@ -70,10 +100,12 @@ with `message_start` usage and overwrites cumulative fields from `message_delta`
 (never sums these snapshots). Its `messages.stream()` context-manager factory,
 `text_stream`, `until_done` and final-message helpers are preserved.
 
-Settlement occurs once on completion, iteration failure or close. An abandoned
-stream with received events reports `CUSTOMER_ERROR` and known usage; a stream
-closed before receiving anything reports `NOT_SENT`, following the V1 wrapper
-policy. Network/protocol failures report `PROVIDER_ERROR` unless the failure is
+Settlement occurs once on completion, iteration failure or close. A stream closed
+before it completed reports `CUSTOMER_ERROR` and known usage -- closed before its
+first event too: the stream exists only once the provider answered, so the
+request was sent, and `NOT_SENT` would release a call that may be billed by the
+vendor. Leaving a stream's context on an error settles it as that error, and the
+error is the one raised. Network/protocol failures report `PROVIDER_ERROR` unless the failure is
 proven to precede sending. Image partial frames are not additional images;
 completed images and actual returned image count supply units. Speech binary
 responses and transcription text formats may expose no usage; these settle

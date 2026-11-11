@@ -12,7 +12,12 @@ from collections.abc import Callable, Iterator
 from types import TracebackType
 from typing import Any
 
-from .._ai import AiRequest, request_status_of, ttl_from_timeout
+from .._ai import (
+    AiRequest,
+    ProviderVendorCostOf,
+    VendorCost,
+    ttl_from_timeout,
+)
 from .._provider_usage import ANTHROPIC_METHODS, OPENAI_METHODS, UsageSnapshot, get
 from ..types import AiRequestStatus
 from .ai import Meter
@@ -24,7 +29,14 @@ class Provider:
     """A provider-owned client/resource, with only its bounded usage methods intercepted."""
 
     def __init__(
-        self, client: Any, meter: Meter, provider: str, *, path: str = "", root: Any = None
+        self,
+        client: Any,
+        meter: Meter,
+        provider: str,
+        *,
+        path: str = "",
+        root: Any = None,
+        vendor_cost: ProviderVendorCostOf | None = None,
     ) -> None:
         self._client = client
         self._meter = meter
@@ -32,6 +44,7 @@ class Provider:
         self._path = path
         self._root = client if root is None else root
         self._methods = OPENAI_METHODS if provider == "openai" else ANTHROPIC_METHODS
+        self._vendor_cost = vendor_cost
 
     def __getattr__(self, name: str) -> Any:
         target = getattr(self._client, name)
@@ -39,7 +52,12 @@ class Provider:
         if not self._path and name in ("copy", "with_options"):
 
             def copy(*args: Any, **kwargs: Any) -> Provider:
-                return Provider(target(*args, **kwargs), self._meter, self._provider)
+                return Provider(
+                    target(*args, **kwargs),
+                    self._meter,
+                    self._provider,
+                    vendor_cost=self._vendor_cost,
+                )
 
             return copy
         if path in self._methods:
@@ -51,9 +69,8 @@ class Provider:
                 return manager
 
             def call(**kwargs: Any) -> Any:
-                transaction = self._reserve(path, kwargs)
-                if transaction is None:
-                    return target(**kwargs)
+                request = self._request(path, kwargs)
+                transaction = self._reserve(request)
                 if path == "chat.completions.create" and kwargs.get("stream"):
                     kwargs = {
                         **kwargs,
@@ -65,38 +82,63 @@ class Provider:
                 try:
                     result = target(**kwargs)
                 except BaseException as error:
-                    self._meter.commit(transaction, request_status=request_status_of(error))
+                    self._meter.settle_failure(transaction, error)
                     raise
                 snapshot = UsageSnapshot(self._provider, path)
                 if kwargs.get("stream"):
-                    return ProviderStream(result, self._meter, transaction, snapshot)
+                    return ProviderStream(result, self, request, transaction, snapshot)
                 try:
                     snapshot.result(result)
                 except Exception:
                     log.exception(
                         "Kaiten AI usage: provider usage extraction failed; settling without usage"
                     )
-                self._meter.commit(transaction, usage=snapshot.usage)
+                self._meter.commit(
+                    transaction,
+                    usage=snapshot.usage,
+                    vendor_cost=self.vendor_cost(request, snapshot.usage, result),
+                    result=result,
+                )
                 return result
 
             return call
         if any(method.startswith(path + ".") for method in self._methods):
-            return Provider(target, self._meter, self._provider, path=path, root=self._root)
+            return Provider(
+                target,
+                self._meter,
+                self._provider,
+                path=path,
+                root=self._root,
+                vendor_cost=self._vendor_cost,
+            )
         return target
 
-    def _reserve(self, path: str, kwargs: dict[str, Any]) -> str | None:
-        if self._meter.unsupported:
-            return None
+    def _request(self, path: str, kwargs: dict[str, Any]) -> AiRequest:
         model = kwargs.get("model")
         if not isinstance(model, str) or not model:
             raise ValueError("a metered provider call requires an explicit model")
-        request = AiRequest(self._provider, path, model, self._methods[path], kwargs)
+        return AiRequest(self._provider, path, model, self._methods[path], kwargs)
+
+    def _reserve(self, request: AiRequest) -> str:
         return self._meter.reserve(
-            model=model,
+            model=request.model,
             request_type=request.request_type,
             usage=self._meter.estimate(request),
-            ttl_seconds=ttl_from_timeout(kwargs.get("timeout", get(self._root, "timeout"))),
+            ttl_seconds=ttl_from_timeout(request.params.get("timeout", get(self._root, "timeout"))),
         )
+
+    def vendor_cost(self, request: AiRequest, usage: Any, result: Any) -> VendorCost | None:
+        """The call's vendor cost from the ``vendor_cost`` callback; ``None`` without one.
+
+        A callback that raises is logged, and the call is settled without a vendor cost.
+        """
+        if self._vendor_cost is None:
+            return None
+        try:
+            return self._vendor_cost(request, usage, result)
+        except Exception:
+            log.exception("Kaiten AI usage: the vendor cost callback failed; settling without it")
+            return None
 
     def __enter__(self) -> Provider:
         self._client.__enter__()
@@ -112,14 +154,26 @@ class Provider:
 
 
 class ProviderStream:
-    """Delegated stream with exactly one best-effort settlement on consumption/close."""
+    """Delegated stream, settled exactly once: when it ends, fails, or is closed.
+
+    The stream exists only once the provider answered, so the request was sent: a stream closed
+    before it completed -- before its first event, too -- is settled ``CUSTOMER_ERROR`` with
+    the usage seen so far, never released as ``NOT_SENT``.
+    """
 
     def __init__(
-        self, stream: Any, meter: Meter, transaction: str, snapshot: UsageSnapshot
+        self,
+        stream: Any,
+        provider: Provider,
+        request: AiRequest,
+        transaction: str,
+        snapshot: UsageSnapshot,
     ) -> None:
         self._stream = stream
         self._iterator = stream.__iter__()
-        self._meter = meter
+        self._provider = provider
+        self._meter = provider._meter
+        self._request = request
         self._transaction = transaction
         self._snapshot = snapshot
         self._settled = False
@@ -137,7 +191,9 @@ class ProviderStream:
             self._settle("PROVIDER_ERROR" if self._snapshot.failed else "SUCCESS")
             raise
         except BaseException as error:
-            self._settle(request_status_of(error))
+            if not self._settled:
+                self._settled = True
+                self._meter.settle_failure(self._transaction, error, usage=self._snapshot.usage)
             raise
         try:
             self._snapshot.event(event)
@@ -150,20 +206,18 @@ class ProviderStream:
     def _settle(self, status: AiRequestStatus) -> None:
         if not self._settled:
             self._settled = True
-            self._meter.commit(self._transaction, request_status=status, usage=self._snapshot.usage)
+            self._meter.commit(
+                self._transaction,
+                request_status=status,
+                usage=self._snapshot.usage,
+                vendor_cost=self._provider.vendor_cost(self._request, self._snapshot.usage, None),
+            )
 
     def close(self) -> None:
         try:
             self._stream.close()
         finally:
-            status: AiRequestStatus = (
-                "SUCCESS"
-                if self._snapshot.completed
-                else "CUSTOMER_ERROR"
-                if self._snapshot.received
-                else "NOT_SENT"
-            )
-            self._settle(status)
+            self._settle("SUCCESS" if self._snapshot.completed else "CUSTOMER_ERROR")
 
     def __enter__(self) -> ProviderStream:
         return self
@@ -174,7 +228,21 @@ class ProviderStream:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        if exc is None:
+            self.close()
+            return
+        # Leaving on an error: settle it as one, and let that error be the one raised.
+        try:
+            self._stream.close()
+        finally:
+            if not self._settled:
+                self._settled = True
+                self._meter.settle_failure(
+                    self._transaction,
+                    exc,
+                    usage=self._snapshot.usage,
+                    request_status="SUCCESS" if self._snapshot.completed else None,
+                )
 
     @property
     def text_stream(self) -> Iterator[str]:
@@ -220,18 +288,16 @@ class ProviderStreamManager:
         self._stream: ProviderStream | None = None
 
     def __enter__(self) -> Any:
-        transaction = self._provider._reserve(self._path, self._kwargs)
+        request = self._provider._request(self._path, self._kwargs)
+        transaction = self._provider._reserve(request)
         try:
             self._manager = self._target(**self._kwargs)
             stream = self._manager.__enter__()
         except BaseException as error:
-            if transaction is not None:
-                self._provider._meter.commit(transaction, request_status=request_status_of(error))
+            self._provider._meter.settle_failure(transaction, error)
             raise
-        if transaction is None:
-            return stream
         self._stream = ProviderStream(
-            stream, self._provider._meter, transaction, UsageSnapshot("anthropic", self._path)
+            stream, self._provider, request, transaction, UsageSnapshot("anthropic", self._path)
         )
         return self._stream
 
@@ -245,4 +311,4 @@ class ProviderStreamManager:
             return self._manager.__exit__(exc_type, exc, traceback)
         finally:
             if self._stream is not None:
-                self._stream.close()
+                self._stream.__exit__(exc_type, exc, traceback)

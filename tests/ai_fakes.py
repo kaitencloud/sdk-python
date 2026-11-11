@@ -24,6 +24,10 @@ USAGE = {
     "licenseSlug": "pro-v3",
     "value": {"type": "number", "value": 90},
     "limit": {"type": "number", "value": 100},
+    # What a ReportedEntitlementUsage carries since billing; AI answers leave them empty.
+    "source": "license",
+    "provenance": None,
+    "transactionId": None,
 }
 
 Answer = Callable[[httpx.Request], httpx.Response]
@@ -32,7 +36,8 @@ Answer = Callable[[httpx.Request], httpx.Response]
 def problem(status: int, code: str | None, detail: str = "refused") -> Answer:
     payload: dict[str, Any] = {"title": "Refused", "status": status, "detail": detail}
     if code is not None:
-        payload["code"] = f"ReportEntitlementUsageMetric.{code}"
+        # An operation's own codes are prefixed with it; a shared one, AIUsage.Disabled, is not.
+        payload["code"] = code if "." in code else f"ReportEntitlementUsageMetric.{code}"
     return lambda request: httpx.Response(status, json=payload)
 
 
@@ -71,8 +76,18 @@ class FakeKaiten:
 
     reports: list[Report] = field(default_factory=list)
     script: dict[str, list[Answer]] = field(default_factory=dict)
+    capabilities: dict[str, Any] | None = field(default_factory=lambda: {"enabled": True})
+    """What ``GET /ai/capabilities`` answers; ``None`` is a deployment without the route."""
+    probes: int = 0
+    warnings: list[str] = field(default_factory=list)
+    """Warnings every answer carries."""
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path == "/api/ai/capabilities":
+            self.probes += 1
+            if self.capabilities is None:
+                return httpx.Response(404, json={"title": "Not Found", "detail": "no route"})
+            return httpx.Response(200, json=self.capabilities)
         body = json.loads(request.content)
         value = body["value"]
         assert value["type"] == "ai_usage", value
@@ -89,7 +104,7 @@ class FakeKaiten:
             if value["phase"] == "reserve"
             else {"reserved": "6.6", "computed": "1.2", "charged": "1.2"},
             "remaining": "3.4",
-            "warnings": [],
+            "warnings": list(self.warnings),
         }
         return httpx.Response(200, json={**USAGE, "reserved": "6.6", "ai": outcome})
 

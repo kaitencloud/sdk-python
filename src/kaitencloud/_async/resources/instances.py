@@ -6,17 +6,31 @@ from __future__ import annotations
 import builtins
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeVar
+
+from pydantic import BaseModel
 
 from ..._ai import (
     AI_MAX_RETRIES,
     AI_RETRY_STATUSES,
+    VendorCost,
     ai_usage_body,
     check_transaction_id,
+    exact_decimal,
+    new_idempotency_key,
     new_transaction_id,
+    vendor_cost_string,
 )
 from ..._ai_models import AiEntitlementUsage
-from ..._exceptions import APIStatusError, ThresholdExceededError, make_ai_error
+from ..._exceptions import (
+    AiUsageDisabledError,
+    AiUsageUnsupportedError,
+    APIStatusError,
+    NotFoundError,
+    ThresholdExceededError,
+    UnprocessableEntityError,
+    make_ai_error,
+)
 from ..._utils import (
     api_path,
     compact,
@@ -27,22 +41,27 @@ from ..._utils import (
 )
 from ...types import (
     AiInferencePage,
+    AiInferenceRefund,
     AiInferenceStatus,
     AiRequestStatus,
     AiRequestType,
     AiReservations,
     AiUsageParam,
     AuditTrail,
+    Capabilities,
     EntitlementUsage,
     Instance,
     InstanceIntegration,
     InstanceStatus,
     IntegrationParam,
+    OrganizationAiInference,
     UsageBehavior,
 )
 from ._base import AsyncResource
 
 __all__ = ["AsyncInstances"]
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class AsyncInstances(AsyncResource):
@@ -306,8 +325,11 @@ class AsyncInstances(AsyncResource):
             InsufficientCreditsError: The estimate does not fit in what is left of the pool.
             UnknownModelError: The model is not in the catalogue.
             ModelNotAuthorizedError: The model is archived, or no rule prices it.
-            TransactionIdReusedError: The transaction id already served another call.
-            AiUsageUnsupportedError: The deployment or the entitlement cannot take AI usage.
+            TransactionIdReusedError: The transaction id already served another call, or was
+                released without a reservation.
+            AiUsageUnsupportedError: The entitlement is not an AI credit pool, or the
+                deployment predates AI credits.
+            AiUsageDisabledError: AI credits are turned off on this deployment.
 
         Retried up to three times on a network error and on a 500, 502, 503 or 504, under one
         transaction id and an identical phase/body: the API answers a repeat with the original.
@@ -337,6 +359,7 @@ class AsyncInstances(AsyncResource):
         model: str | None = None,
         request_type: AiRequestType | None = None,
         metadata: Mapping[str, Any] | None = None,
+        vendor_cost: VendorCost | None = None,
     ) -> AiEntitlementUsage:
         """Report what an AI call really consumed, and charge the AI credit pool for it.
 
@@ -351,19 +374,32 @@ class AsyncInstances(AsyncResource):
             transaction_id: The reservation's transaction id.
             request_status: ``"SUCCESS"`` (the default), ``"PROVIDER_ERROR"``,
                 ``"CUSTOMER_ERROR"``, or ``"NOT_SENT"`` when the provider was never reached:
-                the reservation is released and nothing is charged.
+                the reservation is released and nothing is charged. A release of a transaction
+                that never reserved is answered ``RELEASED`` with the ``NO_RESERVATION``
+                warning, and closes the transaction id: see :data:`kaitencloud.ai.AiWarning`.
             usage: What the call consumed, as the provider reported it.
             model: The model that ran, when it is not the one reserved.
             request_type: What the call produced, when it is not what was reserved.
             metadata: Free-form metadata, accepted and not stored.
+            vendor_cost: What the call cost at its vendor, in USD, as your own records or the
+                provider's response say: a ``Decimal``, a decimal string or an int, never a
+                float. Kaiten records it beside the cost its model catalogue computes; it
+                changes no charge. Commit only, and never with ``"NOT_SENT"``. Sent exactly
+                as spelled -- see :func:`kaitencloud.ai.vendor_cost_string` -- and part of
+                the commit's identity: send a commit again with the same string.
 
         Raises:
-            TransactionIdReusedError: The transaction was already committed with another body.
-            AiUsageUnsupportedError: The deployment or the entitlement cannot take AI usage.
+            TransactionIdReusedError: The transaction was already committed with another body,
+                or was released without a reservation.
+            AiUsageUnsupportedError: The entitlement is not an AI credit pool, or the
+                deployment predates AI credits.
+            AiUsageDisabledError: AI credits are turned off on this deployment.
 
-        Retried like :meth:`reserve_ai_usage`; a repeat of a commit that landed is answered
-        with the original, and charges nothing more.
+        Retried like :meth:`reserve_ai_usage`, with a byte-identical body; a repeat of a
+        commit that landed is answered with the original, and charges nothing more.
         """
+        if vendor_cost is not None and request_status == "NOT_SENT":
+            raise ValueError("a release (request_status='NOT_SENT') takes no vendor_cost")
         value = compact(
             {
                 "type": "ai_usage",
@@ -373,6 +409,7 @@ class AsyncInstances(AsyncResource):
                 "model": model,
                 "requestType": request_type,
                 "usage": ai_usage_body(usage) if usage is not None else None,
+                "vendorCost": vendor_cost_string(vendor_cost) if vendor_cost is not None else None,
             }
         )
         return await self._report_ai_usage(instance_slug, entitlement_slug, value, metadata)
@@ -400,9 +437,45 @@ class AsyncInstances(AsyncResource):
             )
         except APIStatusError as error:
             mapped = make_ai_error(error)
+            if mapped is error and isinstance(error, UnprocessableEntityError):
+                mapped = await self._diagnose(error)
             if mapped is error:
                 raise
             raise mapped from error
+
+    async def get_ai_capabilities(self) -> Capabilities:
+        """Whether this deployment takes AI usage: ``enabled`` is its AI credits flag.
+
+        Answered while the flag is off, too. A deployment that predates AI credits has no such
+        route: it answers 404, raised as ``NotFoundError``.
+        """
+        return await self._api.get("/ai/capabilities", Capabilities)
+
+    async def _diagnose(self, error: APIStatusError) -> APIStatusError:
+        """What a 422 with an unknown code means, asked of ``GET /ai/capabilities``.
+
+        A deployment that predates AI credits refuses an AI report as a malformed body, with no
+        code the SDK can read; only its missing capabilities route tells it from a genuinely
+        malformed report. Any doubt leaves ``error`` as it is -- raised either way.
+        """
+        try:
+            capabilities = await self.get_ai_capabilities()
+        except NotFoundError:
+            return AiUsageUnsupportedError(
+                f"{error} -- this Kaiten deployment predates AI credits "
+                "(GET /ai/capabilities answered 404)",
+                response=error.response,
+                problem=error.problem,
+            )
+        except Exception:
+            return error
+        if not capabilities.enabled:
+            return AiUsageDisabledError(
+                f"{error} -- AI credits are turned off on this Kaiten deployment",
+                response=error.response,
+                problem=error.problem,
+            )
+        return error
 
     async def get_integration(
         self, instance_slug: str, integration_name: str
@@ -479,9 +552,34 @@ class AsyncInstances(AsyncResource):
         transaction_id: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
+        authorized: bool | None = None,
+        model_slug: str | None = None,
+        model: str | None = None,
+        request_type: AiRequestType | None = None,
     ) -> AiInferencePage:
-        """One newest-first page; pass its next_cursor to fetch the next page."""
-        return await self._api.get(
+        """One newest-first page; pass its next_cursor to fetch the next page.
+
+        Each row says what was charged and why: the pricing rule in force (``pricing``), the
+        license, the warnings, the vendor cost and the refunds. A release of a transaction that
+        never reserved is hidden unless ``status="RELEASED"`` or ``transaction_id`` asks for it.
+        Readable after the instance lost the pool.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The AI credit pool.
+            from_: Start of the range, inclusive; 30 days before ``to`` by default.
+            to: End of the range, exclusive; now by default.
+            status: Only the inferences in this state.
+            transaction_id: Only this transaction.
+            cursor: The previous page's ``next_cursor``.
+            limit: Rows per page, 50 by default and at most 500.
+            authorized: Only the calls a rule priced (``True``) or the ones none did
+                (``False``); an open reservation matches neither.
+            model_slug: Only the calls resolved to this catalogue model.
+            model: Only the calls that named the model exactly so.
+            request_type: Only the calls of this type.
+        """
+        return await self._read_ai(
             api_path(
                 "instances", instance_slug, "entitlements", entitlement_slug, "usage", "inferences"
             ),
@@ -493,14 +591,165 @@ class AsyncInstances(AsyncResource):
                 "transactionId": transaction_id,
                 "cursor": cursor,
                 "limit": limit,
+                "authorized": authorized,
+                "modelSlug": model_slug,
+                "model": model,
+                "requestType": request_type,
             },
         )
+
+    async def list_organization_ai_inferences(
+        self,
+        *,
+        from_: datetime | None = None,
+        to: datetime | None = None,
+        instance_slug: str | None = None,
+        entitlement_slug: str | None = None,
+        status: AiInferenceStatus | None = None,
+        transaction_id: str | None = None,
+        authorized: bool | None = None,
+        model_slug: str | None = None,
+        model: str | None = None,
+        request_type: AiRequestType | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[OrganizationAiInference]:
+        """Return the AI inferences of every instance and pool of the organization, newest first.
+
+        The rows of :meth:`list_ai_inferences`, each naming its ``instance_slug`` and
+        ``entitlement_slug``, under the same filters. An unknown slug matches nothing: the
+        answer is empty, not a ``NotFoundError``.
+
+        Args:
+            from_: Start of the range, inclusive; 30 days before ``to`` by default.
+            to: End of the range, exclusive; now by default.
+            instance_slug: Only this instance's inferences.
+            entitlement_slug: Only this pool's inferences.
+            status: Only the inferences in this state.
+            transaction_id: Only this transaction.
+            authorized: See :meth:`list_ai_inferences`.
+            model_slug: Only the calls resolved to this catalogue model.
+            model: Only the calls that named the model exactly so.
+            request_type: Only the calls of this type.
+            limit: The most inferences to return. Every page is walked when omitted.
+        """
+        if limit is not None and limit < 1:
+            raise ValueError(f"limit must be at least 1, got {limit}")
+        try:
+            return await self._api.list_all(
+                "/usage/inferences",
+                OrganizationAiInference,
+                params={
+                    "from": optional_datetime(from_),
+                    "to": optional_datetime(to),
+                    "instanceSlug": instance_slug,
+                    "entitlementSlug": entitlement_slug,
+                    "status": status,
+                    "transactionId": transaction_id,
+                    "authorized": authorized,
+                    "modelSlug": model_slug,
+                    "model": model,
+                    "requestType": request_type,
+                },
+                limit=limit,
+            )
+        except APIStatusError as error:
+            mapped = make_ai_error(error)
+            if mapped is error:
+                raise
+            raise mapped from error
+
+    async def refund_ai_inference(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        transaction_id: str,
+        *,
+        credits: VendorCost | None = None,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> AiInferenceRefund:
+        """Give back credits a committed inference charged, and return the refund.
+
+        The refund is a report of its own, tied to the charge it corrects: it lands in the
+        usage window open now, and the inference's ``credits.charged`` does not change -- its
+        ``refunds`` and ``credits.refunded`` grow. What is left to refund is charged minus
+        refunded.
+
+        Args:
+            instance_slug: The instance the inference was charged to.
+            entitlement_slug: Its AI credit pool.
+            transaction_id: The inference's transaction id.
+            credits: How many credits to give back, as a ``Decimal``, a decimal string or an
+                int (up to 6 decimal places); everything left when omitted.
+            reason: Why, in at most 500 characters, kept with the refund.
+            idempotency_key: Sent as ``Idempotency-Key``. A fresh UUIDv7 when omitted, reused
+                on the SDK's own retries; pass your own to resend the same refund later, with
+                the same body.
+
+        Raises:
+            AiPoolNotFoundError: No such instance, or it has no such pool.
+            AiInferenceNotFoundError: The pool has no inference under ``transaction_id``.
+            AiInferenceNotCommittedError: The inference is reserved, released or expired.
+            NothingToRefundError: It charged nothing, or was refunded in full.
+            RefundExceedsRefundableError: ``credits`` is above what is left; its
+                ``refundable`` says what is.
+            IdempotencyKeyReusedError: The key was spent on another refund or body.
+            AiPoolNotGrantedError: The instance no longer holds the pool.
+            InvalidRefundError: ``credits`` or ``reason`` is refused.
+            AiUsageDisabledError: AI credits are turned off on this deployment.
+
+        Retried on a network error and on a 5xx, under the same key: the API answers a repeat
+        with the original refund, and gives nothing back twice.
+        """
+        key = check_transaction_id(idempotency_key or new_idempotency_key())
+        body = compact(
+            {
+                "credits": exact_decimal(credits, name="credits", decimals=6)
+                if credits is not None
+                else None,
+                "reason": reason,
+            }
+        )
+        try:
+            return await self._api.send(
+                "POST",
+                api_path(
+                    "instances",
+                    instance_slug,
+                    "entitlements",
+                    entitlement_slug,
+                    "usage",
+                    "inferences",
+                    check_transaction_id(transaction_id),
+                    "refund",
+                ),
+                AiInferenceRefund,
+                body=body,
+                idempotent=True,
+                headers={"Idempotency-Key": key},
+            )
+        except APIStatusError as error:
+            mapped = make_ai_error(error)
+            if mapped is error:
+                raise
+            raise mapped from error
+
+    async def _read_ai(
+        self, path: str, model: type[ModelT], *, params: Mapping[str, Any] | None = None
+    ) -> ModelT:
+        try:
+            return await self._api.get(path, model, params=params)
+        except APIStatusError as error:
+            mapped = make_ai_error(error)
+            if mapped is error:
+                raise
+            raise mapped from error
 
     async def list_ai_reservations(
         self, instance_slug: str, entitlement_slug: str
     ) -> AiReservations:
         """The pool's open, unexpired reservations."""
-        return await self._api.get(
+        return await self._read_ai(
             api_path(
                 "instances",
                 instance_slug,

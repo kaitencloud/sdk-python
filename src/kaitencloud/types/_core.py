@@ -14,27 +14,55 @@ from pydantic import Field
 from .._models import KaitenModel
 
 __all__ = [
+    "ActorKind",
+    "Addon",
+    "AddonDelivered",
+    "AddonEntitlement",
+    "AddonGrantUpdateDelivered",
+    "AddonLifecycleState",
+    "AddonPriceUpdateDelivered",
+    "AddonUpdateDelivered",
     "AggregationMethod",
     "AiChargeOnError",
     "AiCredits",
     "AiInference",
     "AiInferencePage",
+    "AiInferencePricing",
+    "AiInferenceRates",
+    "AiInferenceRefund",
     "AiInferenceStatus",
     "AiRequestStatus",
     "AiRequestType",
     "AiReservations",
+    "AiRuleSpecificity",
     "AiUnitType",
     "AiUsage",
     "AiUsageOutcome",
     "AiUsageOutcomeStatus",
     "AiUsagePhase",
+    "AiUsageRule",
     "AiUsageValue",
+    "AiVendorCost",
+    "AuditActor",
     "AuditTrail",
     "BasicTargeting",
     "BasicVariant",
+    "BillingModel",
+    "BillingPeriod",
+    "BillingProviderKind",
+    "BillingStartedDelivered",
+    "BillingTiming",
     "BooleanEntitlementValue",
+    "CancellationChangeDelivered",
+    "CancellationDelivered",
+    "CancellationMode",
+    "Capabilities",
+    "CheckoutSessionEventStatus",
+    "CollectionMethod",
     "Component",
+    "ComponentDelivered",
     "ConfigEntitlementValue",
+    "ConnectionDelivered",
     "Connector",
     "ConnectorActivation",
     "ConnectorSettings",
@@ -42,29 +70,62 @@ __all__ = [
     "ConnectorState",
     "ConversionRates",
     "ConversionRule",
+    "ConversionRuleDelivered",
     "ConversionRuleStatus",
     "ConversionRuleUpdated",
     "Customer",
     "CustomerCreationRejected",
+    "CustomerEventDelivered",
     "CustomerIntegration",
     "CustomerIntegrationResource",
     "DefaultVariant",
+    "DeletedAddonDelivered",
     "Deployment",
     "DeploymentZone",
+    "DeploymentZoneDelivered",
+    "DiscountAllocation",
+    "DiscountAppliesTo",
+    "DiscountDifference",
+    "DiscountType",
+    "DueDateDifference",
     "Entitlement",
+    "EntitlementDelivered",
     "EntitlementGroup",
+    "EntitlementGroupDelivered",
     "EntitlementGroupSummary",
     "EntitlementGroupUsage",
+    "EntitlementSource",
     "EntitlementType",
     "EntitlementUsage",
+    "EntitlementUsageDelivered",
     "EntitlementValue",
     "ErrorDetail",
     "EventHeaders",
+    "EventVia",
+    "ExceptionEventDelivered",
+    "ExceptionKind",
+    "ExhaustedEventDelivered",
+    "ExpiredEventDelivered",
+    "ExtraDiscount",
     "FeatureFlag",
+    "FeatureFlagDelivered",
     "FeatureFlagEvaluated",
     "FeatureFlagType",
+    "FlagGrant",
+    "Grant",
+    "GrantModifier",
+    "HandoffAcknowledgementDelivered",
+    "HandoffStatus",
+    "HeldInvoiceDelivered",
+    "HeldPair",
+    "HoldDetail",
+    "IncreaseBilling",
     "Instance",
     "InstanceAIModelUsageUnauthorized",
+    "InstanceAddon",
+    "InstanceAddonUpdateDelivered",
+    "InstanceBilling",
+    "InstanceDelivered",
     "InstanceEntitlementCapExceeded",
     "InstanceEntitlementUsagePeriodRolledOver",
     "InstanceEntitlementUsageReportAccepted",
@@ -75,29 +136,89 @@ __all__ = [
     "InstanceLifecycleStageChanged",
     "InstanceStatus",
     "InstanceStatusChanged",
+    "InstanceUpdateDelivered",
+    "InvoiceHoldReason",
+    "InvoiceKind",
+    "InvoiceLine",
+    "InvoiceLineDiscount",
+    "InvoiceLineLedger",
+    "InvoiceLineMetering",
+    "InvoiceLineOverage",
+    "InvoiceLineProvider",
+    "InvoiceLineTrueUp",
+    "InvoiceLineType",
+    "InvoiceStatus",
+    "InvoiceSummary",
+    "IssuedInvoiceDelivered",
     "License",
+    "LicenseDelivered",
     "LicenseEntitlement",
+    "LicenseEntitlementDelivered",
     "LicenseEntitlementType",
     "LicenseFamilyView",
+    "LicenseFamilyViewDelivered",
     "LicenseLifecycleState",
+    "LicensePriceEventDelivered",
+    "LicensePriceUpdatedEventDelivered",
     "LicenseType",
+    "LineDifference",
     "ManifestEnvelope",
     "ManifestFlag",
     "MetadataField",
+    "MetadataFieldDelivered",
     "MetadataFieldImpact",
     "MetadataFieldImpactSample",
     "MetadataFieldReordered",
     "MetadataResourceType",
+    "MinimumAmount",
+    "MismatchedInvoiceDelivered",
     "Model",
+    "ModelDelivered",
     "ModelModality",
     "ModelStatus",
     "ModelUpdated",
     "NumberEntitlementValue",
+    "OrganizationAiInference",
+    "OrganizationAiInferencePage",
+    "OverageLimit",
+    "OverrideBehavior",
+    "PaidInvoiceDelivered",
+    "PaymentFailedInvoiceDelivered",
+    "PaymentMethodAttachedDelivered",
+    "PaymentMethodDetachedDelivered",
+    "PaymentMethodExpiringDelivered",
+    "PaymentSource",
+    "PeriodRolloverReason",
     "PlainToken",
+    "PlanChangeDelivered",
+    "PlanChangeScheduleDelivered",
+    "Price",
+    "PriceMeter",
+    "PriceStatus",
+    "PricingType",
     "Problem",
+    "Provenance",
+    "ProvenanceAddon",
+    "ProvenanceBoost",
+    "ProvenanceException",
+    "ProvenanceLicense",
+    "ProvenanceNumber",
+    "ProviderChangeDelivered",
+    "ProviderLineLimit",
+    "PublishableKeyEventDelivered",
+    "PushFailedInvoiceDelivered",
+    "PushedInvoiceDelivered",
+    "Reconciliation",
+    "Redemption",
+    "RedemptionDelivered",
+    "RedemptionRules",
+    "RedemptionStatus",
     "Release",
+    "ReleaseDelivered",
+    "ReleasedInvoiceDelivered",
     "ReportEntitlementUsageBody",
     "ReportUsageValue",
+    "ReportedEntitlementUsage",
     "ResetAnchor",
     "ResetPeriod",
     "RolloutDateTargeting",
@@ -105,8 +226,14 @@ __all__ = [
     "RolloutPercentageTargeting",
     "RolloutPercentageVariant",
     "RolloutStep",
+    "ScheduledChange",
     "Scope",
     "ServiceAccount",
+    "SessionEventDelivered",
+    "StatusChangeDelivered",
+    "SubscriptionStatus",
+    "SubscriptionStatusChangeReason",
+    "SyncFailureDelivered",
     "SystemTokenIssuance",
     "Targeting",
     "TargetingContext",
@@ -117,13 +244,35 @@ __all__ = [
     "TargetingRuleVerdict",
     "Targetings",
     "Token",
+    "TotalsDifference",
+    "TrialCharge",
+    "TrialCustomer",
+    "TrialEndWithoutPaymentMethod",
+    "TrialInstance",
+    "TrialPaymentMethod",
+    "TrialWillEndDelivered",
+    "UncollectibleInvoiceDelivered",
     "UsageBehavior",
     "UsageReportStatus",
     "User",
     "Variant",
     "VendorCosts",
+    "VoidedInvoiceDelivered",
+    "Voucher",
+    "VoucherDelivered",
+    "VoucherDuration",
+    "VoucherStatus",
+    "VoucherType",
 ]
 
+
+ActorKind = Literal["USER", "SERVICE", "SYSTEM"]
+"""Who acted: a person, a service account, or Kaiten itself."""
+
+AddonLifecycleState = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
+"""Whether an add-on version may be sold: ``DRAFT`` before it goes on sale, ``PUBLISHED`` while
+it is on sale, ``ARCHIVED`` once it has been withdrawn.
+"""
 
 AggregationMethod = Literal["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "LATEST"]
 """How each reported usage value folds into an entitlement's stored total."""
@@ -136,24 +285,103 @@ AiRequestStatus = Literal["SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SE
 
 AiRequestType = Literal["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
 
+AiRuleSpecificity = Literal["EXACT_TYPED", "EXACT_ALL", "ANY_TYPED", "ANY_ALL"]
+
 AiUnitType = Literal["image", "second", "frame"]
 
 AiUsageOutcomeStatus = Literal["RESERVED", "COMMITTED", "RELEASED"]
 
 AiUsagePhase = Literal["reserve", "commit"]
 
+BillingModel = Literal["FLAT_FEE", "USAGE_BASED", "OVERAGE"]
+"""How a price bills: ``FLAT_FEE`` per period, ``USAGE_BASED`` per sale unit of usage,
+``OVERAGE`` per sale unit above the license's limit.
+"""
+
+BillingPeriod = Literal["MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"]
+"""How often a subscription bills its flat fees."""
+
+BillingProviderKind = Literal["NOOP", "STRIPE"]
+"""Who issues and collects an invoice: ``NOOP``, the organization itself through the handoff
+queue, or ``STRIPE``.
+"""
+
+BillingTiming = Literal["ADVANCE", "ARREARS"]
+"""When a price bills: in ``ADVANCE`` of its period, or in ``ARREARS`` after it."""
+
+CancellationMode = Literal["AT_PERIOD_END", "IMMEDIATE"]
+"""When a cancellation takes effect: at the end of the period paid for, or now."""
+
+CheckoutSessionEventStatus = Literal["OPEN", "COMPLETED", "ABANDONED", "EXPIRED"]
+"""The status of an anonymous checkout session, as its events report it."""
+
+CollectionMethod = Literal["SEND_INVOICE", "CHARGE_AUTOMATICALLY"]
+"""How an invoice is collected: ``SEND_INVOICE`` sends it for payment, ``CHARGE_AUTOMATICALLY``
+charges the customer's payment method.
+"""
+
 ConversionRuleStatus = Literal["ACTIVE", "ARCHIVED"]
+
+DiscountAppliesTo = Literal["LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"]
+"""What a price voucher discounts."""
+
+DiscountType = Literal["PERCENTAGE", "FIXED_AMOUNT"]
+"""How a discount is expressed: a percentage, or a fixed amount in minor units."""
+
+EntitlementSource = Literal["license", "addon", "exception"]
+"""Where an instance's entitlement comes from: its ``license``, an ``addon``, or an
+``exception`` alone.
+"""
 
 EntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"]
 """The value type of an entitlement in the catalog."""
 
+EventVia = Literal["customer_session", "checkout_session"]
+"""What wrote the change an event reports, when it was not an organization credential: a
+customer session, or an anonymous checkout.
+"""
+
+ExceptionKind = Literal["SET", "ADD", "UNLIMITED"]
+"""How an entitlement exception overrides a value: ``SET`` it, ``ADD`` to it, or lift it
+(``UNLIMITED``).
+"""
+
 FeatureFlagType = Literal["boolean", "string", "number", "object"]
 """The value type of a feature flag's variants."""
+
+GrantModifier = Literal["SET", "ADD", "MULTIPLY", "UNLIMITED"]
+"""How a voucher grant changes an entitlement: ``SET``, ``ADD``, ``MULTIPLY`` or ``UNLIMITED``."""
+
+HandoffStatus = Literal["NOT_REQUIRED", "PENDING", "ACKNOWLEDGED"]
+"""Where an invoice stands in the accounting handoff."""
+
+IncreaseBilling = Literal["TRUE_UP", "NEXT_BOUNDARY"]
+"""How a mid-period increase of an add-on billed in advance is billed: a ``TRUE_UP`` line, or
+from the ``NEXT_BOUNDARY``.
+"""
 
 InstanceStatus = Literal["HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"]
 """The operational status of an instance."""
 
-LicenseEntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG"]
+InvoiceHoldReason = Literal[
+    "LEDGER_SEQUENCE_GAP", "LEDGER_CHAIN_BREAK", "LEDGER_COUNTER_MISMATCH", "PROVIDER_ITEM_LIMIT"
+]
+"""Why an invoice is held as a draft."""
+
+InvoiceKind = Literal["ACTIVATION", "RENEWAL", "FINAL"]
+"""What an invoice bills: a subscription's ``ACTIVATION``, a ``RENEWAL``, or its ``FINAL``
+period.
+"""
+
+InvoiceLineType = Literal["BASE", "ADDON", "USAGE", "OVERAGE", "DISCOUNT"]
+"""What an invoice line bills."""
+
+InvoiceStatus = Literal[
+    "DRAFT", "PUSHED", "PUSH_FAILED", "MANUAL", "PAID", "PAYMENT_FAILED", "UNCOLLECTIBLE", "VOID"
+]
+"""Where an invoice stands, from ``DRAFT`` to ``PAID``, ``UNCOLLECTIBLE`` or ``VOID``."""
+
+LicenseEntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"]
 """The value type of an entitlement granted by a license."""
 
 LicenseLifecycleState = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
@@ -171,14 +399,37 @@ ModelModality = Literal["TEXT", "IMAGE", "AUDIO", "VIDEO", "EMBEDDING", "MULTIMO
 
 ModelStatus = Literal["ACTIVE", "DEPRECATED", "ARCHIVED"]
 
-ResetAnchor = Literal["CALENDAR", "LICENSE_START"]
+OverrideBehavior = Literal["ADD", "OVERRIDE", "MAX"]
+"""How an add-on's number grant combines with the license's: ``ADD``, ``OVERRIDE`` or ``MAX``."""
+
+PaymentSource = Literal["MARK_PAID", "PROVIDER", "ZERO_TOTAL"]
+"""What recorded an invoice as paid."""
+
+PeriodRolloverReason = Literal["PERIOD_ENDED", "ANCHOR_CHANGED"]
+"""Why a usage window closed: its period ended, or its anchor changed."""
+
+PriceStatus = Literal["ACTIVE", "DEPRECATED"]
+"""Whether a price is ``ACTIVE``, or ``DEPRECATED``: still billing the subscriptions on it, and
+no new one.
+"""
+
+PricingType = Literal["FREE", "PAID", "CUSTOM"]
+"""How a version is sold: ``FREE`` or ``PAID`` self-serve, or ``CUSTOM``, through a conversation."""
+
+RedemptionStatus = Literal["ACTIVE", "EXPIRED", "REVOKED"]
+"""Where a voucher redemption stands."""
+
+ResetAnchor = Literal["CALENDAR", "LICENSE_START", "BILLING_PERIOD"]
 """What a periodic usage window is aligned on."""
 
 ResetPeriod = Literal["HOUR", "DAY", "WEEK", "MONTH", "YEAR"]
 """How often a periodic entitlement's usage resets."""
 
 Scope = Literal[
+    "read:addons",
+    "read:billing",
     "read:components",
+    "read:customer_sessions",
     "read:customers",
     "read:deployment_zones",
     "read:entitlements",
@@ -189,10 +440,18 @@ Scope = Literal[
     "read:models",
     "read:notifications",
     "read:organizations",
+    "read:profile",
+    "read:publishable_keys",
     "read:releases",
     "read:tokens",
+    "read:users",
+    "read:voucher_redemptions",
+    "read:vouchers",
     "read:webhooks",
+    "write:addons",
+    "write:billing",
     "write:components",
+    "write:customer_sessions",
     "write:customers",
     "write:deployment_zones",
     "write:entitlements",
@@ -203,16 +462,34 @@ Scope = Literal[
     "write:models",
     "write:notifications",
     "write:organizations",
+    "write:profile",
+    "write:publishable_keys",
     "write:releases",
     "write:tokens",
+    "write:users",
+    "write:voucher_redemptions",
+    "write:vouchers",
     "write:webhooks",
 ]
 """A permission an organization credential can carry, ``read:<resource>`` or
 ``write:<resource>``; ``write`` implies ``read`` on the same resource.
 """
 
+SubscriptionStatus = Literal["INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"]
+"""Where a subscription stands."""
+
+SubscriptionStatusChangeReason = Literal[
+    "TRIAL_ENDED", "INVOICE_OVERDUE", "PAYMENT_FAILED", "SETTLED"
+]
+"""Why a subscription's status changed."""
+
 TargetingFactType = Literal["string", "number", "boolean", "object", "map", "dyn"]
 """The shape of a fact a targeting rule can read."""
+
+TrialEndWithoutPaymentMethod = Literal["CANCEL", "CONVERT"]
+"""What a trial charged automatically becomes at its end without a payment method: ``CANCEL``
+or ``CONVERT``.
+"""
 
 UsageBehavior = Literal["append", "set"]
 """How a usage report applies: ``append`` folds the value in, ``set`` overwrites it."""
@@ -220,11 +497,85 @@ UsageBehavior = Literal["append", "set"]
 UsageReportStatus = Literal["ACCEPTED", "REJECTED"]
 """Whether a usage report was persisted."""
 
+VoucherDuration = Literal["ONE_TIME", "REPEATING", "FOREVER"]
+"""How long a price voucher's discount lasts."""
+
+VoucherStatus = Literal["DRAFT", "ACTIVE", "EXPIRED", "EXHAUSTED", "ARCHIVED"]
+"""Where a voucher stands."""
+
+VoucherType = Literal["PRICE", "ENTITLEMENT_BOOST", "FLAG_GRANT", "COMPOSITE"]
+"""What a voucher gives: a price discount, an entitlement boost, flag grants, or several."""
+
+
+class Addon(KaitenModel):
+    created_at: datetime = Field(alias="createdAt")
+
+    description: str
+
+    family_slug: str = Field(alias="familySlug")
+    """The family the version belongs to"""
+
+    id: str
+
+    increase_billing: IncreaseBilling | str = Field(alias="increaseBilling")
+    """The family's: how a mid-period increase or attachment of an ADVANCE add-on is billed.
+    TRUE_UP adds a true-up line for the elapsed period at the next renewal; NEXT_BOUNDARY
+    bills from the next boundary only
+    """
+
+    is_default: bool = Field(alias="isDefault")
+    """The version the family resolves to. Only a PUBLISHED version."""
+
+    lifecycle_state: AddonLifecycleState | str = Field(alias="lifecycleState")
+    """A DRAFT can be attached to try it; an ARCHIVED version stays on the instances holding it
+    but cannot be attached again.
+    """
+
+    max_quantity: int | None = Field(alias="maxQuantity")
+    """The largest quantity an instance can hold; unbounded when null"""
+
+    name: str
+
+    pricing_type: PricingType | str = Field(alias="pricingType")
+
+    slug: str
+    """The version's slug, unique in the organization"""
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    version: int
+    """The version number in its family, assigned on create"""
+
+    version_name: str = Field(alias="versionName")
+
+
+class AddonEntitlement(KaitenModel):
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    entitlement_type: EntitlementType | str = Field(alias="entitlementType")
+
+    id: str
+
+    limit_cap_exceeded_overage_percent: int | None = Field(alias="limitCapExceededOveragePercent")
+    """The overage the add-on allows; null inherits the licence grant's"""
+
+    override_behavior: OverrideBehavior | str = Field(alias="overrideBehavior")
+    """How a number grant combines with the licence's: ADD sums value × quantity, OVERRIDE
+    replaces it with the latest attached add-on's, MAX keeps the larger. A boolean always
+    ORs, a config always overrides.
+    """
+
+    value: dict[str, Any]
+    """{type, value}, shaped like a licence grant. A number counts once per unit of quantity."""
+
 
 class AiCredits(KaitenModel):
     charged: str | None = None
 
     computed: str | None = None
+
+    refunded: str | None = None
+    """The sum of the operation's refunds. Absent when it has none, and on a report's own answer."""
 
     reserved: str | None = None
 
@@ -242,9 +593,26 @@ class AiInference(KaitenModel):
 
     expires_at: datetime | None = Field(default=None, alias="expiresAt")
 
+    license_id: str | None = Field(default=None, alias="licenseId")
+    """The licence whose conversion rules were considered."""
+
+    license_slug: str | None = Field(default=None, alias="licenseSlug")
+    """Absent once the licence is deleted."""
+
     model: str
 
     model_slug: str | None = Field(default=None, alias="modelSlug")
+
+    pricing: AiInferencePricing | None = None
+    """The rule snapshot that priced the operation. Absent when no rule applied, and on
+    operations recorded before snapshots existed.
+    """
+
+    refunds: list[AiInferenceRefund] = Field(default_factory=list, alias="refunds")
+    """The refunds of the operation's charge, oldest first. Their sum is credits.refunded."""
+
+    report_seq: int | None = Field(default=None, alias="reportSeq")
+    """The pool's report counter when the operation was counted: the link to the usage journal."""
 
     reported_at: datetime = Field(alias="reportedAt")
 
@@ -262,6 +630,11 @@ class AiInference(KaitenModel):
 
     value_before: float | None = Field(default=None, alias="valueBefore")
 
+    vendor_cost: AiVendorCost | None = Field(default=None, alias="vendorCost")
+
+    warnings: list[str] = Field(default_factory=list, alias="warnings")
+    """The warnings of the phase that last wrote the operation."""
+
     window_start: datetime | None = Field(default=None, alias="windowStart")
 
 
@@ -271,6 +644,60 @@ class AiInferencePage(KaitenModel):
     items: list[AiInference] | None
 
     next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class AiInferencePricing(KaitenModel):
+    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
+
+    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
+
+    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
+
+    rates: AiInferenceRates
+
+    rule_id: str = Field(alias="ruleId")
+
+    specificity: AiRuleSpecificity | str
+    """How the rule matched: its own model and request type, its own model for every request
+    type, any model for its request type, or any model and request type.
+    """
+
+
+class AiInferenceRates(KaitenModel):
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_second: str | None = Field(default=None, alias="perSecond")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
+
+
+class AiInferenceRefund(KaitenModel):
+    created_at: datetime = Field(alias="createdAt")
+    """The instant the refund's report was dated by."""
+
+    created_by: User = Field(alias="createdBy")
+    """Who refunded; a service account is a user."""
+
+    credits: str
+    """Credits given back, a positive decimal."""
+
+    id: str
+
+    reason: str | None = None
+    """Why, as the caller wrote it."""
+
+    report_seq: int = Field(alias="reportSeq")
+    """The pool's report counter of the negative report that moved the counter: the link to the
+    usage journal.
+    """
 
 
 class AiReservations(KaitenModel):
@@ -304,6 +731,11 @@ class AiUsageOutcome(KaitenModel):
 
     remaining: str | None
 
+    rule: AiUsageRule | None = None
+    """The conversion rule that priced this phase. Absent when no rule applied, and on the
+    replay of a phase answered before the member existed.
+    """
+
     status: AiUsageOutcomeStatus | str
 
     transaction_id: str = Field(alias="transactionId")
@@ -311,26 +743,78 @@ class AiUsageOutcome(KaitenModel):
     warnings: list[str]
 
 
+class AiUsageRule(KaitenModel):
+    id: str
+
+    specificity: AiRuleSpecificity | str
+    """How the rule matched: its own model and request type, its own model for every request
+    type, any model for its request type, or any model and request type.
+    """
+
+
 class AiUsageValue(KaitenModel):
     model: str | None = None
 
     phase: AiUsagePhase | str
+    """Reserve estimates and holds credits before a provider request; commit calculates actual
+    credits or releases an unsent request. Reservations do not lock the calculation rates.
+    """
 
     request_status: AiRequestStatus | str | None = Field(default=None, alias="requestStatus")
 
     request_type: AiRequestType | str | None = Field(default=None, alias="requestType")
 
     transaction_id: str | None = Field(default=None, alias="transactionId")
+    """Required call identity, scoped to the instance and entitlement. Use the same identity
+    for reserve and commit, and the identical phase/body for a retry. AI reports use this
+    identity rather than Idempotency-Key.
+    """
 
     ttl_seconds: int | None = Field(default=None, alias="ttlSeconds")
 
     type: Literal["ai_usage"]
+    """Calculation input for a NUMBER_AI_CREDIT entitlement, not a separate read-value type."""
 
     usage: AiUsage | None = None
+
+    vendor_cost: str | None = Field(default=None, alias="vendorCost")
+    """Commit only. What the provider charged for this request, in USD, as an exact decimal
+    string. Recorded as evidence beside the cost computed from the model catalogue; it never
+    changes the credits charged.
+    """
+
+
+class AiVendorCost(KaitenModel):
+    computed: str | None = None
+    """From the model's catalogue costs and the reported usage. Absent when the model is not in
+    the catalogue or the request was never sent.
+    """
+
+    currency: Literal["USD"]
+
+    reported: str | None = None
+    """As sent by the caller on the commit."""
+
+
+class AuditActor(KaitenModel):
+    id: str
+
+    kind: ActorKind | str
+    """USER: a person. SERVICE: a service account. SYSTEM: Kaiten itself -- jobs, and the
+    anonymous checkouts no one of the organization makes
+    """
+
+    name: str
+    """The user's name; "Kaiten (system)" for the work Kaiten does itself"""
 
 
 class AuditTrail(KaitenModel):
     """One entry of an instance's audit trail."""
+
+    actor: AuditActor | None
+    """Who the event is recorded under; null for an entry recorded before actors were (E-27),
+    or whose user is gone
+    """
 
     event_name: str = Field(alias="eventName")
     """Event name (e.g. ENTITLEMENT_VALUE_GET)"""
@@ -385,6 +869,10 @@ class BooleanEntitlementValue(KaitenModel):
     """Boolean value"""
 
 
+class Capabilities(KaitenModel):
+    enabled: bool
+
+
 class Component(KaitenModel):
     """A versioned building block of your product, that releases are made of."""
 
@@ -423,6 +911,29 @@ class ConfigEntitlementValue(KaitenModel):
     """Object configuration value"""
 
 
+class ConnectionDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    connector_name: str = Field(alias="connectorName")
+    """The connector that configures it"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    livemode: bool
+    """Whether the connection reaches the provider's live account rather than a test one"""
+
+    provider_kind: Literal["STRIPE"] = Field(alias="providerKind")
+    """The payment provider"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class Connector(KaitenModel):
     """A connector registered with this Kaiten deployment."""
 
@@ -459,6 +970,11 @@ class ConnectorActivation(KaitenModel):
 
 class ConnectorSettings(KaitenModel):
     """An organization's settings for a connector."""
+
+    configured: bool
+    """Whether settings were ever stored for this connector. A connector never configured reads
+    false, with empty settings, rather than 404.
+    """
 
     connector_name: str
     """Stable connector identifier"""
@@ -523,7 +1039,16 @@ class ConversionRule(KaitenModel):
 
     created_at: datetime = Field(alias="createdAt")
 
+    created_by: User | None = Field(default=None, alias="createdBy")
+    """User who created this rule; a service account is a user"""
+
     entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted_by_addons: bool | None = Field(default=None, alias="grantedByAddons")
+    """Whether an add-on version compatible with the licence's family grants the pool, whatever
+    its lifecycle state: instances of the licence can then hold the pool without the licence
+    granting it. It says nothing of what any instance holds.
+    """
 
     granted_by_license: bool = Field(alias="grantedByLicense")
 
@@ -545,15 +1070,37 @@ class ConversionRule(KaitenModel):
 
     updated_at: datetime = Field(alias="updatedAt")
 
+    updated_by: User | None = Field(default=None, alias="updatedBy")
+    """User who last changed this rule: its pricing, or its archival"""
+
 
 class ConversionRuleUpdated(KaitenModel):
     after: ConversionRule
 
     before: ConversionRule
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class Customer(KaitenModel):
     """A customer of your organization: the end client instances are deployed for."""
+
+    billing_email: str | None = Field(default=None, alias="billingEmail")
+    """Where invoices sent to this customer are delivered, at most 254 characters
+    (CreateCustomer.InvalidBillingEmail). Absent when there is none. On update, omit it or
+    send null to keep the stored value, or send an empty string to remove it. Personal data:
+    never included in event payloads.
+    """
 
     created_at: datetime = Field(alias="createdAt")
     """Timestamp when the customer was created"""
@@ -589,11 +1136,23 @@ class Customer(KaitenModel):
 class CustomerCreationRejected(KaitenModel):
     """A customer creation refused because the organization reached its limit."""
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     name: str
 
     reason: str
 
     slug: str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class CustomerIntegration(KaitenModel):
@@ -637,14 +1196,40 @@ class CustomerIntegrationResource(KaitenModel):
     """Absolute http(s) link to the record in the third-party system"""
 
 
+class DeletedAddonDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    family_slug: str = Field(alias="familySlug")
+
+    id: str
+
+    slug: str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class Deployment(KaitenModel):
     """A release deployed to a deployment zone: an append-only history record."""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
 
     created_at: datetime = Field(alias="createdAt")
     """Timestamp when the deployment was recorded"""
 
     created_by: User = Field(alias="createdBy")
     """User who recorded this deployment"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     deployment_zone_id: str = Field(alias="deploymentZoneId")
     """Deployment zone the release was deployed to"""
@@ -654,6 +1239,12 @@ class Deployment(KaitenModel):
 
     release_id: str = Field(alias="releaseId")
     """Release that was deployed"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class DeploymentZone(KaitenModel):
@@ -698,6 +1289,37 @@ class DeploymentZone(KaitenModel):
     """User who last updated the deployment zone"""
 
 
+class DiscountAllocation(KaitenModel):
+    amount: int
+    """In minor units, positive"""
+
+    target_seq: int = Field(alias="targetSeq")
+    """The target line"""
+
+
+class DiscountDifference(KaitenModel):
+    coupon_id: str = Field(alias="couponId")
+    """The provider's discount, empty when none was recorded"""
+
+    kaiten_amount: int = Field(alias="kaitenAmount")
+
+    line_id: str = Field(alias="lineId")
+    """The DISCOUNT line"""
+
+    provider_amount: int = Field(alias="providerAmount")
+    """0 when the provider did not apply it"""
+
+    seq: int
+
+    target_seq: int = Field(alias="targetSeq")
+
+
+class DueDateDifference(KaitenModel):
+    kaiten_due_at: datetime = Field(alias="kaitenDueAt")
+
+    provider_due_at: datetime = Field(alias="providerDueAt")
+
+
 class Entitlement(KaitenModel):
     """A catalog entry: something a license can grant, and how its usage is measured."""
 
@@ -737,9 +1359,11 @@ class Entitlement(KaitenModel):
     """Name of the entitlement"""
 
     reset_anchor: ResetAnchor | str | None = Field(default=None, alias="resetAnchor")
-    """Phase of the periodic usage window: CALENDAR (UTC calendar-aligned) or LICENSE_START
-    (phased off the instance's license start date). Required exactly when resetPeriod is
-    set; defaults to CALENDAR when omitted. Immutable once set.
+    """Phase of the periodic usage window: CALENDAR (UTC calendar-aligned), LICENSE_START
+    (phased off the instance's license start date) or BILLING_PERIOD (phased off the
+    instance's live subscription's billing anchor, LICENSE_START without one; with
+    resetPeriod MONTH or YEAR only). Required exactly when resetPeriod is set; defaults to
+    CALENDAR when omitted. Immutable once set.
     """
 
     reset_period: ResetPeriod | str | None = Field(default=None, alias="resetPeriod")
@@ -880,12 +1504,29 @@ class EntitlementUsage(KaitenModel):
     """URL-friendly identifier of the license"""
 
     limit: EntitlementValue | None = None
-    """License grant this usage is measured against, discriminated by the 'type' field. Null
-    when the license grants no value; -1 means unlimited for a NUMBER entitlement.
+    """The effective value this usage is measured against (the licence's grant, with the
+    instance's add-ons and boosts applied; source and provenance say which), discriminated
+    by the 'type' field. Absent when nothing grants the entitlement a value; -1 means
+    unlimited for a NUMBER entitlement.
     """
+
+    limit_cap_exceeded_overage_percent: int | None = Field(
+        default=None, alias="limitCapExceededOveragePercent"
+    )
+    """How far above limit usage is still accepted, in percent: -1 unlimited, 0 a hard limit.
+    Absent for BOOLEAN and CONFIG.
+    """
+
+    provenance: Provenance | None = None
+    """What the licence, the add-ons and the boosts each contribute"""
 
     reserved: str | None = None
     """Open, unexpired reserved credits; present only on AI credit pools"""
+
+    source: EntitlementSource | str
+    """license: the licence grants it (add-ons, boosts and an exception may change it); addon:
+    an add-on attached does; exception: only the instance's exception does
+    """
 
     value: EntitlementValue
     """Resolved entitlement value, discriminated by the 'type' field"""
@@ -920,6 +1561,90 @@ class EventHeaders(KaitenModel):
     """W3C trace state of that request, when it carried one"""
 
 
+class ExceptionEventDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    ends_at: datetime | None = Field(alias="endsAt")
+    """Null: no end"""
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    id: str
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    kind: ExceptionKind | str
+
+    reason: str
+
+    revoked_at: datetime | None = Field(alias="revokedAt")
+
+    starts_at: datetime = Field(alias="startsAt")
+
+    value: float | bool | dict[str, Any] | None
+    """A number for NUMBER and NUMBER_AI_CREDIT, a boolean for BOOLEAN, the CONFIG document as
+    an object; null for UNLIMITED
+    """
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ExhaustedEventDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    id: str
+
+    max_redemptions: int | None = Field(default=None, alias="maxRedemptions")
+
+    name: str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ExpiredEventDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    expires_at: datetime = Field(alias="expiresAt")
+
+    id: str
+
+    name: str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ExtraDiscount(KaitenModel):
+    amount: int
+
+    discount_id: str = Field(alias="discountId")
+
+    external_line_id: str = Field(alias="externalLineId")
+
+
 class FeatureFlag(KaitenModel):
     """A feature flag: its variants, targeting rules and default variant."""
 
@@ -949,6 +1674,12 @@ class FeatureFlag(KaitenModel):
 class FeatureFlagEvaluated(KaitenModel):
     """A feature flag evaluation, as reported to webhooks."""
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     error_code: str | None = None
     """Set when the evaluation failed and the default was returned"""
 
@@ -969,6 +1700,89 @@ class FeatureFlagEvaluated(KaitenModel):
 
     variant: str | None = None
     """Name of the resolved variant, when the flag has one"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class FlagGrant(KaitenModel):
+    flag_slug: str = Field(alias="flagSlug")
+
+    variant: str
+    """The name of one of the flag's variants"""
+
+
+class Grant(KaitenModel):
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    modifier_type: GrantModifier | str = Field(alias="modifierType")
+    """SET replaces the value, ADD adds to it, MULTIPLY multiplies it, UNLIMITED lifts the
+    limit. A BOOLEAN or CONFIG entitlement takes SET only
+    """
+
+    modifier_value: str | None = Field(default=None, alias="modifierValue")
+    """A NUMBER grant's decimal: >= 0 for SET, > 0 for ADD and MULTIPLY, null for UNLIMITED;
+    null on a BOOLEAN or CONFIG grant. Optional on write.
+    """
+
+    value: bool | dict[str, Any] | None = None
+    """What a BOOLEAN or CONFIG SET grant sets: true or false, or the CONFIG document as an
+    object; null on a NUMBER grant. Optional on write.
+    """
+
+
+class HandoffAcknowledgementDelivered(KaitenModel):
+    acknowledged_by: str = Field(alias="acknowledgedBy")
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    external_reference: str | None = Field(default=None, alias="externalReference")
+    """The invoice's number in the organization's accounting system"""
+
+    invoice_id: str = Field(alias="invoiceId")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class HeldPair(KaitenModel):
+    counter_report_seq: int | None = Field(alias="counterReportSeq")
+
+    detail: str
+
+    entitlement_id: str = Field(alias="entitlementId")
+
+    expected: str | None
+
+    first_seq: int | None = Field(alias="firstSeq")
+
+    found: str | None
+
+    instance_id: str = Field(alias="instanceId")
+
+    invariant: str
+
+    last_seq: int | None = Field(alias="lastSeq")
+
+    report_seq: int | None = Field(alias="reportSeq")
+    """The report the failure is at, when one is"""
+
+
+class HoldDetail(KaitenModel):
+    item_limit: ProviderLineLimit | None = Field(default=None, alias="itemLimit")
+    """PROVIDER_ITEM_LIMIT only: the provider's line limit and how many items the invoice needs"""
+
+    pairs: list[HeldPair]
 
 
 class Instance(KaitenModel):
@@ -1042,6 +1856,12 @@ class Instance(KaitenModel):
 
 
 class InstanceAIModelUsageUnauthorized(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     entitlement_slug: str
 
     model: str
@@ -1050,9 +1870,134 @@ class InstanceAIModelUsageUnauthorized(KaitenModel):
 
     request_type: str = Field(alias="requestType")
 
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class InstanceAddon(KaitenModel):
+    addon_id: str = Field(alias="addonId")
+
+    addon_slug: str = Field(alias="addonSlug")
+
+    attached_at: datetime = Field(alias="attachedAt")
+
+    family_slug: str = Field(alias="familySlug")
+
+    id: str
+
+    max_quantity: int | None = Field(alias="maxQuantity")
+
+    name: str
+    """The add-on version's name"""
+
+    pending_quantity: int | None = Field(alias="pendingQuantity")
+    """A decrease scheduled for the next boundary, 0 for a removal; the current quantity holds
+    until then. Null when nothing is scheduled (V31-67)
+    """
+
+    prices: list[Price]
+    """What the instance's subscription bills for it: the default FLAT_FEE price of the
+    subscription's period and the ACTIVE metered prices. Empty when the instance is not
+    billed.
+    """
+
+    quantity: int
+
+    removed_at: datetime | None = Field(alias="removedAt")
+
+
+class InstanceBilling(KaitenModel):
+    anchor_at: datetime = Field(alias="anchorAt")
+    """The instant its periods are counted from"""
+
+    base_price: Price = Field(alias="basePrice")
+    """The FLAT_FEE price the subscription is pinned to, deprecated or not"""
+
+    billing_period: BillingPeriod | str = Field(alias="billingPeriod")
+
+    cancel_at_period_end: bool = Field(alias="cancelAtPeriodEnd")
+
+    cancel_requested_at: datetime | None = Field(alias="cancelRequestedAt")
+
+    canceled_at: datetime | None = Field(alias="canceledAt")
+
+    cancellation_reason: str | None = Field(alias="cancellationReason")
+
+    collection_method: CollectionMethod | str = Field(alias="collectionMethod")
+    """Effective: the subscription's own, else the organization's default"""
+
+    collection_method_override: str | None = Field(alias="collectionMethodOverride")
+    """The subscription's own collection method; null when it takes the organization's"""
+
+    created_at: datetime = Field(alias="createdAt")
+
+    currency: str
+
+    current_period_end: datetime = Field(alias="currentPeriodEnd")
+    """The next boundary: the period closes, and its invoice is composed, after it"""
+
+    current_period_start: datetime = Field(alias="currentPeriodStart")
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    days_until_due: int = Field(alias="daysUntilDue")
+    """Effective: the subscription's own, else the organization's default"""
+
+    days_until_due_override: int | None = Field(alias="daysUntilDueOverride")
+    """The subscription's own payment terms; null when it takes the organization's"""
+
+    id: str
+
+    incomplete_expires_at: datetime | None = Field(alias="incompleteExpiresAt")
+    """When a checkout waiting for its payment ends unpaid: INCOMPLETE, or a free subscription
+    that carries one
+    """
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+    """As it was at the subscription's last write"""
+
+    past_due_since: datetime | None = Field(alias="pastDueSince")
+
+    pending_license_slug: str | None = Field(alias="pendingLicenseSlug")
+    """The licence version a checkout waiting for its payment moves the instance to once paid"""
+
+    provider_kind: BillingProviderKind | str = Field(alias="providerKind")
+    """Who collects its invoices. NOOP: the organization itself, through the handoff queue"""
+
+    reminder_at: datetime | None = Field(alias="reminderAt")
+    """When trial_will_end is (or was) emitted: trialEndsAt minus the family's
+    trialReminderDays as it was when the trial started; set with trialEndsAt
+    """
+
+    scheduled_change: ScheduledChange | None = Field(alias="scheduledChange")
+    """A plan change waiting for the next boundary"""
+
+    started_at: datetime = Field(alias="startedAt")
+    """When billing started: usage before it is never billed"""
+
+    status: SubscriptionStatus | str
+
+    trial_ends_at: datetime | None = Field(alias="trialEndsAt")
+    """When the trial ends, or ended: usage before it is never billed"""
+
+    updated_at: datetime = Field(alias="updatedAt")
+
 
 class InstanceEntitlementCapExceeded(KaitenModel):
     """Usage crossed an entitlement's included value, within its allowance."""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     entitlement_slug: str
     """URL-friendly identifier of the entitlement"""
@@ -1066,13 +2011,25 @@ class InstanceEntitlementCapExceeded(KaitenModel):
     value: float
     """Current usage value, including overage"""
 
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class InstanceEntitlementUsagePeriodRolledOver(KaitenModel):
     """A periodic usage window closed and a new one opened."""
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
     closed_period_end: datetime | None
 
     closed_period_start: datetime | None
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     entitlement_id: str
 
@@ -1086,7 +2043,15 @@ class InstanceEntitlementUsagePeriodRolledOver(KaitenModel):
 
     new_period_start: datetime
 
+    reason: PeriodRolloverReason | str
+
     value: float
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class InstanceEntitlementUsageReportAccepted(KaitenModel):
@@ -1094,6 +2059,12 @@ class InstanceEntitlementUsageReportAccepted(KaitenModel):
 
     behavior: UsageBehavior | str
     """Report behavior: append folds the value into the stored total, set overwrites it"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     entitlement_slug: str
     """URL-friendly identifier of the entitlement the usage was reported against"""
@@ -1107,12 +2078,24 @@ class InstanceEntitlementUsageReportAccepted(KaitenModel):
     value: float
     """Value carried by the report"""
 
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class InstanceEntitlementUsageWarningThresholdReached(KaitenModel):
     """Usage crossed an entitlement's warning threshold."""
 
     boundary: float
     """Usage value at which the warning fires (cap * warningThresholdPercent / 100)"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     entitlement_slug: str
     """URL-friendly identifier of the entitlement"""
@@ -1123,9 +2106,21 @@ class InstanceEntitlementUsageWarningThresholdReached(KaitenModel):
     value: float
     """Current usage value"""
 
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class InstanceEntitlementValueGet(KaitenModel):
     """An entitlement value read for an instance."""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     entitlement_id: str
     """Unique identifier for the entitlement"""
@@ -1150,6 +2145,12 @@ class InstanceEntitlementValueGet(KaitenModel):
 
     value: EntitlementValue
     """Resolved entitlement value at read time"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class InstanceIntegration(KaitenModel):
@@ -1213,11 +2214,23 @@ class InstanceLifecycleStageChanged(KaitenModel):
 
     changed_by: str
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     instance_id: str
 
     new_lifecycle_stage: str | None
 
     previous_lifecycle_stage: str | None
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class InstanceStatusChanged(KaitenModel):
@@ -1225,11 +2238,295 @@ class InstanceStatusChanged(KaitenModel):
 
     changed_by: str
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     instance_id: str
 
     new_status: InstanceStatus | str
 
     previous_status: InstanceStatus | str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class InvoiceLine(KaitenModel):
+    addon_id: str | None = Field(alias="addonId")
+    """The add-on version an ADDON line bills"""
+
+    addon_price_id: str | None = Field(alias="addonPriceId")
+    """The add-on price an ADDON line bills"""
+
+    amount: int
+    """round_half_up(quantity × unitAmountDecimal), in minor units; negative on a DISCOUNT line"""
+
+    billing_model: BillingModel | str | None = Field(alias="billingModel")
+    """The price's billing model; absent on a DISCOUNT line"""
+
+    billing_timing: BillingTiming | str | None = Field(alias="billingTiming")
+    """ADVANCE lines bill the period that starts at the boundary, ARREARS lines the one that
+    ends there; absent on a DISCOUNT line
+    """
+
+    capped: bool | None = None
+    """Set on a preview line whose sample exceeded what the licence accepts: reports above that
+    are rejected, so the excess is not billed
+    """
+
+    description: str
+    """The arithmetic of the line"""
+
+    discount: InvoiceLineDiscount | None
+    """How a DISCOUNT line was computed"""
+
+    entitlement_id: str | None = Field(alias="entitlementId")
+    """The metered entitlement, on USAGE and OVERAGE lines"""
+
+    entitlement_slug: str | None = Field(alias="entitlementSlug")
+    """Its slug, as it was when the line was composed"""
+
+    id: str | None = None
+    """The line's identifier, stable for the invoice's life; absent on a preview"""
+
+    instance_addon_id: str | None = Field(alias="instanceAddonId")
+    """The instance's attachment an ADDON line bills"""
+
+    instance_voucher_id: str | None = Field(alias="instanceVoucherId")
+    """The redemption a DISCOUNT line applies"""
+
+    label: str
+    """The price's display label, else a derived one"""
+
+    license_price_id: str | None = Field(alias="licensePriceId")
+    """The licence price the line bills; null on an ADDON line"""
+
+    metering: InvoiceLineMetering | None
+    """How a USAGE or OVERAGE line's quantity was measured"""
+
+    overage: InvoiceLineOverage | None
+    """The arithmetic of an OVERAGE line"""
+
+    provider: InvoiceLineProvider | None
+    """The line in the payment provider, once pushed"""
+
+    quantity: str
+    """In sale units, a decimal string: 1 on a BASE line, the quantity held on an ADDON line"""
+
+    seq: int
+    """Position on the invoice, from 1"""
+
+    service_from: datetime = Field(alias="serviceFrom")
+    """Start of the period the line bills (inclusive)"""
+
+    service_to: datetime = Field(alias="serviceTo")
+    """End of the period the line bills (exclusive)"""
+
+    true_up: InvoiceLineTrueUp | None = Field(alias="trueUp")
+    """On the true-up line of an ADVANCE add-on of a TRUE_UP family: the highest quantity held
+    in the elapsed period and the quantity billed in advance for it (V31-70)
+    """
+
+    type: InvoiceLineType | str
+    """BASE: the subscription's FLAT_FEE price. ADDON: an add-on's FLAT_FEE price times the
+    quantity held at the boundary. USAGE: a USAGE_BASED price's metered usage. OVERAGE: an
+    OVERAGE price's usage above the licence's limit. DISCOUNT: a PRICE voucher's discount,
+    negative.
+    """
+
+    unit_amount_decimal: str | None = Field(alias="unitAmountDecimal")
+    """The price's unit amount in minor units; absent on a DISCOUNT line"""
+
+    voucher_id: str | None = Field(alias="voucherId")
+    """The voucher a DISCOUNT line applies"""
+
+
+class InvoiceLineDiscount(KaitenModel):
+    allocations: list[DiscountAllocation]
+    """The part of the line each target bears, by ascending targetSeq: they sum to the line's
+    magnitude, and no target is discounted below 0. A payment provider applies each one to
+    its target line
+    """
+
+    application: int
+    """Which invoice of the redemption this is, from 1"""
+
+    applications_max: int | None = Field(alias="applicationsMax")
+    """How many invoices the redemption discounts; null for FOREVER"""
+
+    applies_to: DiscountAppliesTo | str = Field(alias="appliesTo")
+
+    base: str
+    """What its targets still amounted to before it, exact, in minor units"""
+
+    currency: str | None
+
+    discount_type: DiscountType | str = Field(alias="discountType")
+
+    discount_value: str = Field(alias="discountValue")
+    """The percentage, or the amount in minor units"""
+
+    target_seqs: list[int] | None = Field(alias="targetSeqs")
+    """The lines it discounts"""
+
+
+class InvoiceLineLedger(KaitenModel):
+    first_seq: int | None = Field(alias="firstSeq")
+    """First report of the period, null when it has none"""
+
+    instance_id: str | None = Field(alias="instanceId")
+    """The instance whose reports these are: with the line's entitlement, the pair the journal
+    is kept by. It outlives the instance
+    """
+
+    last_seq: int | None = Field(alias="lastSeq")
+    """Last report of the period, null when it has none"""
+
+    rows: int
+    """Reports in the period"""
+
+    sum_delta: str = Field(alias="sumDelta")
+    """Sum of the reports' movements, before any floor"""
+
+    sum_overage: str | None = Field(alias="sumOverage")
+    """Sum of their movements above the limit, before any floor"""
+
+
+class InvoiceLineMetering(KaitenModel):
+    ledger: InvoiceLineLedger | None
+    """The usage journal rows the line was measured from"""
+
+    measured_quantity: str = Field(alias="measuredQuantity")
+    """In measured units: the usage for a USAGE line, the overage for an OVERAGE line"""
+
+    negative_segments_floored: int = Field(alias="negativeSegmentsFloored")
+    """Windows whose net movement was negative and counted as 0"""
+
+    sale_unit_factor: str = Field(alias="saleUnitFactor")
+    """Measured units in one sale unit"""
+
+    windows: int
+    """Reset windows the period spans"""
+
+
+class InvoiceLineOverage(KaitenModel):
+    limits: list[OverageLimit]
+    """The limits applied, in the order they first applied"""
+
+    overage_measured: str = Field(alias="overageMeasured")
+    """Usage above the applied limit"""
+
+    usage_measured: str = Field(alias="usageMeasured")
+    """Usage in measured units"""
+
+
+class InvoiceLineProvider(KaitenModel):
+    amount: int | None = None
+    """The provider's amount, read back for reconciliation"""
+
+    coupon_ids: list[str] | None = Field(default=None, alias="couponIds")
+    """On a DISCOUNT line: the provider's discount (a Stripe coupon) of each allocation, in the
+    allocations' order
+    """
+
+    external_line_id: str | None = Field(default=None, alias="externalLineId")
+    """The provider's id of the line; absent on a DISCOUNT line, which the provider holds as
+    discounts on its targets
+    """
+
+
+class InvoiceLineTrueUp(KaitenModel):
+    billed_quantity: int = Field(alias="billedQuantity")
+    """The quantity its ADVANCE line billed at the previous boundary; 0 when it started after it"""
+
+    max_quantity: int = Field(alias="maxQuantity")
+    """The highest quantity the attachment held in the elapsed period"""
+
+
+class InvoiceSummary(KaitenModel):
+    boundary_at: datetime = Field(alias="boundaryAt")
+    """The boundary the invoice bills. With the kind, it identifies the invoice within its
+    subscription
+    """
+
+    collection_method: CollectionMethod | str = Field(alias="collectionMethod")
+
+    created_at: datetime = Field(alias="createdAt")
+
+    currency: str
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+    """As it was when the invoice was composed"""
+
+    days_until_due: int | None = Field(alias="daysUntilDue")
+
+    discount_total: int = Field(alias="discountTotal")
+    """Sum of the discounts, in minor units"""
+
+    due_at: datetime | None = Field(alias="dueAt")
+    """issuedAt + daysUntilDue"""
+
+    handoff_status: HandoffStatus | str = Field(alias="handoffStatus")
+    """PENDING: waiting in the handoff queue for the organization's accounting system"""
+
+    hold_reason: InvoiceHoldReason | str | None = Field(alias="holdReason")
+    """Why a DRAFT is held: the usage journal it was measured from failed a consistency check
+    (LEDGER_*), or its provider cannot take that many lines (PROVIDER_ITEM_LIMIT)
+    """
+
+    id: str
+    """The invoice's identifier: the key an accounting system deduplicates on"""
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    issued_at: datetime | None = Field(alias="issuedAt")
+
+    kind: InvoiceKind | str
+    """ACTIVATION bills a subscription's first period, RENEWAL the period that ended and the
+    one that starts, FINAL what is left when a subscription ends
+    """
+
+    license_slug: str = Field(alias="licenseSlug")
+
+    overdue: bool
+    """Whether the invoice is overdue when read, the grace period of automatic collection
+    included: the predicate of ?overdue=true. Computed by the invoice list and the invoice
+    read; false in the answers of writes and in event payloads.
+    """
+
+    paid_at: datetime | None = Field(alias="paidAt")
+
+    provider_kind: BillingProviderKind | str = Field(alias="providerKind")
+    """Who collects it. NOOP: the organization itself, through the handoff queue"""
+
+    service_from: datetime = Field(alias="serviceFrom")
+    """Earliest start of its lines' service periods"""
+
+    service_to: datetime = Field(alias="serviceTo")
+    """Latest end of its lines' service periods"""
+
+    status: InvoiceStatus | str
+    """MANUAL: issued, for the organization to collect. PAID, UNCOLLECTIBLE and VOID are final.
+    DRAFT: held, waiting for a release or a recompose
+    """
+
+    subtotal: int
+    """Sum of the lines, in minor units"""
+
+    total: int
+    """subtotal − discountTotal, in minor units"""
+
+    updated_at: datetime = Field(alias="updatedAt")
 
 
 class License(KaitenModel):
@@ -1289,10 +2586,36 @@ class License(KaitenModel):
     name: str
     """Display name of the license"""
 
+    pricing_type: PricingType | str | None = Field(default=None, alias="pricingType")
+    """How this version is sold. FREE and PAID can be bought self-serve; CUSTOM sends a buyer
+    to selfServeCtaUrl or a conversation. Always present in responses. On create it defaults
+    to CUSTOM; on update, omit it or send null to keep the stored value.
+    """
+
+    requires_payment_method: bool | None = Field(default=None, alias="requiresPaymentMethod")
+    """Whether self-serve signup captures a payment method before activation. Always present in
+    responses; false when omitted on create. On update, omit it or send null to keep the
+    stored value.
+    """
+
+    self_serve_cta_url: str | None = Field(default=None, alias="selfServeCtaUrl")
+    """Where a buyer is sent when this version cannot be bought self-serve: an http(s) URL of
+    at most 2048 characters (CreateLicense.InvalidSelfServeCtaUrl). Null when there is none.
+    On update, omit it or send null to keep the stored value, or send an empty string to
+    remove it.
+    """
+
     slug: str | None = None
     """Optional URL-friendly identifier, unique per organization. When omitted, a new version
     of an existing family takes {familySlug}-v{version}, and any other license gets one
     generated from its name. A license that opens a new family gives the family its slug.
+    """
+
+    trial_period_days: int | None = Field(default=None, alias="trialPeriodDays")
+    """Trial length, in days, a subscription to this version starts with by default. Null when
+    there is none. From 1 to 365 (CreateLicense.InvalidTrialDays,
+    UpdateLicense.InvalidTrialDays). On update, omit it or send null to keep the stored
+    value, or send 0 to remove the trial.
     """
 
     type: LicenseType | str
@@ -1337,7 +2660,9 @@ class LicenseEntitlement(KaitenModel):
     entitlement_type: LicenseEntitlementType | str | None = Field(
         default=None, alias="entitlementType"
     )
-    """Type of entitlement (BOOLEAN, NUMBER, or CONFIG)"""
+    """Definition type of the granted entitlement. NUMBER_AI_CREDIT is a calculated numeric
+    entitlement; its granted allowance and usage value still use the number shape.
+    """
 
     license_id: str = Field(alias="licenseId")
     """Unique identifier for the license this entitlement belongs to"""
@@ -1348,10 +2673,10 @@ class LicenseEntitlement(KaitenModel):
     limit_cap_exceeded_overage_percent: int | None = Field(
         default=None, alias="limitCapExceededOveragePercent"
     )
-    """Derives this grant's enforcement from its own numeric value: -1 when the value is
-    unlimited (no cap, no overage); otherwise 0 rejects usage above the value (hard limit)
-    and a positive percentage allows usage to exceed it by that much before being rejected
-    (soft limit). Null for non-numeric (BOOLEAN/CONFIG) grants.
+    """Enforcement derived from the numeric allowance: -1 is unlimited; otherwise 0 is a hard
+    limit and a positive percentage permits overage. AI reservations and numeric adjustments
+    use this bound; AI commits account actual usage even beyond it. Null for non-numeric
+    (BOOLEAN/CONFIG) grants.
     """
 
     updated_at: datetime = Field(alias="updatedAt")
@@ -1380,13 +2705,35 @@ class LicenseFamilyView(KaitenModel):
     returns.
     """
 
+    fallback_license_family_slug: str | None = Field(alias="fallbackLicenseFamilySlug")
+    """The FREE family whose default PUBLISHED version an instance of this family moves to when
+    its subscription ends; null without one
+    """
+
     id: str
     """Unique identifier for the license family"""
+
+    is_public: bool = Field(alias="isPublic")
+    """Whether the family's default PUBLISHED version is listed in the public catalogue.
+    Private by default.
+    """
 
     slug: str
     """URL-friendly identifier of the family, unique per organization and stable across renames
     and new versions. Deleting the family's last version deletes the family and frees the
     slug.
+    """
+
+    trial_end_without_payment_method: TrialEndWithoutPaymentMethod | str = Field(
+        alias="trialEndWithoutPaymentMethod"
+    )
+    """What a trial charged automatically with a total above 0 becomes at its end when the
+    customer has no ACTIVE payment method: CANCEL (the default) or CONVERT
+    """
+
+    trial_reminder_days: int = Field(alias="trialReminderDays")
+    """How many days before a trial's end trial_will_end fires, for the trials started after it
+    was set. 3 by default.
     """
 
     updated_at: datetime = Field(alias="updatedAt")
@@ -1402,6 +2749,18 @@ class LicenseFamilyView(KaitenModel):
     """Every version of the family, oldest first. Only returned when explicitly requested with
     include=versions, and then never null: a family always has at least one version.
     """
+
+
+class LineDifference(KaitenModel):
+    external_line_id: str = Field(alias="externalLineId")
+
+    kaiten_amount: int = Field(alias="kaitenAmount")
+
+    line_id: str = Field(alias="lineId")
+
+    provider_amount: int = Field(alias="providerAmount")
+
+    seq: int
 
 
 class ManifestEnvelope(KaitenModel):
@@ -1492,8 +2851,27 @@ class MetadataFieldImpactSample(KaitenModel):
 class MetadataFieldReordered(KaitenModel):
     """Metadata fields were given a new display order."""
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
     ids: list[str] | None
     """Metadata field ids in their new display order"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class MinimumAmount(KaitenModel):
+    currency: str
+
+    unit_amount_decimal: str = Field(alias="unitAmountDecimal")
+    """In minor units, above 0"""
 
 
 class Model(KaitenModel):
@@ -1532,6 +2910,18 @@ class ModelUpdated(KaitenModel):
 
     before: Model
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class NumberEntitlementValue(KaitenModel):
     """A numeric entitlement value: a quota, or an amount consumed."""
@@ -1544,6 +2934,150 @@ class NumberEntitlementValue(KaitenModel):
 
     value: float
     """Numeric value"""
+
+
+class OrganizationAiInference(KaitenModel):
+    authorized: bool | None = None
+
+    committed_at: datetime | None = Field(default=None, alias="committedAt")
+
+    conversion_rule_id: str | None = Field(default=None, alias="conversionRuleId")
+
+    credits: AiCredits
+
+    denial_reason: str | None = Field(default=None, alias="denialReason")
+
+    entitlement_slug: str | None = Field(default=None, alias="entitlementSlug")
+    """Absent once the entitlement is deleted."""
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    instance_slug: str | None = Field(default=None, alias="instanceSlug")
+    """Absent once the instance is deleted."""
+
+    license_id: str | None = Field(default=None, alias="licenseId")
+    """The licence whose conversion rules were considered."""
+
+    license_slug: str | None = Field(default=None, alias="licenseSlug")
+    """Absent once the licence is deleted."""
+
+    model: str
+
+    model_slug: str | None = Field(default=None, alias="modelSlug")
+
+    pricing: AiInferencePricing | None = None
+    """The rule snapshot that priced the operation. Absent when no rule applied, and on
+    operations recorded before snapshots existed.
+    """
+
+    refunds: list[AiInferenceRefund]
+    """The refunds of the operation's charge, oldest first. Their sum is credits.refunded."""
+
+    report_seq: int | None = Field(default=None, alias="reportSeq")
+    """The pool's report counter when the operation was counted: the link to the usage journal."""
+
+    reported_at: datetime = Field(alias="reportedAt")
+
+    request_status: str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str = Field(alias="requestType")
+
+    status: AiInferenceStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    usage: AiUsage
+
+    value_after: float | None = Field(default=None, alias="valueAfter")
+
+    value_before: float | None = Field(default=None, alias="valueBefore")
+
+    vendor_cost: AiVendorCost | None = Field(default=None, alias="vendorCost")
+
+    warnings: list[str]
+    """The warnings of the phase that last wrote the operation."""
+
+    window_start: datetime | None = Field(default=None, alias="windowStart")
+
+
+class OrganizationAiInferencePage(KaitenModel):
+    has_more: bool = Field(alias="hasMore")
+
+    items: list[OrganizationAiInference] | None
+
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class OverageLimit(KaitenModel):
+    limit_value: str | None = Field(alias="limitValue")
+    """The limit, null when unlimited"""
+
+    overage_percent: int = Field(alias="overagePercent")
+    """Usage accepted above the limit, as a percent of it"""
+
+    rows: int
+    """Usage reports measured against it; 0 for a sample"""
+
+
+class PaymentMethodAttachedDelivered(KaitenModel):
+    attached_at: datetime = Field(alias="attachedAt")
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    provider_kind: Literal["STRIPE"] = Field(alias="providerKind")
+
+    status: Literal["ACTIVE"]
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PaymentMethodDetachedDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    provider_kind: Literal["STRIPE"] = Field(alias="providerKind")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PaymentMethodExpiringDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    expires_at: datetime = Field(alias="expiresAt")
+    """The last instant of the payment method's expiry month"""
+
+    provider_kind: Literal["STRIPE"] = Field(alias="providerKind")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class PlainToken(KaitenModel):
@@ -1573,6 +3107,127 @@ class PlainToken(KaitenModel):
     """
 
     token: str | None = None
+
+
+class PlanChangeDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    from_license_slug: str = Field(alias="fromLicenseSlug")
+
+    from_price_id: str = Field(alias="fromPriceId")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    invoice_id: str = Field(alias="invoiceId")
+    """The RENEWAL that billed the old plan's arrears and the new plan's advance"""
+
+    to_license_slug: str = Field(alias="toLicenseSlug")
+
+    to_price_id: str = Field(alias="toPriceId")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PlanChangeScheduleDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    effective_at: datetime = Field(alias="effectiveAt")
+
+    from_price_id: str = Field(alias="fromPriceId")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    to_price_id: str = Field(alias="toPriceId")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class Price(KaitenModel):
+    billing_model: BillingModel | str = Field(alias="billingModel")
+    """FLAT_FEE: an amount per billing period. USAGE_BASED: an amount per sale unit of the
+    metered entitlement's usage. OVERAGE: an amount per sale unit of the usage above the
+    licence's limit.
+    """
+
+    billing_period: BillingPeriod | str | None = Field(alias="billingPeriod")
+    """The period a FLAT_FEE price is charged for. Null on metered prices, which bill on the
+    subscription's period.
+    """
+
+    billing_timing: BillingTiming | str = Field(alias="billingTiming")
+    """ADVANCE bills the period that starts; ARREARS the period that ended. Metered prices are
+    always ARREARS.
+    """
+
+    created_at: datetime = Field(alias="createdAt")
+
+    currency: str
+    """ISO 4217 code, upper case. One currency per licence version."""
+
+    deprecated_at: datetime | None = Field(alias="deprecatedAt")
+    """When the price was deprecated"""
+
+    display_label: str | None = Field(alias="displayLabel")
+    """The invoice line's label; a default is derived when it is null."""
+
+    display_order: int = Field(alias="displayOrder")
+    """Order among the version's prices"""
+
+    id: str
+    """Unique identifier of the price"""
+
+    is_default: bool = Field(alias="isDefault")
+    """The FLAT_FEE price picked for its billing period when none is named. At most one per
+    period; only an ACTIVE FLAT_FEE price.
+    """
+
+    metered: PriceMeter | None
+    """What a metered price measures. Null on FLAT_FEE prices."""
+
+    status: PriceStatus | str
+    """A DEPRECATED price keeps billing what is already pinned to it but is no longer offered."""
+
+    unit_amount: int | None = Field(alias="unitAmount")
+    """unitAmountDecimal as an integer number of minor units, when it is one; null otherwise."""
+
+    unit_amount_decimal: str = Field(alias="unitAmountDecimal")
+    """Amount in the currency's minor units (cents for EUR): per period for FLAT_FEE, per sale
+    unit for metered prices. Up to 12 decimal places.
+    """
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+
+class PriceMeter(KaitenModel):
+    entitlement_slug: str = Field(alias="entitlementSlug")
+    """The metered entitlement"""
+
+    sale_unit_factor: str = Field(alias="saleUnitFactor")
+    """Measured units in one sale unit, captured when the price was created (1 when the
+    entitlement has no sale unit): 10000 bills per 10,000 tokens.
+    """
+
+    sale_unit_plural: str | None = Field(alias="saleUnitPlural")
+    """The sale unit's plural label; null when the entitlement has none"""
+
+    sale_unit_singular: str | None = Field(alias="saleUnitSingular")
+    """The sale unit's singular label; null when the entitlement has none"""
 
 
 class Problem(KaitenModel):
@@ -1605,6 +3260,258 @@ class Problem(KaitenModel):
     """A URI reference to human-readable documentation for the error."""
 
 
+class Provenance(KaitenModel):
+    addons: list[ProvenanceAddon]
+    """The active add-on grants, in attachment order"""
+
+    boosts: list[ProvenanceBoost]
+    """The boosts in their window, in redemption order"""
+
+    exception: ProvenanceException | None
+    """The instance's exception in force at the read, the last layer; null without one. Never
+    its reason or author
+    """
+
+    license: ProvenanceLicense | None
+    """The licence's grant; null when only add-ons grant the entitlement"""
+
+    number: ProvenanceNumber | None
+    """How a number was composed; null for BOOLEAN and CONFIG, and when no add-on, boost or
+    exception changes it
+    """
+
+
+class ProvenanceAddon(KaitenModel):
+    addon_entitlement_id: str = Field(alias="addonEntitlementId")
+
+    addon_id: str = Field(alias="addonId")
+
+    attached_at: datetime = Field(alias="attachedAt")
+
+    instance_addon_id: str = Field(alias="instanceAddonId")
+
+    limit_cap_exceeded_overage_percent: int | None = Field(alias="limitCapExceededOveragePercent")
+
+    override_behavior: OverrideBehavior | str = Field(alias="overrideBehavior")
+
+    quantity: int
+
+    value: EntitlementValue
+    """One unit's grant"""
+
+
+class ProvenanceBoost(KaitenModel):
+    effective_expires_at: datetime | None = Field(alias="effectiveExpiresAt")
+
+    effective_starts_at: datetime = Field(alias="effectiveStartsAt")
+
+    instance_voucher_id: str = Field(alias="instanceVoucherId")
+
+    modifier_type: GrantModifier | str = Field(alias="modifierType")
+
+    modifier_value: float | None = Field(alias="modifierValue")
+
+    redeemed_at: datetime = Field(alias="redeemedAt")
+
+    value: EntitlementValue | None
+    """The value a BOOLEAN or CONFIG SET boost sets, in the {type, value} shape; null for the
+    NUMBER modifiers
+    """
+
+    voucher_entitlement_grant_id: str = Field(alias="voucherEntitlementGrantId")
+
+    voucher_id: str = Field(alias="voucherId")
+
+
+class ProvenanceException(KaitenModel):
+    ends_at: datetime | None = Field(alias="endsAt")
+    """Null: no end"""
+
+    instance_entitlement_exception_id: str = Field(alias="instanceEntitlementExceptionId")
+
+    kind: ExceptionKind | str
+
+    starts_at: datetime = Field(alias="startsAt")
+
+    value: EntitlementValue | None
+    """The exception's value, in the {type, value} shape; null for UNLIMITED"""
+
+
+class ProvenanceLicense(KaitenModel):
+    license_entitlement_id: str = Field(alias="licenseEntitlementId")
+
+    limit_cap_exceeded_overage_percent: int | None = Field(alias="limitCapExceededOveragePercent")
+
+    value: EntitlementValue
+
+
+class ProvenanceNumber(KaitenModel):
+    after_addons: float = Field(alias="afterAddons")
+
+    after_boosts: float = Field(alias="afterBoosts")
+    """The value before the exception: -1 when unlimited"""
+
+    boost_add: float | None = Field(alias="boostAdd")
+
+    boost_multiply: float | None = Field(alias="boostMultiply")
+
+    boost_set: float | None = Field(alias="boostSet")
+
+    effective: float
+    """-1 when unlimited"""
+
+    license: float | None
+    """The licence's value; null when only add-ons or an exception grant it"""
+
+    unlimited: bool
+    """The licence, an add-on or a boost is unlimited; only an exception's SET makes it finite
+    again
+    """
+
+
+class ProviderChangeDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    effective_from: Literal["next_composition"] = Field(alias="effectiveFrom")
+    """Invoices already composed keep their provider"""
+
+    from_: BillingProviderKind | str = Field(alias="from")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    to: BillingProviderKind | str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ProviderLineLimit(KaitenModel):
+    items: int
+    """The provider items the invoice needs"""
+
+    limit: int
+    """The most the provider takes on one invoice"""
+
+    provider_kind: Literal["STRIPE"] = Field(alias="providerKind")
+
+
+class PublishableKeyEventDelivered(KaitenModel):
+    allowed_origins: list[str] = Field(alias="allowedOrigins")
+
+    anonymous_checkout: bool = Field(alias="anonymousCheckout")
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    id: str
+
+    key_hint: str = Field(alias="keyHint")
+    """The last four characters of the key"""
+
+    label: str
+
+    revoked_at: datetime | None = Field(alias="revokedAt")
+
+    turnstile_site_key: str | None = Field(alias="turnstileSiteKey")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class Reconciliation(KaitenModel):
+    discounts: list[DiscountDifference]
+    """Allocations of DISCOUNT lines the provider applied with another amount, or not at all"""
+
+    due_date: DueDateDifference | None = Field(alias="dueDate")
+    """A SEND_INVOICE invoice the provider gives another due date than Kaiten's dueAt"""
+
+    extra_discounts: list[ExtraDiscount] = Field(alias="extraDiscounts")
+    """Discounts the provider applied that Kaiten did not create, such as a coupon added in its
+    dashboard
+    """
+
+    extra_in_provider: list[str] = Field(alias="extraInProvider")
+    """Provider lines Kaiten does not have"""
+
+    inclusive_tax: bool = Field(alias="inclusiveTax")
+    """Whether the provider's subtotal was compared, its tax being included in the amounts"""
+
+    lines: list[LineDifference]
+
+    missing_in_provider: list[str] = Field(alias="missingInProvider")
+    """Kaiten lines the provider does not have"""
+
+    totals: TotalsDifference
+
+    warnings: list[str] | None = None
+    """What the comparison noticed without calling it a mismatch (§12.7, V31-60)"""
+
+
+class Redemption(KaitenModel):
+    applications_count: int = Field(alias="applicationsCount")
+    """Invoices a PRICE voucher discounted"""
+
+    applications_max: int | None = Field(alias="applicationsMax")
+    """1 for ONE_TIME, durationInPeriods for REPEATING; null for FOREVER"""
+
+    code_hint: str = Field(alias="codeHint")
+
+    effective_expires_at: datetime | None = Field(alias="effectiveExpiresAt")
+    """When a boost stops applying; null for a PRICE voucher, counted in invoices, and for
+    FOREVER
+    """
+
+    effective_starts_at: datetime = Field(alias="effectiveStartsAt")
+
+    expired_at: datetime | None = Field(alias="expiredAt")
+
+    id: str
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    redeemed_at: datetime = Field(alias="redeemedAt")
+
+    revoked_at: datetime | None = Field(alias="revokedAt")
+
+    revoked_reason: str | None = Field(alias="revokedReason")
+
+    status: RedemptionStatus | str
+
+    voucher_id: str = Field(alias="voucherId")
+
+    voucher_name: str = Field(alias="voucherName")
+
+    voucher_type: VoucherType | str = Field(alias="voucherType")
+
+
+class RedemptionRules(KaitenModel):
+    annual_only: bool | None = Field(default=None, alias="annualOnly")
+    """Only for an instance with a live ANNUAL subscription"""
+
+    first_time_only: bool | None = Field(default=None, alias="firstTimeOnly")
+    """Only for a customer none of whose instances has paid an invoice"""
+
+    minimum_subscription_amount: MinimumAmount | None = Field(
+        default=None, alias="minimumSubscriptionAmount"
+    )
+    """Only for a live subscription whose base price is at least this. Strictly positive; omit
+    it for no minimum (0 is refused with .InvalidRedemptionRules).
+    """
+
+
 class Release(KaitenModel):
     """An immutable, versioned set of components."""
 
@@ -1635,17 +3542,91 @@ class Release(KaitenModel):
 
 class ReportEntitlementUsageBody(KaitenModel):
     behavior: UsageBehavior | str | None = None
-    """Report behavior: append folds the value into the stored total through the aggregation
-    method; set overwrites it
+    """Numeric behavior: append folds the value into the counter; set replaces it for ordinary
+    NUMBER entitlements. AI credit entitlements accept only append adjustments. For
+    ai_usage, omit behavior or use append; phase selects reserve or commit.
     """
 
     metadata: dict[str, Any] | None = None
-    """Optional metadata for the usage report"""
+    """Optional metadata for the usage report, a JSON object stored with it in the usage
+    history when its compact encoding is at most 4 KiB. Above that it is not stored, the
+    report is still counted, and the response carries Kaiten-Metadata-Dropped: too_large. It
+    must contain no personal data: anyone who can read the organization's instances can read
+    it, for as long as the usage history is kept. Numbers are read as 64-bit floats, so send
+    large identifiers as strings.
+    """
 
     value: ReportUsageValue
-    """Reported entitlement value, discriminated by the 'type' field. Usage reporting accepts
-    the number variant only.
+    """Usage input for an entitlement, discriminated by type. Ordinary numeric entitlements
+    accept number with append or set. NUMBER_AI_CREDIT is a numeric entitlement with model-
+    usage calculation: send ai_usage to reserve or commit provider quantities, or number
+    with append for credit adjustments/refunds. Read responses remain numeric credit
+    counters.
     """
+
+
+class ReportedEntitlementUsage(KaitenModel):
+    ai: AiUsageOutcome | None = None
+    """Outcome of this AI report; absent on ordinary reads"""
+
+    current_period_end: datetime | None = Field(default=None, alias="currentPeriodEnd")
+    """End of the current usage window (exclusive). Null for a lifetime entitlement (no
+    configured reset period).
+    """
+
+    current_period_start: datetime | None = Field(default=None, alias="currentPeriodStart")
+    """Start of the current usage window (inclusive). Null for a lifetime entitlement (no
+    configured reset period).
+    """
+
+    entitlement_id: str = Field(alias="entitlementId")
+    """Unique identifier for the entitlement"""
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+    """URL-friendly identifier of the entitlement"""
+
+    license_id: str = Field(alias="licenseId")
+    """Unique identifier for the license to which this entitlement usage belongs"""
+
+    license_slug: str = Field(alias="licenseSlug")
+    """URL-friendly identifier of the license"""
+
+    limit: EntitlementValue | None = None
+    """The effective value this usage is measured against (the licence's grant, with the
+    instance's add-ons and boosts applied; source and provenance say which), discriminated
+    by the 'type' field. Absent when nothing grants the entitlement a value; -1 means
+    unlimited for a NUMBER entitlement.
+    """
+
+    limit_cap_exceeded_overage_percent: int | None = Field(
+        default=None, alias="limitCapExceededOveragePercent"
+    )
+    """How far above limit usage is still accepted, in percent: -1 unlimited, 0 a hard limit.
+    Absent for BOOLEAN and CONFIG.
+    """
+
+    provenance: Provenance | None
+    """What the licence, the add-ons and the boosts each contribute. Null on numeric journal
+    replay; AI phase replay preserves its original snapshot.
+    """
+
+    reserved: str | None = None
+    """Open, unexpired reserved credits; present only on AI credit pools"""
+
+    source: EntitlementSource | str | None
+    """license: the licence grants it (add-ons, boosts and an exception may change it); addon:
+    an add-on attached does; exception: only the instance's exception does. Null on numeric
+    journal replay; AI phase replay preserves its original snapshot.
+    """
+
+    transaction_id: str | None = Field(alias="transactionId")
+    """The Idempotency-Key this report was accepted under, echoed on the first answer and on
+    every replay; null when the request carried none (always null for AI usage, whose phase
+    key is ai.transactionId). A client can tell from it that the server honours the key.
+    """
+
+    value: EntitlementValue
+    """Resolved entitlement value, discriminated by the 'type' field"""
 
 
 class RolloutDateTargeting(KaitenModel):
@@ -1704,6 +3685,19 @@ class RolloutStep(KaitenModel):
     variant: str
 
 
+class ScheduledChange(KaitenModel):
+    effective_at: datetime = Field(alias="effectiveAt")
+    """The boundary it applies at: the current period's end"""
+
+    license_slug: str = Field(alias="licenseSlug")
+    """The licence version of that price"""
+
+    price: Price
+    """The FLAT_FEE price the subscription moves to"""
+
+    scheduled_at: datetime = Field(alias="scheduledAt")
+
+
 class ServiceAccount(KaitenModel):
     """A machine identity inside an organization, owning API tokens."""
 
@@ -1723,11 +3717,100 @@ class ServiceAccount(KaitenModel):
     tokens: list[Token] | None
 
 
+class SessionEventDelivered(KaitenModel):
+    billing_period: BillingPeriod | str = Field(alias="billingPeriod")
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    client_reference_id: str | None = Field(alias="clientReferenceId")
+    """The vendor's opaque reference, as given at the start"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    customer_slug: str | None = Field(alias="customerSlug")
+    """The customer the completion created; null before"""
+
+    email: str
+    """The address the visitor gave at the start"""
+
+    instance_slug: str | None = Field(alias="instanceSlug")
+    """The instance the completion created; null before"""
+
+    license_slug: str = Field(alias="licenseSlug")
+
+    session_id: str = Field(alias="sessionId")
+
+    status: CheckoutSessionEventStatus | str
+    """OPEN on started, COMPLETED on completed; on abandoned, ABANDONED (never completed, slugs
+    null) or EXPIRED (its INCOMPLETE subscription expired or was canceled unpaid, slugs set)
+    """
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class StatusChangeDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    from_: SubscriptionStatus | str = Field(alias="from")
+
+    instance_billing_id: str = Field(alias="instanceBillingId")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    reason: SubscriptionStatusChangeReason | str
+
+    to: SubscriptionStatus | str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class SyncFailureDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    consecutive_failures: int = Field(alias="consecutiveFailures")
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    last_sync_error: str = Field(alias="lastSyncError")
+
+    last_synced_at: datetime = Field(alias="lastSyncedAt")
+
+    provider_kind: str = Field(alias="providerKind")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class SystemTokenIssuance(KaitenModel):
     """A platform credential minted a token inside this organization."""
 
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
     credential_kind: str = Field(alias="credentialKind")
     """Credential class that performed the mint; "platform" is the system:kaiten identity"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
 
     expires_at: datetime | None = Field(default=None, alias="expiresAt")
     """Absent when the minted credential does not expire"""
@@ -1750,6 +3833,12 @@ class SystemTokenIssuance(KaitenModel):
     slug: str
     """Server-assigned identifier of the minted credential"""
 
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
 
 class TargetingContext(KaitenModel):
     roots: list[TargetingContextNode]
@@ -1761,6 +3850,9 @@ class TargetingContext(KaitenModel):
 class TargetingContextNode(KaitenModel):
     description: str | None = None
     """What this value means, shown by the editor"""
+
+    entitlement_type: str | None = Field(default=None, alias="entitlementType")
+    """Original catalogue type on a known entitlement entry only, not a metadata or CONFIG key"""
 
     entries: list[TargetingContextNode] | None = None
     """Shape of each known key, for a map whose entries differ. Named after the key"""
@@ -1802,6 +3894,11 @@ class TargetingRuleIssue(KaitenModel):
 
 
 class TargetingRuleRehearsal(KaitenModel):
+    entitlement_types: dict[str, str] = Field(alias="entitlementTypes")
+    """Original catalogue types by known entitlement slug; classifies facts.entitlements
+    without interpreting arbitrary CONFIG or metadata keys
+    """
+
     evaluation_error: str | None = Field(default=None, alias="evaluationError")
     """Why the engine could not answer, when it could not — e.g. the rule reads a host
     attribute this context does not carry. At a real evaluation the rule would simply not
@@ -1860,6 +3957,50 @@ class Token(KaitenModel):
     """
 
 
+class TotalsDifference(KaitenModel):
+    kaiten_total: int = Field(alias="kaitenTotal")
+
+    provider_subtotal: int | None = Field(default=None, alias="providerSubtotal")
+
+    provider_total_discount: int | None = Field(default=None, alias="providerTotalDiscount")
+    """With inclusive tax: the provider's discounts, already taken off its subtotal"""
+
+    provider_total_excluding_tax: int = Field(alias="providerTotalExcludingTax")
+
+
+class TrialCharge(KaitenModel):
+    amount: int
+
+    billing_period: BillingPeriod | str = Field(alias="billingPeriod")
+
+    currency: str
+
+
+class TrialCustomer(KaitenModel):
+    billing_email: str | None = Field(alias="billingEmail")
+    """Personal data: the second payload that carries an e-mail (D-56)"""
+
+    name: str
+
+    slug: str
+
+
+class TrialInstance(KaitenModel):
+    name: str
+
+    slug: str
+
+
+class TrialPaymentMethod(KaitenModel):
+    brand: str | None
+
+    exp_month: int | None = Field(alias="expMonth")
+
+    exp_year: int | None = Field(alias="expYear")
+
+    last4: str | None
+
+
 class User(KaitenModel):
     """A reference to the user behind an action."""
 
@@ -1896,6 +4037,739 @@ class VendorCosts(KaitenModel):
     per_unit: str | None = Field(default=None, alias="perUnit")
 
 
+class Voucher(KaitenModel):
+    applicable_addon_ids: list[str] = Field(alias="applicableAddonIds")
+    """Only instances holding one of these add-on versions can redeem it; any when empty"""
+
+    applicable_addon_price_ids: list[str] = Field(alias="applicableAddonPriceIds")
+
+    applicable_license_ids: list[str] = Field(alias="applicableLicenseIds")
+    """Only instances on these licence versions can redeem it; any when empty"""
+
+    applicable_license_price_ids: list[str] = Field(alias="applicableLicensePriceIds")
+
+    code: str | None = None
+    """The code to redeem. Returned to read:vouchers callers only; never in an event."""
+
+    code_hint: str = Field(alias="codeHint")
+    """The last four characters of the normalized code"""
+
+    created_at: datetime = Field(alias="createdAt")
+
+    currency: str | None
+    """The currency of a FIXED_AMOUNT discount"""
+
+    description: str | None
+
+    duration: VoucherDuration | str
+    """PRICE: how many invoices it discounts (one, durationInPeriods, or every one). BOOST and
+    FLAG_GRANT: how long a redemption lasts, in the subscription's billing periods.
+    COMPOSITE: both, each for its part.
+    """
+
+    duration_in_periods: int | None = Field(alias="durationInPeriods")
+
+    expires_at: datetime | None = Field(alias="expiresAt")
+
+    flag_grants: list[FlagGrant] = Field(alias="flagGrants")
+    """The flag variants a FLAG_GRANT grants"""
+
+    grants: list[Grant]
+    """What an ENTITLEMENT_BOOST changes"""
+
+    id: str
+
+    max_redemptions: int | None = Field(alias="maxRedemptions")
+
+    name: str
+
+    price_applies_to: DiscountAppliesTo | str | None = Field(alias="priceAppliesTo")
+
+    price_discount_type: DiscountType | str | None = Field(alias="priceDiscountType")
+
+    price_discount_value: str | None = Field(alias="priceDiscountValue")
+    """A percentage in (0, 100], or an integer amount in minor units of currency"""
+
+    redemption_rules: RedemptionRules = Field(alias="redemptionRules")
+
+    redemptions_count: int = Field(alias="redemptionsCount")
+
+    restricted_customer_slug: str | None = Field(alias="restrictedCustomerSlug")
+    """Only this customer's instances can redeem it"""
+
+    starts_at: datetime | None = Field(alias="startsAt")
+
+    status: VoucherStatus | str
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    voucher_type: VoucherType | str = Field(alias="voucherType")
+
+
+class AddonDelivered(Addon):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class AddonGrantUpdateDelivered(AddonEntitlement):
+    addon_slug: str = Field(alias="addonSlug")
+    """The add-on version the grant belongs to"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class AddonPriceUpdateDelivered(Price):
+    addon_slug: str = Field(alias="addonSlug")
+    """The add-on version the price belongs to"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class AddonUpdateDelivered(Addon):
+    changed_fields: list[str] | None = Field(alias="changedFields")
+    """The members the change touched, as the API names them"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    compatible_license_families: list[str] | None = Field(alias="compatibleLicenseFamilies")
+    """The licence families the version fits after the change"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class BillingStartedDelivered(InstanceBilling):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    resubscribed: bool
+    """Set when a CANCELED subscription was subscribed again"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class CancellationChangeDelivered(InstanceBilling):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    effective_at: datetime = Field(alias="effectiveAt")
+    """The boundary the cancellation takes effect at"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class CancellationDelivered(InstanceBilling):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    final_invoice_id: str | None = Field(alias="finalInvoiceId")
+    """The FINAL invoice; null when the cancellation issued none (a trial)"""
+
+    mode: CancellationMode | str
+    """How it was canceled; a trial is canceled at once in either mode"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ComponentDelivered(Component):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ConversionRuleDelivered(ConversionRule):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class CustomerEventDelivered(Customer):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class DeploymentZoneDelivered(DeploymentZone):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class EntitlementDelivered(Entitlement):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class EntitlementGroupDelivered(EntitlementGroup):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class EntitlementUsageDelivered(EntitlementUsage):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class FeatureFlagDelivered(FeatureFlag):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class HeldInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    hold_detail: HoldDetail = Field(alias="holdDetail")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class InstanceAddonUpdateDelivered(InstanceAddon):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    previous_quantity: int | None = Field(default=None, alias="previousQuantity")
+    """The quantity before a quantity change"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class InstanceDelivered(Instance):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class InstanceUpdateDelivered(Instance):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    license_change_reason: Literal["BILLING_FALLBACK"] | None = Field(alias="licenseChangeReason")
+    """BILLING_FALLBACK: the subscription ended and the instance moved to its family's fallback
+    (V31-66). Null for any other change, the move a paid checkout applies included
+    """
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class IssuedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    license_id: str = Field(alias="licenseId")
+
+    lines: list[InvoiceLine]
+
+    lines_truncated: bool | None = Field(default=None, alias="linesTruncated")
+    """Set when the lines did not fit the event: read the invoice for all of them"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class LicenseDelivered(License):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class LicenseEntitlementDelivered(LicenseEntitlement):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class LicenseFamilyViewDelivered(LicenseFamilyView):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class LicensePriceEventDelivered(Price):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    family_slug: str = Field(alias="familySlug")
+    """The family of that version"""
+
+    license_slug: str = Field(alias="licenseSlug")
+    """The licence version the price belongs to"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class LicensePriceUpdatedEventDelivered(Price):
+    changed_fields: list[str] | None = Field(alias="changedFields")
+    """The members the update changed, as the API names them"""
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    family_slug: str = Field(alias="familySlug")
+    """The family of that version"""
+
+    license_slug: str = Field(alias="licenseSlug")
+    """The licence version the price belongs to"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class MetadataFieldDelivered(MetadataField):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class MismatchedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    reconciliation_detail: Reconciliation = Field(alias="reconciliationDetail")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ModelDelivered(Model):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PaidInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    external_reference: str | None = Field(default=None, alias="externalReference")
+
+    note: str | None = None
+    """The note given when it was marked paid, kept only here"""
+
+    source: PaymentSource | str
+    """MARK_PAID: recorded by the organization. ZERO_TOTAL: nothing was owed"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PaymentFailedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    failure_code: str = Field(alias="failureCode")
+    """The provider's decline or failure code, such as card_declined, expired_card,
+    authentication_required or no_payment_method
+    """
+
+    requires_action: bool = Field(alias="requiresAction")
+    """The customer must authenticate the payment on the invoice's hosted page"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PushFailedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    last_push_error: str = Field(alias="lastPushError")
+    """The provider's code and message, never a request body"""
+
+    push_attempts: int = Field(alias="pushAttempts")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class PushedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    external_invoice_id: str = Field(alias="externalInvoiceId")
+
+    provider_invoice_number: str | None = Field(default=None, alias="providerInvoiceNumber")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class RedemptionDelivered(Redemption):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ReleaseDelivered(Release):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ReleasedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    hold_detail: HoldDetail = Field(alias="holdDetail")
+    """The hold it left, which the invoice no longer shows"""
+
+    release_reason: str = Field(alias="releaseReason")
+
+    released_by: str = Field(alias="releasedBy")
+    """The user who released it, or system when a later check found the journal sound"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class TrialWillEndDelivered(InstanceBilling):
+    charge: TrialCharge | None
+    """What the conversion would charge, as upcoming-invoice previews it, discounts included
+    and before any tax the provider adds; null when nothing would be
+    """
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer: TrialCustomer
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    days_left: int = Field(alias="daysLeft")
+    """Whole days from the event to trialEndsAt, rounded up; 0 once it passed"""
+
+    family_slug: str = Field(alias="familySlug")
+    """Its family"""
+
+    instance: TrialInstance
+
+    license_name: str = Field(alias="licenseName")
+    """The licence version of the base price"""
+
+    payment_method: TrialPaymentMethod | None = Field(alias="paymentMethod")
+    """The ACTIVE card the conversion would be charged to; null without one, or on NOOP"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class UncollectibleInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    reason: str
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class VoidedInvoiceDelivered(InvoiceSummary):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+    void_reason: str = Field(alias="voidReason")
+
+
+class VoucherDelivered(Voucher):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 DefaultVariant = Annotated[
     BasicVariant | RolloutDateVariant | RolloutPercentageVariant, Field(discriminator="type")
 ]
@@ -1919,19 +4793,29 @@ Targetings = list[Targeting] | None
 
 
 for _model in (
+    Addon,
+    AddonEntitlement,
     AiCredits,
     AiInference,
     AiInferencePage,
+    AiInferencePricing,
+    AiInferenceRates,
+    AiInferenceRefund,
     AiReservations,
     AiUsage,
     AiUsageOutcome,
+    AiUsageRule,
     AiUsageValue,
+    AiVendorCost,
+    AuditActor,
     AuditTrail,
     BasicTargeting,
     BasicVariant,
     BooleanEntitlementValue,
+    Capabilities,
     Component,
     ConfigEntitlementValue,
+    ConnectionDelivered,
     Connector,
     ConnectorActivation,
     ConnectorSettings,
@@ -1944,8 +4828,12 @@ for _model in (
     CustomerCreationRejected,
     CustomerIntegration,
     CustomerIntegrationResource,
+    DeletedAddonDelivered,
     Deployment,
     DeploymentZone,
+    DiscountAllocation,
+    DiscountDifference,
+    DueDateDifference,
     Entitlement,
     EntitlementGroup,
     EntitlementGroupSummary,
@@ -1953,10 +4841,21 @@ for _model in (
     EntitlementUsage,
     ErrorDetail,
     EventHeaders,
+    ExceptionEventDelivered,
+    ExhaustedEventDelivered,
+    ExpiredEventDelivered,
+    ExtraDiscount,
     FeatureFlag,
     FeatureFlagEvaluated,
+    FlagGrant,
+    Grant,
+    HandoffAcknowledgementDelivered,
+    HeldPair,
+    HoldDetail,
     Instance,
     InstanceAIModelUsageUnauthorized,
+    InstanceAddon,
+    InstanceBilling,
     InstanceEntitlementCapExceeded,
     InstanceEntitlementUsagePeriodRolledOver,
     InstanceEntitlementUsageReportAccepted,
@@ -1966,28 +4865,65 @@ for _model in (
     InstanceIntegrationResource,
     InstanceLifecycleStageChanged,
     InstanceStatusChanged,
+    InvoiceLine,
+    InvoiceLineDiscount,
+    InvoiceLineLedger,
+    InvoiceLineMetering,
+    InvoiceLineOverage,
+    InvoiceLineProvider,
+    InvoiceLineTrueUp,
+    InvoiceSummary,
     License,
     LicenseEntitlement,
     LicenseFamilyView,
+    LineDifference,
     ManifestEnvelope,
     ManifestFlag,
     MetadataField,
     MetadataFieldImpact,
     MetadataFieldImpactSample,
     MetadataFieldReordered,
+    MinimumAmount,
     Model,
     ModelUpdated,
     NumberEntitlementValue,
+    OrganizationAiInference,
+    OrganizationAiInferencePage,
+    OverageLimit,
+    PaymentMethodAttachedDelivered,
+    PaymentMethodDetachedDelivered,
+    PaymentMethodExpiringDelivered,
     PlainToken,
+    PlanChangeDelivered,
+    PlanChangeScheduleDelivered,
+    Price,
+    PriceMeter,
     Problem,
+    Provenance,
+    ProvenanceAddon,
+    ProvenanceBoost,
+    ProvenanceException,
+    ProvenanceLicense,
+    ProvenanceNumber,
+    ProviderChangeDelivered,
+    ProviderLineLimit,
+    PublishableKeyEventDelivered,
+    Reconciliation,
+    Redemption,
+    RedemptionRules,
     Release,
     ReportEntitlementUsageBody,
+    ReportedEntitlementUsage,
     RolloutDateTargeting,
     RolloutDateVariant,
     RolloutPercentageTargeting,
     RolloutPercentageVariant,
     RolloutStep,
+    ScheduledChange,
     ServiceAccount,
+    SessionEventDelivered,
+    StatusChangeDelivered,
+    SyncFailureDelivered,
     SystemTokenIssuance,
     TargetingContext,
     TargetingContextNode,
@@ -1995,9 +4931,54 @@ for _model in (
     TargetingRuleRehearsal,
     TargetingRuleVerdict,
     Token,
+    TotalsDifference,
+    TrialCharge,
+    TrialCustomer,
+    TrialInstance,
+    TrialPaymentMethod,
     User,
     Variant,
     VendorCosts,
+    Voucher,
+    AddonDelivered,
+    AddonGrantUpdateDelivered,
+    AddonPriceUpdateDelivered,
+    AddonUpdateDelivered,
+    BillingStartedDelivered,
+    CancellationChangeDelivered,
+    CancellationDelivered,
+    ComponentDelivered,
+    ConversionRuleDelivered,
+    CustomerEventDelivered,
+    DeploymentZoneDelivered,
+    EntitlementDelivered,
+    EntitlementGroupDelivered,
+    EntitlementUsageDelivered,
+    FeatureFlagDelivered,
+    HeldInvoiceDelivered,
+    InstanceAddonUpdateDelivered,
+    InstanceDelivered,
+    InstanceUpdateDelivered,
+    IssuedInvoiceDelivered,
+    LicenseDelivered,
+    LicenseEntitlementDelivered,
+    LicenseFamilyViewDelivered,
+    LicensePriceEventDelivered,
+    LicensePriceUpdatedEventDelivered,
+    MetadataFieldDelivered,
+    MismatchedInvoiceDelivered,
+    ModelDelivered,
+    PaidInvoiceDelivered,
+    PaymentFailedInvoiceDelivered,
+    PushFailedInvoiceDelivered,
+    PushedInvoiceDelivered,
+    RedemptionDelivered,
+    ReleaseDelivered,
+    ReleasedInvoiceDelivered,
+    TrialWillEndDelivered,
+    UncollectibleInvoiceDelivered,
+    VoidedInvoiceDelivered,
+    VoucherDelivered,
 ):
     _model.model_rebuild()
 del _model

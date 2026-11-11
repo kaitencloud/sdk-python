@@ -102,6 +102,7 @@ def test_discriminated_values_parse_into_their_own_class() -> None:
             "entitlementSlug": "seats",
             "licenseId": "l1",
             "licenseSlug": "growth",
+            "source": "license",
             "value": {"type": "number", "value": 7, "event_count": 3},
             "limit": {"type": "number", "value": 10},
         }
@@ -140,7 +141,12 @@ def test_report_usage_union_is_generated_without_widening_entitlement_values() -
     from pydantic import TypeAdapter, ValidationError
 
     from kaitencloud._ai_models import AiEntitlementUsage
-    from kaitencloud.types import AiUsageValue, EntitlementValue, ReportUsageValue
+    from kaitencloud.types import (
+        AiUsageValue,
+        EntitlementValue,
+        ReportedEntitlementUsage,
+        ReportUsageValue,
+    )
 
     payload = {
         "type": "ai_usage",
@@ -153,7 +159,8 @@ def test_report_usage_union_is_generated_without_widening_entitlement_values() -
     assert TypeAdapter(ReportUsageValue).validate_python({"type": "number", "value": 2}).value == 2
     with pytest.raises(ValidationError):
         TypeAdapter(EntitlementValue).validate_python(payload)
-    assert AiEntitlementUsage is EntitlementUsage
+    # An AI report answers what every usage report answers since billing.
+    assert AiEntitlementUsage is ReportedEntitlementUsage
 
 
 def test_conversion_rates_preserve_exact_decimals_and_unknown_cache_policy() -> None:
