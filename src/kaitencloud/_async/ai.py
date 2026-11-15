@@ -1,0 +1,240 @@
+# Copyright 2026 KAITEN INC
+# SPDX-License-Identifier: Apache-2.0
+
+"""Reserve, call, commit: the loop every AI wrapper runs, for one instance and one pool."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
+
+from .._ai import (
+    AiRequest,
+    Estimator,
+    UsageOf,
+    ai_usage_body,
+    default_estimator,
+    new_transaction_id,
+    request_status_of,
+)
+from .._ai_models import AiEntitlementUsage
+from .._exceptions import AiUsageUnsupportedError, KaitenError
+from ..types import AiRequestStatus, AiRequestType, AiUsageParam
+from .client import AsyncKaitenClient
+
+__all__ = ["AsyncMeter", "async_run"]
+
+T = TypeVar("T")
+
+log = logging.getLogger("kaitencloud.ai")
+
+
+class AsyncMeter:
+    """Meters AI calls against one AI credit pool of one instance.
+
+    Every call is one operation: :meth:`reserve` before it, :meth:`commit` after it, under one
+    transaction id. A reservation the pool refuses raises its typed error, and the call must
+    not be made. Everything after the call is best effort: a commit that still fails after its
+    retries is logged and dropped, because the call already happened -- the reservation then
+    expires on its own, and the call is in this process's logs, not in Kaiten.
+
+    A deployment that does not know AI usage answers the first report with a 422. The meter
+    logs it once, loudly, and from then on lets every call through unreported: metering never
+    takes the product down.
+    """
+
+    def __init__(
+        self,
+        kaiten: AsyncKaitenClient,
+        *,
+        instance: str,
+        entitlement: str,
+        estimator: Estimator | None = None,
+    ) -> None:
+        self.kaiten = kaiten
+        self.instance = instance
+        self.entitlement = entitlement
+        self.estimator: Estimator = estimator or default_estimator
+        self.unsupported = False
+
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} instance={self.instance!r} entitlement={self.entitlement!r}>"
+        )
+
+    def estimate(self, request: AiRequest) -> AiUsageParam | None:
+        """The usage to reserve for ``request``, from the meter's estimator."""
+        return self.estimator(request)
+
+    async def reserve(
+        self,
+        *,
+        model: str,
+        request_type: AiRequestType = "COMPLETION",
+        usage: AiUsageParam | None = None,
+        transaction_id: str | None = None,
+        ttl_seconds: int | None = None,
+    ) -> str | None:
+        """Reserve for one call and return its transaction id; ``None`` when unmetered.
+
+        Raises the reservation's typed error -- ``InsufficientCreditsError``,
+        ``UnknownModelError``, ``ModelNotAuthorizedError`` -- when the pool refuses it. Only
+        an unsupported deployment is swallowed, after it was logged once.
+        """
+        if self.unsupported:
+            return None
+        transaction_id = transaction_id or new_transaction_id()
+        try:
+            await self.kaiten.instances.reserve_ai_usage(
+                self.instance,
+                self.entitlement,
+                model=model,
+                request_type=request_type,
+                transaction_id=transaction_id,
+                usage=usage,
+                ttl_seconds=ttl_seconds,
+            )
+        except AiUsageUnsupportedError as error:
+            self._disable(error)
+            return None
+        return transaction_id
+
+    async def commit(
+        self,
+        transaction_id: str | None,
+        *,
+        request_status: AiRequestStatus = "SUCCESS",
+        usage: AiUsageParam | None = None,
+        model: str | None = None,
+        request_type: AiRequestType | None = None,
+    ) -> AiEntitlementUsage | None:
+        """Commit one call; never raises, because the call it accounts for already happened.
+
+        ``transaction_id`` is the reservation's. ``None`` -- a call that went unreserved --
+        commits under a fresh id, with ``model`` and ``request_type`` naming what ran.
+        """
+        if self.unsupported:
+            return None
+        if transaction_id is None:
+            transaction_id = new_transaction_id()
+        if usage is not None:
+            try:
+                ai_usage_body(usage)
+            except Exception:
+                log.exception(
+                    "Kaiten AI usage: invalid usage for transaction %s on %s/%s; "
+                    "attempting settlement without usage",
+                    transaction_id,
+                    self.instance,
+                    self.entitlement,
+                )
+                usage = None
+        try:
+            return await self.kaiten.instances.commit_ai_usage(
+                self.instance,
+                self.entitlement,
+                transaction_id=transaction_id,
+                request_status=request_status,
+                usage=usage,
+                model=model,
+                request_type=request_type,
+            )
+        except AiUsageUnsupportedError as error:
+            self._disable(error)
+        except (KaitenError, ValueError):
+            log.exception(
+                "Kaiten AI usage: the commit of transaction %s on %s/%s failed; its "
+                "reservation will expire and the call goes unbilled",
+                transaction_id,
+                self.instance,
+                self.entitlement,
+            )
+        return None
+
+    async def release(self, transaction_id: str | None) -> None:
+        """Release a reservation whose call never reached the provider: nothing is charged."""
+        if transaction_id is not None:
+            await self.commit(transaction_id, request_status="NOT_SENT")
+
+    async def run(
+        self,
+        fn: Callable[[], Awaitable[T]],
+        *,
+        model: str,
+        request_type: AiRequestType = "COMPLETION",
+        estimate: AiUsageParam | None = None,
+        usage: UsageOf | None = None,
+        transaction_id: str | None = None,
+        ttl_seconds: int | None = None,
+    ) -> T:
+        """Reserve ``estimate``, call ``fn``, commit what it reports, and return its result.
+
+        ``usage`` reads the consumption out of ``fn``'s result. When ``fn`` raises, the commit
+        says how it ended (:func:`~kaitencloud.ai.request_status_of`) and the error propagates.
+        """
+        reserved = await self.reserve(
+            model=model,
+            request_type=request_type,
+            usage=estimate,
+            transaction_id=transaction_id,
+            ttl_seconds=ttl_seconds,
+        )
+        if reserved is None:
+            return await fn()
+        try:
+            result = await fn()
+        except Exception as error:
+            await self.commit(reserved, request_status=request_status_of(error))
+            raise
+        actual_usage = None
+        if usage is not None:
+            try:
+                actual_usage = usage(result)
+            except Exception:
+                log.exception(
+                    "Kaiten AI usage: usage extraction for transaction %s on %s/%s failed; "
+                    "attempting settlement without usage",
+                    reserved,
+                    self.instance,
+                    self.entitlement,
+                )
+        await self.commit(reserved, usage=actual_usage)
+        return result
+
+    def _disable(self, error: AiUsageUnsupportedError) -> None:
+        if not self.unsupported:
+            log.error(
+                "Kaiten AI usage is NOT being reported for %s/%s: %s. Calls go through "
+                "unmetered until this client is recreated.",
+                self.instance,
+                self.entitlement,
+                error,
+            )
+        self.unsupported = True
+
+
+async def async_run(
+    kaiten: AsyncKaitenClient,
+    fn: Callable[[], Awaitable[T]],
+    *,
+    instance: str,
+    entitlement: str,
+    model: str,
+    request_type: AiRequestType = "COMPLETION",
+    estimate: AiUsageParam | None = None,
+    usage: UsageOf | None = None,
+    transaction_id: str | None = None,
+    ttl_seconds: int | None = None,
+) -> T:
+    """One metered call: see :meth:`AsyncMeter.run`."""
+    meter = AsyncMeter(kaiten, instance=instance, entitlement=entitlement)
+    return await meter.run(
+        fn,
+        model=model,
+        request_type=request_type,
+        estimate=estimate,
+        usage=usage,
+        transaction_id=transaction_id,
+        ttl_seconds=ttl_seconds,
+    )

@@ -86,3 +86,11 @@ the async source, the contract or a generator, then run `task generate`.
 Do not report unpatched vulnerabilities in public issues.
 
 See [SECURITY.md](./SECURITY.md).
+
+## Optional AI provider compatibility
+
+Provider packages are optional extras, not core dependencies. Their supported
+major ranges are declared in `pyproject.toml`; CI checks synthetic usage and
+in-process mock transports, never real provider calls. See
+[`internal-docs/AI_WRAPPERS.md`](internal-docs/AI_WRAPPERS.md) for the bounded
+surface and verified agent SDK constraints.

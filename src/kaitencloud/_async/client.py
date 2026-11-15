@@ -30,6 +30,7 @@ from .resources import (
     AsyncComponents,
     AsyncConnectors,
     AsyncCustomers,
+    AsyncDashboard,
     AsyncDeploymentZones,
     AsyncEntitlementGroups,
     AsyncEntitlements,
@@ -39,6 +40,7 @@ from .resources import (
     AsyncLicenseFamilies,
     AsyncLicenses,
     AsyncMetadataFields,
+    AsyncModels,
     AsyncReleases,
     AsyncServiceAccounts,
 )
@@ -148,6 +150,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
     """Connectors: activation and settings of the integrations this deployment offers."""
 
     customers: AsyncCustomers
+    dashboard: AsyncDashboard
     """Customers: the end clients of your product."""
 
     deployment_zones: AsyncDeploymentZones
@@ -219,6 +222,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
         self.components = AsyncComponents(api)
         self.connectors = AsyncConnectors(api)
         self.customers = AsyncCustomers(api)
+        self.dashboard = AsyncDashboard(api)
         self.deployment_zones = AsyncDeploymentZones(api)
         self.entitlement_groups = AsyncEntitlementGroups(api)
         self.entitlements = AsyncEntitlements(api)
@@ -228,6 +232,7 @@ class AsyncKaitenClient(_AsyncBaseClient):
         self.license_families = AsyncLicenseFamilies(api)
         self.licenses = AsyncLicenses(api)
         self.metadata_fields = AsyncMetadataFields(api)
+        self.models = AsyncModels(api)
         self.releases = AsyncReleases(api)
         self.service_accounts = AsyncServiceAccounts(api)
 

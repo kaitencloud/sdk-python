@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Collection, Mapping
 from typing import Any, TypeVar
 
 import httpx
@@ -107,6 +107,9 @@ class AsyncAPIClient:
         headers: Mapping[str, str] | None = None,
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
+        omit_headers: Collection[str] = (),
+        max_retries: int | None = None,
+        retry_statuses: Collection[int] | None = None,
     ) -> httpx.Response:
         """Send one operation and return its successful response.
 
@@ -115,9 +118,16 @@ class AsyncAPIClient:
         is idempotent, ``idempotent=True`` says so, or it never left the machine. A 401 or 403 is
         never retried -- the SDK cannot mint a better credential, and hammering a rejected one
         only burns the rate budget.
+
+        ``headers`` are sent on every attempt, so a key in them is the same on each retry.
+        ``omit_headers`` removes case-insensitive names after merging all defaults, including
+        those on a supplied HTTP client, without changing either client's configuration.
+        ``max_retries`` and ``retry_statuses`` narrow the policy for one call: the AI usage
+        phases retry a fixed number of times, on a fixed set of statuses.
         """
         url = self.base_url + path.lstrip("/")
         retryable = method in IDEMPOTENT_METHODS if idempotent is None else idempotent
+        retries = self.max_retries if max_retries is None else max_retries
         attempt = 0
 
         while True:
@@ -128,11 +138,14 @@ class AsyncAPIClient:
                 body=body,
                 headers={**await self._headers(path), **(headers or {})},
             )
+            for name in omit_headers:
+                if name in request.headers:
+                    del request.headers[name]
             try:
                 response = await self.http_client.send(request)
             except httpx.TransportError as error:
-                if attempt < self.max_retries and (retryable or isinstance(error, NEVER_SENT)):
-                    await self._back_off(request, attempt, repr(error))
+                if attempt < retries and (retryable or isinstance(error, NEVER_SENT)):
+                    await self._back_off(request, attempt, repr(error), None, retries)
                     attempt += 1
                     continue
                 if isinstance(error, httpx.TimeoutException):
@@ -143,9 +156,14 @@ class AsyncAPIClient:
                 return response
 
             status = response.status_code
-            if retryable and attempt < self.max_retries and (status in (408, 429) or status >= 500):
+            worth_retrying = (
+                status in (408, 429) or status >= 500
+                if retry_statuses is None
+                else status in retry_statuses
+            )
+            if retryable and attempt < retries and worth_retrying:
                 await self._back_off(
-                    request, attempt, f"HTTP {status}", response.headers.get("retry-after")
+                    request, attempt, f"HTTP {status}", response.headers.get("retry-after"), retries
                 )
                 attempt += 1
                 continue
@@ -180,9 +198,22 @@ class AsyncAPIClient:
         body: Any = None,
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
+        headers: Mapping[str, str] | None = None,
+        omit_headers: Collection[str] = (),
+        max_retries: int | None = None,
+        retry_statuses: Collection[int] | None = None,
     ) -> ModelT:
         response = await self.request(
-            method, path, params=params, body=body, idempotent=idempotent, errors=errors
+            method,
+            path,
+            params=params,
+            body=body,
+            idempotent=idempotent,
+            errors=errors,
+            headers=headers,
+            omit_headers=omit_headers,
+            max_retries=max_retries,
+            retry_statuses=retry_statuses,
         )
         return self.validate(model, self.decode(response), response)
 
@@ -352,7 +383,12 @@ class AsyncAPIClient:
         return headers
 
     async def _back_off(
-        self, request: httpx.Request, attempt: int, reason: str, retry_after: str | None = None
+        self,
+        request: httpx.Request,
+        attempt: int,
+        reason: str,
+        retry_after: str | None = None,
+        retries: int | None = None,
     ) -> None:
         delay = retry_delay(attempt, retry_after)
         log.info(
@@ -361,7 +397,7 @@ class AsyncAPIClient:
             request.url.path,
             delay,
             attempt + 1,
-            self.max_retries,
+            self.max_retries if retries is None else retries,
             reason,
         )
         await async_sleep(delay)

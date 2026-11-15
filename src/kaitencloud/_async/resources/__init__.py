@@ -5,6 +5,7 @@ from .billing import AsyncBilling
 from .components import AsyncComponents
 from .connectors import AsyncConnectors
 from .customers import AsyncCustomers
+from .dashboard import AsyncDashboard
 from .deployment_zones import AsyncDeploymentZones
 from .entitlement_groups import AsyncEntitlementGroups
 from .entitlements import AsyncEntitlements
@@ -14,6 +15,7 @@ from .integrations import AsyncIntegrations
 from .license_families import AsyncLicenseFamilies
 from .licenses import AsyncLicenses
 from .metadata_fields import AsyncMetadataFields
+from .models import AsyncModels
 from .releases import AsyncReleases
 from .service_accounts import AsyncServiceAccounts
 
@@ -22,6 +24,7 @@ __all__ = [
     "AsyncComponents",
     "AsyncConnectors",
     "AsyncCustomers",
+    "AsyncDashboard",
     "AsyncDeploymentZones",
     "AsyncEntitlementGroups",
     "AsyncEntitlements",
@@ -31,6 +34,7 @@ __all__ = [
     "AsyncLicenseFamilies",
     "AsyncLicenses",
     "AsyncMetadataFields",
+    "AsyncModels",
     "AsyncReleases",
     "AsyncServiceAccounts",
 ]

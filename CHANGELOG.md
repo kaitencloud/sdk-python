@@ -46,6 +46,18 @@ only gained optional arguments.
   are typed. An event carries the delivery's trace `headers`, and its `data` who wrote the change
   (`via`, `checkout_session_id`, `customer_session_id`); that `data` is still an instance of the
   class 1.0.0 typed it with.
+- Regenerated the AI credits contract, including write-only `ReportUsageValue`,
+  typed usage outcomes/gauges and model/conversion-rule events. Original AI
+  response bridge names now alias generated models.
+- Model catalogue CRUD, license conversion-rule management, paged inference
+  history and open reservation reads on both clients.
+
+- Optional OpenAI and Anthropic drop-in clients and existing-client wrappers, with
+  allow-listed reserve/call/commit accounting, sync/async streaming settlement,
+  pluggable estimates and provider timeout-based reservation lifetimes.
+- Documented current agent SDK accounting interfaces and the missing supported
+  per-model-inference gating boundary; no misleading run-budget wrappers.
+
 - `feature_flags.targeting_context()`, `feature_flags.lint_rule()` and `feature_flags.test_rule()`:
   the facts a targeting rule can read, the check the API runs before accepting one, and a dry run
   of a rule against a customer or an instance.
@@ -57,9 +69,16 @@ only gained optional arguments.
   `EntitlementUsage.source`, `AuditTrail.actor`, `ConnectorSettings.configured`, the trial and
   catalog settings of `LicenseFamilyView`, and the period rollover event's `reason`. From an older
   Kaiten, those reads raise `APIResponseValidationError`, and that event `WebhookPayloadError`.
+- `dashboard.summary()` requires a Kaiten that reads each record of activity only as far back as
+  the organization keeps it: `DashboardSummary.range` carries `usageHistoryFrom`,
+  `usageHistoryDays`, `auditTrailFrom` and `auditTrailDays`, and a deployment that does not send
+  them raises `APIResponseValidationError`.
 - `ResetAnchor` gains `BILLING_PERIOD`, and `Scope` the `read:` and `write:` scopes of `addons`,
   `billing`, `customer_sessions`, `profile`, `publishable_keys`, `users`, `voucher_redemptions` and
   `vouchers`.
+- Unreleased AI helpers, meters and provider wrappers select the AI credit entitlement
+  with `entitlement=` rather than `pool=`; the old keyword is not accepted.
+  Low-level instance methods still use `entitlement_slug`, and HTTP routes are unchanged.
 
 ### Fixed
 

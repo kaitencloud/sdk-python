@@ -7,6 +7,7 @@ from .billing import Billing
 from .components import Components
 from .connectors import Connectors
 from .customers import Customers
+from .dashboard import Dashboard
 from .deployment_zones import DeploymentZones
 from .entitlement_groups import EntitlementGroups
 from .entitlements import Entitlements
@@ -16,6 +17,7 @@ from .integrations import Integrations
 from .license_families import LicenseFamilies
 from .licenses import Licenses
 from .metadata_fields import MetadataFields
+from .models import Models
 from .releases import Releases
 from .service_accounts import ServiceAccounts
 
@@ -24,6 +26,7 @@ __all__ = [
     "Components",
     "Connectors",
     "Customers",
+    "Dashboard",
     "DeploymentZones",
     "EntitlementGroups",
     "Entitlements",
@@ -33,6 +36,7 @@ __all__ = [
     "LicenseFamilies",
     "Licenses",
     "MetadataFields",
+    "Models",
     "Releases",
     "ServiceAccounts",
 ]

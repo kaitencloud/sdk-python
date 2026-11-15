@@ -24,6 +24,26 @@ __all__ = [
     "AddonPriceUpdateDelivered",
     "AddonUpdateDelivered",
     "AggregationMethod",
+    "AiChargeOnError",
+    "AiCredits",
+    "AiInference",
+    "AiInferencePage",
+    "AiInferencePricing",
+    "AiInferenceRates",
+    "AiInferenceRefund",
+    "AiInferenceStatus",
+    "AiRequestStatus",
+    "AiRequestType",
+    "AiReservations",
+    "AiRuleSpecificity",
+    "AiUnitType",
+    "AiUsage",
+    "AiUsageOutcome",
+    "AiUsageOutcomeStatus",
+    "AiUsagePhase",
+    "AiUsageRule",
+    "AiUsageValue",
+    "AiVendorCost",
     "AuditActor",
     "AuditTrail",
     "BasicTargeting",
@@ -69,6 +89,11 @@ __all__ = [
     "ConnectorSettings",
     "ConnectorSettingsSchema",
     "ConnectorState",
+    "ConversionRates",
+    "ConversionRule",
+    "ConversionRuleDelivered",
+    "ConversionRuleStatus",
+    "ConversionRuleUpdatedDelivered",
     "CreatedCustomerSession",
     "Customer",
     "CustomerBilling",
@@ -77,6 +102,45 @@ __all__ = [
     "CustomerInProvider",
     "CustomerIntegration",
     "CustomerIntegrationResource",
+    "DashboardArchivedVersion",
+    "DashboardAttention",
+    "DashboardAttentionArchived",
+    "DashboardAttentionInstances",
+    "DashboardAttentionLicenses",
+    "DashboardAttentionMeters",
+    "DashboardAttentionReports",
+    "DashboardAttentionTokens",
+    "DashboardAttentionZones",
+    "DashboardBilling",
+    "DashboardConnector",
+    "DashboardConnectors",
+    "DashboardCustomerFigures",
+    "DashboardDayReports",
+    "DashboardFeatureFlags",
+    "DashboardFigures",
+    "DashboardFlagEvaluations",
+    "DashboardInstance",
+    "DashboardInstanceFigures",
+    "DashboardInstanceReports",
+    "DashboardIntegrations",
+    "DashboardInvoicedCurrency",
+    "DashboardLicenseEnding",
+    "DashboardLicenseFamilyMix",
+    "DashboardLicenseVersionMix",
+    "DashboardLicenses",
+    "DashboardLicensesEnding",
+    "DashboardMeter",
+    "DashboardPublishableKeys",
+    "DashboardRange",
+    "DashboardRangeWindow",
+    "DashboardStandingCounts",
+    "DashboardSubscriptions",
+    "DashboardSummary",
+    "DashboardTokenExpiring",
+    "DashboardTokens",
+    "DashboardUsageReportFigures",
+    "DashboardUsageReports",
+    "DashboardZone",
     "DefaultVariant",
     "DeletedAddonDelivered",
     "Deployment",
@@ -127,6 +191,7 @@ __all__ = [
     "HoldRecord",
     "IncreaseBilling",
     "Instance",
+    "InstanceAIModelUsageUnauthorizedDelivered",
     "InstanceAddon",
     "InstanceAddonUpdateDelivered",
     "InstanceBilling",
@@ -139,6 +204,7 @@ __all__ = [
     "InstanceIntegration",
     "InstanceIntegrationResource",
     "InstanceLifecycleStageChanged",
+    "InstanceStanding",
     "InstanceStatus",
     "InstanceStatusChanged",
     "InstanceUpdateDelivered",
@@ -169,6 +235,8 @@ __all__ = [
     "LicenseLifecycleState",
     "LicensePriceEventDelivered",
     "LicensePriceUpdatedEventDelivered",
+    "LicenseTerm",
+    "LicenseTermStatus",
     "LicenseType",
     "LineDifference",
     "LineReportPage",
@@ -182,6 +250,11 @@ __all__ = [
     "MetadataResourceType",
     "MinimumAmount",
     "MismatchedInvoiceDelivered",
+    "Model",
+    "ModelDelivered",
+    "ModelModality",
+    "ModelStatus",
+    "ModelUpdatedDelivered",
     "NumberEntitlementValue",
     "Outcome",
     "OverageLimit",
@@ -256,6 +329,8 @@ __all__ = [
     "Release",
     "ReleaseDelivered",
     "ReleasedInvoiceDelivered",
+    "ReportEntitlementUsageBody",
+    "ReportUsageValue",
     "ReportedEntitlementUsage",
     "ResetAnchor",
     "ResetPeriod",
@@ -317,6 +392,7 @@ __all__ = [
     "User",
     "Validity",
     "Variant",
+    "VendorCosts",
     "VoidedInvoiceDelivered",
     "Voucher",
     "VoucherDelivered",
@@ -338,6 +414,26 @@ it is on sale, ``ARCHIVED`` once it has been withdrawn.
 
 AggregationMethod = Literal["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "LATEST"]
 """How each reported usage value folds into an entitlement's stored total."""
+
+AiChargeOnError = Literal["NEVER", "ALWAYS", "PROVIDER_ERROR_ONLY"]
+
+AiInferenceStatus = Literal["RESERVED", "COMMITTED", "RELEASED", "EXPIRED"]
+
+AiRequestStatus = Literal["SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SENT"]
+
+AiRequestType = Literal["COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"]
+
+AiRuleSpecificity = Literal["EXACT_TYPED", "EXACT_ALL", "ANY_TYPED", "ANY_ALL"]
+"""How the conversion rule that priced a call matched it: its own model and request type, its
+own model for every request type, any model for its request type, or any model and request
+type.
+"""
+
+AiUnitType = Literal["image", "second", "frame"]
+
+AiUsageOutcomeStatus = Literal["RESERVED", "COMMITTED", "RELEASED"]
+
+AiUsagePhase = Literal["reserve", "commit"]
 
 BillingDisabledReason = Literal["DEPLOYMENT_DISABLED", "NOT_ENTITLED"]
 """Why billing is off: the deployment disabled it, or the plan does not include it."""
@@ -381,6 +477,11 @@ CollectionMethod = Literal["SEND_INVOICE", "CHARGE_AUTOMATICALLY"]
 charges the customer's payment method.
 """
 
+ConversionRuleStatus = Literal["ACTIVE", "ARCHIVED"]
+
+DashboardRange = Literal["7d", "30d", "90d"]
+"""The window a dashboard summary covers: seven, thirty or ninety days."""
+
 DiscountAppliesTo = Literal["LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"]
 """What a price voucher discounts."""
 
@@ -422,6 +523,12 @@ IncreaseBilling = Literal["TRUE_UP", "NEXT_BOUNDARY"]
 from the ``NEXT_BOUNDARY``.
 """
 
+InstanceStanding = Literal["atLimit", "watch", "silent", "healthy"]
+"""The one word for an instance, over every one of its meters: ``atLimit`` when a meter
+refuses, ``watch`` when one is above its warning threshold, ``silent`` when nothing reported
+or read in the range, ``healthy`` otherwise.
+"""
+
 InstanceStatus = Literal["HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"]
 """The operational status of an instance."""
 
@@ -443,7 +550,7 @@ InvoiceStatus = Literal[
 ]
 """Where an invoice stands, from ``DRAFT`` to ``PAID``, ``UNCOLLECTIBLE`` or ``VOID``."""
 
-LicenseEntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG"]
+LicenseEntitlementType = Literal["BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"]
 """The value type of an entitlement granted by a license."""
 
 LicenseLifecycleState = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
@@ -451,11 +558,18 @@ LicenseLifecycleState = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
 while it is on sale, ``ARCHIVED`` once it has been withdrawn.
 """
 
+LicenseTermStatus = Literal["ACTIVE", "NOT_STARTED", "EXPIRED"]
+"""Where a license term stands: not started yet, active, or expired."""
+
 LicenseType = Literal["DEVELOPMENT", "TRIAL", "PAID", "COMMUNITY"]
 """The kind of a license."""
 
 MetadataResourceType = Literal["DEPLOYMENT_ZONE", "INSTANCE"]
 """The resource a metadata field applies to."""
+
+ModelModality = Literal["TEXT", "IMAGE", "AUDIO", "VIDEO", "EMBEDDING", "MULTIMODAL"]
+
+ModelStatus = Literal["ACTIVE", "DEPRECATED", "ARCHIVED"]
 
 OverrideBehavior = Literal["ADD", "OVERRIDE", "MAX"]
 """How an add-on's number grant combines with the license's: ``ADD``, ``OVERRIDE`` or ``MAX``."""
@@ -513,6 +627,7 @@ Scope = Literal[
     "read:instances",
     "read:licenses",
     "read:metadata_fields",
+    "read:models",
     "read:notifications",
     "read:organizations",
     "read:profile",
@@ -534,6 +649,7 @@ Scope = Literal[
     "write:instances",
     "write:licenses",
     "write:metadata_fields",
+    "write:models",
     "write:notifications",
     "write:organizations",
     "write:profile",
@@ -699,6 +815,233 @@ class AddonFamily(KaitenModel):
     """Every version, newest first"""
 
 
+class AiCredits(KaitenModel):
+    charged: str | None = None
+
+    computed: str | None = None
+
+    refunded: str | None = None
+    """The sum of the operation's refunds. Absent when it has none, and on a report's own answer."""
+
+    reserved: str | None = None
+
+
+class AiInference(KaitenModel):
+    authorized: bool | None = None
+
+    committed_at: datetime | None = Field(default=None, alias="committedAt")
+
+    conversion_rule_id: str | None = Field(default=None, alias="conversionRuleId")
+
+    credits: AiCredits
+
+    denial_reason: str | None = Field(default=None, alias="denialReason")
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    license_id: str | None = Field(default=None, alias="licenseId")
+    """The licence whose conversion rules were considered."""
+
+    license_slug: str | None = Field(default=None, alias="licenseSlug")
+    """Absent once the licence is deleted."""
+
+    model: str
+
+    model_slug: str | None = Field(default=None, alias="modelSlug")
+
+    pricing: AiInferencePricing | None = None
+    """The rule snapshot that priced the operation. Absent when no rule applied, and on
+    operations recorded before snapshots existed.
+    """
+
+    refunds: list[AiInferenceRefund]
+    """The refunds of the operation's charge, oldest first. Their sum is credits.refunded."""
+
+    report_seq: int | None = Field(default=None, alias="reportSeq")
+    """The pool's report counter when the operation was counted: the link to the usage journal."""
+
+    reported_at: datetime = Field(alias="reportedAt")
+
+    request_status: str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str = Field(alias="requestType")
+
+    status: AiInferenceStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    usage: AiUsage
+
+    value_after: float | None = Field(default=None, alias="valueAfter")
+
+    value_before: float | None = Field(default=None, alias="valueBefore")
+
+    vendor_cost: AiVendorCost | None = Field(default=None, alias="vendorCost")
+
+    warnings: list[str]
+    """The warnings of the phase that last wrote the operation."""
+
+    window_start: datetime | None = Field(default=None, alias="windowStart")
+
+
+class AiInferencePage(KaitenModel):
+    has_more: bool = Field(alias="hasMore")
+
+    items: list[AiInference] | None
+
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class AiInferencePricing(KaitenModel):
+    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
+
+    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
+
+    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
+
+    rates: AiInferenceRates
+
+    rule_id: str = Field(alias="ruleId")
+
+    specificity: AiRuleSpecificity | str
+    """How the rule matched: its own model and request type, its own model for every request
+    type, any model for its request type, or any model and request type.
+    """
+
+
+class AiInferenceRates(KaitenModel):
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_second: str | None = Field(default=None, alias="perSecond")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
+
+
+class AiInferenceRefund(KaitenModel):
+    created_at: datetime = Field(alias="createdAt")
+    """The instant the refund's report was dated by."""
+
+    created_by: User = Field(alias="createdBy")
+    """Who refunded; a service account is a user."""
+
+    credits: str
+    """Credits given back, a positive decimal."""
+
+    id: str
+
+    reason: str | None = None
+    """Why, as the caller wrote it."""
+
+    report_seq: int = Field(alias="reportSeq")
+    """The pool's report counter of the negative report that moved the counter: the link to the
+    usage journal.
+    """
+
+
+class AiReservations(KaitenModel):
+    items: list[AiInference] | None
+
+
+class AiUsage(KaitenModel):
+    cache_read_input_tokens: int | None = Field(default=None, alias="cacheReadInputTokens")
+
+    cache_write_input_tokens: int | None = Field(default=None, alias="cacheWriteInputTokens")
+
+    duration_ms: int | None = Field(default=None, alias="durationMs")
+
+    input_tokens: int | None = Field(default=None, alias="inputTokens")
+
+    output_tokens: int | None = Field(default=None, alias="outputTokens")
+
+    unit_type: AiUnitType | str | None = Field(default=None, alias="unitType")
+
+    units: str | None = None
+
+
+class AiUsageOutcome(KaitenModel):
+    authorized: bool | None = None
+
+    credits: AiCredits
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    phase: AiUsagePhase | str
+
+    remaining: str | None
+
+    rule: AiUsageRule | None = None
+    """The conversion rule that priced this phase. Absent when no rule applied, and on the
+    replay of a phase answered before the member existed.
+    """
+
+    status: AiUsageOutcomeStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    warnings: list[str]
+
+
+class AiUsageRule(KaitenModel):
+    id: str
+
+    specificity: AiRuleSpecificity | str
+    """How the rule matched: its own model and request type, its own model for every request
+    type, any model for its request type, or any model and request type.
+    """
+
+
+class AiUsageValue(KaitenModel):
+    model: str | None = None
+
+    phase: AiUsagePhase | str
+    """Reserve estimates and holds credits before a provider request; commit calculates actual
+    credits or releases an unsent request. Reservations do not lock the calculation rates.
+    """
+
+    request_status: AiRequestStatus | str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str | None = Field(default=None, alias="requestType")
+
+    transaction_id: str | None = Field(default=None, alias="transactionId")
+    """Required call identity, scoped to the instance and entitlement. Use the same identity
+    for reserve and commit, and the identical phase/body for a retry. AI reports use this
+    identity rather than Idempotency-Key.
+    """
+
+    ttl_seconds: int | None = Field(default=None, alias="ttlSeconds")
+
+    type: Literal["ai_usage"]
+    """Calculation input for a NUMBER_AI_CREDIT entitlement, not a separate read-value type."""
+
+    usage: AiUsage | None = None
+
+    vendor_cost: str | None = Field(default=None, alias="vendorCost")
+    """Commit only. What the provider charged for this request, in USD, as an exact decimal
+    string. Recorded as evidence beside the cost computed from the model catalogue; it never
+    changes the credits charged.
+    """
+
+
+class AiVendorCost(KaitenModel):
+    computed: str | None = None
+    """From the model's catalogue costs and the reported usage. Absent when the model is not in
+    the catalogue or the request was never sent.
+    """
+
+    currency: Literal["USD"]
+
+    reported: str | None = None
+    """As sent by the caller on the commit."""
+
+
 class AuditActor(KaitenModel):
     id: str
 
@@ -771,8 +1114,15 @@ class BillingCapabilities(KaitenModel):
     enabled: bool
     """Whether the billing routes answer for this organization"""
 
+    feature_check_unavailable: list[str] | None = Field(
+        default=None, alias="featureCheckUnavailable"
+    )
+    """Capabilities whose plan grant is temporarily unknown; their feature flag stays false,
+    but clients can retry instead of treating it as a known denial
+    """
+
     features: BillingFeatures
-    """Which parts of billing this release ships"""
+    """Which shipped billing capabilities this organization may use"""
 
     providers: list[BillingProvider]
     """Who can collect invoices"""
@@ -1004,6 +1354,11 @@ class CheckoutSession(KaitenModel):
 
     created_at: datetime = Field(alias="createdAt")
 
+    customer_name: str | None = Field(alias="customerName")
+    """As the start gave it; null when it gave none, and the completion names the customer
+    after the e-mail
+    """
+
     customer_slug: str | None = Field(alias="customerSlug")
     """Set by the completion"""
 
@@ -1048,6 +1403,9 @@ class CheckoutSessionAdmin(KaitenModel):
     completed_at: datetime | None = Field(alias="completedAt")
 
     created_at: datetime = Field(alias="createdAt")
+
+    customer_name: str | None = Field(alias="customerName")
+    """As the visitor gave it; null when they gave none. Personal data"""
 
     customer_slug: str | None = Field(alias="customerSlug")
     """Set by the completion"""
@@ -1302,6 +1660,132 @@ class ConnectorState(KaitenModel):
     """Registered connector version. Absent when the connector is not available."""
 
 
+class ConversionRates(KaitenModel):
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_second: str | None = Field(default=None, alias="perSecond")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
+
+
+class ConversionRule(KaitenModel):
+    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
+
+    created_at: datetime = Field(alias="createdAt")
+
+    created_by: User = Field(alias="createdBy")
+    """User who created this rule; a service account is a user"""
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted_by_addons: bool = Field(alias="grantedByAddons")
+    """Whether an add-on version compatible with the licence's family grants the pool, whatever
+    its lifecycle state: instances of the licence can then hold the pool without the licence
+    granting it. It says nothing of what any instance holds.
+    """
+
+    granted_by_license: bool = Field(alias="grantedByLicense")
+
+    id: str
+
+    license_slug: str = Field(alias="licenseSlug")
+
+    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
+
+    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
+
+    model_slug: str | None = Field(alias="modelSlug")
+
+    rates: ConversionRates
+
+    request_type: AiRequestType | str | None = Field(alias="requestType")
+
+    status: ConversionRuleStatus | str
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    updated_by: User = Field(alias="updatedBy")
+    """User who last changed this rule: its pricing, or its archival"""
+
+
+class ConversionRuleDelivered(KaitenModel):
+    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    created_at: datetime = Field(alias="createdAt")
+
+    created_by: User = Field(alias="createdBy")
+    """User who created this rule; a service account is a user"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted_by_addons: bool = Field(alias="grantedByAddons")
+    """Whether an add-on version compatible with the licence's family grants the pool, whatever
+    its lifecycle state: instances of the licence can then hold the pool without the licence
+    granting it. It says nothing of what any instance holds.
+    """
+
+    granted_by_license: bool = Field(alias="grantedByLicense")
+
+    id: str
+
+    license_slug: str = Field(alias="licenseSlug")
+
+    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
+
+    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
+
+    model_slug: str | None = Field(alias="modelSlug")
+
+    rates: ConversionRates
+
+    request_type: AiRequestType | str | None = Field(alias="requestType")
+
+    status: ConversionRuleStatus | str
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    updated_by: User = Field(alias="updatedBy")
+    """User who last changed this rule: its pricing, or its archival"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ConversionRuleUpdatedDelivered(KaitenModel):
+    after: ConversionRule
+
+    before: ConversionRule
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class CreatedCustomerSession(KaitenModel):
     customer_slug: str = Field(alias="customerSlug")
 
@@ -1443,6 +1927,552 @@ class CustomerIntegrationResource(KaitenModel):
 
     web_url: str | None = Field(default=None, alias="webUrl")
     """Absolute http(s) link to the record in the third-party system"""
+
+
+class DashboardArchivedVersion(KaitenModel):
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    default_license_name: str | None = Field(alias="defaultLicenseName")
+    """The version the family serves instead, when it has a published default"""
+
+    family_slug: str = Field(alias="familySlug")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+    version: int
+
+
+class DashboardAttention(KaitenModel):
+    archived_versions: DashboardAttentionArchived = Field(alias="archivedVersions")
+    """Instances pinned to a License version withdrawn from sale"""
+
+    checked: list[str]
+    """The checks that ran; one the caller's scopes exclude is absent"""
+
+    instances_not_healthy: DashboardAttentionInstances = Field(alias="instancesNotHealthy")
+    """Instances whose status is not HEALTHY"""
+
+    licenses_ending30d: DashboardAttentionLicenses = Field(alias="licensesEnding30d")
+    """Instances whose License ends within 30 days"""
+
+    limits_reached: DashboardAttentionMeters = Field(alias="limitsReached")
+    """Meters at the most their grant allows, a hard limit or an allowance used up: the next
+    report is refused
+    """
+
+    near_threshold: DashboardAttentionMeters = Field(alias="nearThreshold")
+    """Meters at or above the warning threshold of their grant, below the limit; an entitlement
+    with no threshold never is
+    """
+
+    rejected_reports24h: DashboardAttentionReports = Field(alias="rejectedReports24h")
+    """Usage reports refused in the last 24 hours, by instance"""
+
+    silent_instances: DashboardAttentionInstances = Field(alias="silentInstances")
+    """Instances with no report, accepted or refused, and no entitlement read in the range"""
+
+    tokens_expiring30d: DashboardAttentionTokens = Field(alias="tokensExpiring30d")
+    """Service account tokens that expire within 30 days"""
+
+    zones_behind: DashboardAttentionZones = Field(alias="zonesBehind")
+    """Deployment zones running a release older than the newest one"""
+
+
+class DashboardAttentionArchived(KaitenModel):
+    count: int
+
+    items: list[DashboardArchivedVersion]
+
+
+class DashboardAttentionInstances(KaitenModel):
+    count: int
+
+    items: list[DashboardInstance]
+
+
+class DashboardAttentionLicenses(KaitenModel):
+    count: int
+
+    items: list[DashboardLicenseEnding]
+
+
+class DashboardAttentionMeters(KaitenModel):
+    count: int
+
+    items: list[DashboardMeter]
+
+
+class DashboardAttentionReports(KaitenModel):
+    count: int
+
+    items: list[DashboardInstanceReports]
+
+
+class DashboardAttentionTokens(KaitenModel):
+    count: int
+
+    items: list[DashboardTokenExpiring]
+
+
+class DashboardAttentionZones(KaitenModel):
+    count: int
+
+    items: list[DashboardZone]
+
+
+class DashboardBilling(KaitenModel):
+    invoiced_this_month: list[DashboardInvoicedCurrency] = Field(alias="invoicedThisMonth")
+    """Since the start of the calendar month, per currency, largest first"""
+
+    subscriptions: DashboardSubscriptions
+
+
+class DashboardConnector(KaitenModel):
+    activated: bool
+
+    activated_at: datetime | None = Field(alias="activatedAt")
+
+    name: str
+
+
+class DashboardConnectors(KaitenModel):
+    items: list[DashboardConnector]
+
+
+class DashboardCustomerFigures(KaitenModel):
+    created_in_range: int = Field(alias="createdInRange")
+
+    total: int
+
+
+class DashboardDayReports(KaitenModel):
+    accepted: int
+
+    day: datetime
+
+    rejected: int
+
+
+class DashboardFeatureFlags(KaitenModel):
+    enabled: int
+
+    evaluations: int
+    """Evaluations recorded since range.auditTrailFrom; a floor, the evaluation publisher drops
+    under pressure
+    """
+
+    not_evaluated: int = Field(alias="notEvaluated")
+    """Flags with no evaluation since range.auditTrailFrom"""
+
+    per_flag: list[DashboardFlagEvaluations] = Field(alias="perFlag")
+    """Every flag, most evaluated first"""
+
+    total: int
+
+
+class DashboardFigures(KaitenModel):
+    customers: DashboardCustomerFigures
+
+    instances: DashboardInstanceFigures
+
+    usage_reports: DashboardUsageReportFigures = Field(alias="usageReports")
+
+
+class DashboardFlagEvaluations(KaitenModel):
+    enabled: bool
+
+    evaluations: int
+
+    name: str
+
+    slug: str
+
+
+class DashboardInstance(KaitenModel):
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    last_activity_at: datetime | None = Field(alias="lastActivityAt")
+    """The last accepted report or entitlement read in the range; null when silent"""
+
+    status: str | None = None
+    """The instance's status, on the status check"""
+
+
+class DashboardInstanceFigures(KaitenModel):
+    active_in_range: int = Field(alias="activeInRange")
+    """Instances with an accepted report since range.usageHistoryFrom, or a refused report or
+    an entitlement read since range.auditTrailFrom
+    """
+
+    by_standing: DashboardStandingCounts = Field(alias="byStanding")
+    """Instances by standing, over the whole organization"""
+
+    by_status: dict[str, int] = Field(alias="byStatus")
+    """HEALTHY, DEGRADED, INCIDENT, MAINTENANCE"""
+
+    created_in_range: int = Field(alias="createdInRange")
+
+    silent_in_range: int = Field(alias="silentInRange")
+
+    total: int
+
+
+class DashboardInstanceReports(KaitenModel):
+    accepted: int
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    headline: DashboardMeter | None = None
+    """The meter that decides the standing, when one does: a meter at its limit before one
+    above its threshold, the higher ratio first
+    """
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    last_read_at: datetime | None = Field(alias="lastReadAt")
+    """The last entitlement value read since range.auditTrailFrom"""
+
+    last_report_at: datetime | None = Field(alias="lastReportAt")
+
+    license_name: str = Field(alias="licenseName")
+
+    license_state: LicenseLifecycleState | str = Field(alias="licenseState")
+
+    rejected: int
+
+    rejected24h: int
+
+    silent: bool
+    """No accepted report since range.usageHistoryFrom, and no refused report nor entitlement
+    read since range.auditTrailFrom
+    """
+
+    standing: InstanceStanding | str
+    """The one word for the instance: atLimit when a meter refuses, watch when one is above its
+    warning threshold, silent when nothing was reported or read in either window, healthy
+    otherwise; computed over every meter of the instance
+    """
+
+
+class DashboardIntegrations(KaitenModel):
+    connectors: DashboardConnectors | None = None
+    """Absent when the caller cannot read the organization's connectors"""
+
+    publishable_keys: DashboardPublishableKeys | None = Field(default=None, alias="publishableKeys")
+    """Absent when the caller cannot read publishable keys"""
+
+    tokens: DashboardTokens | None = None
+    """Service accounts and their tokens; absent when the caller cannot read tokens"""
+
+
+class DashboardInvoicedCurrency(KaitenModel):
+    currency: str
+
+    invoices: int
+
+    overdue: int
+
+    paid: int
+
+    total_minor: int = Field(alias="totalMinor")
+
+
+class DashboardLicenseEnding(KaitenModel):
+    billing_status: str | None = Field(alias="billingStatus")
+    """The instance's subscription status, when it has one; null too when the caller cannot
+    read billing (the billing block says which)
+    """
+
+    cancel_at_period_end: bool = Field(alias="cancelAtPeriodEnd")
+    """The subscription ends with its period rather than renewing; false without one, and when
+    the caller cannot read billing
+    """
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    ends_at: datetime = Field(alias="endsAt")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+
+class DashboardLicenseFamilyMix(KaitenModel):
+    family_slug: str = Field(alias="familySlug")
+
+    instances: int
+
+    versions: list[DashboardLicenseVersionMix]
+
+
+class DashboardLicenseVersionMix(KaitenModel):
+    instances: int
+
+    is_default: bool = Field(alias="isDefault")
+
+    lifecycle_state: LicenseLifecycleState | str = Field(alias="lifecycleState")
+
+    name: str
+
+    slug: str
+
+    version: int
+
+
+class DashboardLicenses(KaitenModel):
+    archived: list[DashboardArchivedVersion]
+
+    ending: DashboardLicensesEnding
+
+    mix: list[DashboardLicenseFamilyMix]
+
+
+class DashboardLicensesEnding(KaitenModel):
+    items: list[DashboardLicenseEnding]
+    """The next five to end"""
+
+    within180_days: int = Field(alias="within180Days")
+
+    within30_days: int = Field(alias="within30Days")
+
+
+class DashboardMeter(KaitenModel):
+    above_warning: bool = Field(alias="aboveWarning")
+    """Usage is at or past the warning threshold of the grant, below the limit, as the report
+    path warns; never without a threshold
+    """
+
+    allowance_percent: int = Field(alias="allowancePercent")
+    """0 is a hard limit, -1 an unlimited allowance"""
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    entitlement_name: str = Field(alias="entitlementName")
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted: float | None
+    """The grant; null when it is unlimited"""
+
+    hard_limit: bool = Field(alias="hardLimit")
+    """The grant allows nothing past itself"""
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+    license_state: LicenseLifecycleState | str = Field(alias="licenseState")
+
+    limit_reached: bool = Field(alias="limitReached")
+    """Usage is at or past maxAllowed: the next report is refused"""
+
+    max_allowed: float | None = Field(alias="maxAllowed")
+    """The grant plus its allowance, the most a report is accepted up to; null when nothing
+    refuses
+    """
+
+    ratio: float | None
+    """used over maxAllowed, or over the grant when nothing refuses; null when there is no
+    grant to measure against
+    """
+
+    unit: str | None
+
+    used: float
+    """Usage in the current window"""
+
+    warning_threshold_percent: int = Field(alias="warningThresholdPercent")
+    """The entitlement's early-warning threshold, a percentage of the grant; 0 when none is
+    configured
+    """
+
+    window_start: datetime | None = Field(alias="windowStart")
+    """Start of the current window of a periodic entitlement; null for a lifetime one"""
+
+
+class DashboardPublishableKeys(KaitenModel):
+    count: int
+    """Keys not revoked"""
+
+    last_used_at: datetime | None = Field(alias="lastUsedAt")
+    """The last use of any of them"""
+
+
+class DashboardRangeWindow(KaitenModel):
+    audit_trail_days: int = Field(alias="auditTrailDays")
+    """The calendar days from auditTrailFrom to To, today included; days when the audit trail
+    covers the whole period
+    """
+
+    audit_trail_from: datetime = Field(alias="auditTrailFrom")
+    """Where refused reports, entitlement reads and flag evaluations are read from: the start
+    of the period's first whole day, or later when the organization keeps its audit trail
+    for less
+    """
+
+    days: int
+
+    from_: datetime = Field(alias="from")
+
+    range: DashboardRange | str
+
+    to: datetime
+
+    usage_history_days: int = Field(alias="usageHistoryDays")
+    """The calendar days from usageHistoryFrom to To, today included; days when the usage
+    history covers the whole period
+    """
+
+    usage_history_from: datetime = Field(alias="usageHistoryFrom")
+    """Where the accepted usage reports are read from: the start of the period's first whole
+    day, or later when the organization keeps its usage history for less
+    """
+
+
+class DashboardStandingCounts(KaitenModel):
+    at_limit: int = Field(alias="atLimit")
+
+    healthy: int
+
+    silent: int
+
+    watch: int
+
+
+class DashboardSubscriptions(KaitenModel):
+    active: int
+
+    canceled: int
+
+    past_due: int = Field(alias="pastDue")
+
+    trial: int
+
+
+class DashboardSummary(KaitenModel):
+    as_of: datetime = Field(alias="asOf")
+    """When the figures were computed"""
+
+    attention: DashboardAttention
+
+    billing: DashboardBilling | None = None
+    """Subscriptions and this month's invoices; absent when the caller cannot read billing.
+    Whether billing is enabled for the organization is GET /billing/capabilities' answer,
+    not this one's
+    """
+
+    feature_flags: DashboardFeatureFlags | None = Field(default=None, alias="featureFlags")
+    """Absent when the caller cannot read feature flags"""
+
+    figures: DashboardFigures
+
+    integrations: DashboardIntegrations | None = None
+    """Who talks to Kaiten; absent when the caller can read none of tokens, publishable keys
+    and connectors
+    """
+
+    licenses: DashboardLicenses
+
+    range: DashboardRangeWindow
+
+    saturation: list[DashboardMeter]
+    """The meters closest to the most their grant allows, highest ratio first, at most eight"""
+
+    usage_reports: DashboardUsageReports = Field(alias="usageReports")
+
+    zones: list[DashboardZone]
+    """Empty when the caller cannot read deployment zones and releases"""
+
+
+class DashboardTokenExpiring(KaitenModel):
+    expires_at: datetime = Field(alias="expiresAt")
+
+    name: str
+
+    service_account_name: str = Field(alias="serviceAccountName")
+
+    service_account_slug: str = Field(alias="serviceAccountSlug")
+
+    slug: str
+
+
+class DashboardTokens(KaitenModel):
+    active_tokens: int = Field(alias="activeTokens")
+
+    service_accounts: int = Field(alias="serviceAccounts")
+
+    tokens_expiring: list[DashboardTokenExpiring] = Field(alias="tokensExpiring")
+    """The next five to expire"""
+
+    tokens_expiring30_days: int = Field(alias="tokensExpiring30Days")
+
+    tokens_without_expiry: int = Field(alias="tokensWithoutExpiry")
+
+
+class DashboardUsageReportFigures(KaitenModel):
+    accepted: int
+    """Reports accepted on the days usageReports.perDay covers: from the later of
+    range.usageHistoryFrom and range.auditTrailFrom
+    """
+
+    rejected: int
+    """Reports refused on the same days, from the audit trail"""
+
+    rejected24h: int
+
+
+class DashboardUsageReports(KaitenModel):
+    by_instance: list[DashboardInstanceReports] = Field(alias="byInstance")
+    """Every instance, most reports first"""
+
+    per_day: list[DashboardDayReports] = Field(alias="perDay")
+    """One entry a calendar day, today last, from the later of range.usageHistoryFrom and
+    range.auditTrailFrom: the days both the accepted and the refused reports are kept
+    """
+
+
+class DashboardZone(KaitenModel):
+    deployed_at: datetime | None = Field(alias="deployedAt")
+
+    deployed_by: str | None = Field(alias="deployedBy")
+
+    instances: int
+
+    name: str
+
+    release_version: str | None = Field(alias="releaseVersion")
+    """Null when nothing was deployed there"""
+
+    releases_behind: int = Field(alias="releasesBehind")
+    """Releases created after the one the zone runs"""
+
+    slug: str
+
+    type: str
 
 
 class DeletedAddonDelivered(KaitenModel):
@@ -1775,6 +2805,9 @@ class EntitlementGroupUsage(KaitenModel):
 class EntitlementUsage(KaitenModel):
     """An instance's consumption of one entitlement, next to the grant it is measured against."""
 
+    ai: AiUsageOutcome | None = None
+    """Outcome of this AI report; absent on ordinary reads"""
+
     current_period_end: datetime | None = Field(default=None, alias="currentPeriodEnd")
     """End of the current usage window (exclusive). Null for a lifetime entitlement (no
     configured reset period).
@@ -1813,6 +2846,9 @@ class EntitlementUsage(KaitenModel):
 
     provenance: Provenance | None = None
     """What the licence, the add-ons and the boosts each contribute"""
+
+    reserved: str | None = None
+    """Open, unexpired reserved credits; present only on AI credit pools"""
 
     source: EntitlementSource | str
     """license: the licence grants it (add-ons, boosts and an exception may change it); addon:
@@ -2142,7 +3178,7 @@ class Instance(KaitenModel):
     """Brief description of the instance"""
 
     end_license_date: datetime = Field(alias="endLicenseDate")
-    """End date of the license for this instance"""
+    """UTC exclusive end of the assigned license term for this instance"""
 
     id: str
     """Unique identifier for the instance"""
@@ -2160,6 +3196,11 @@ class Instance(KaitenModel):
     license_slug: str = Field(alias="licenseSlug")
     """Slug of the license associated with this instance"""
 
+    license_term: LicenseTerm | None = Field(default=None, alias="licenseTerm")
+    """Assigned license term state at UTC database time. Always present on GET instance
+    details; omitted from list, create and event representations.
+    """
+
     lifecycle_stage: str | None = Field(default=None, alias="lifecycleStage")
     """Commercial lifecycle stage of the instance (free-form; suggested: TRIAL, ACTIVE,
     AT_RISK, CHURNED)
@@ -2175,7 +3216,7 @@ class Instance(KaitenModel):
     """Optional URL-friendly identifier, unique per organization. Auto-generated if not provided."""
 
     start_license_date: datetime = Field(alias="startLicenseDate")
-    """Start date of the license for this instance"""
+    """UTC inclusive start of the assigned license term for this instance"""
 
     status: InstanceStatus | str | None = None
     """Operational status of the instance"""
@@ -2185,6 +3226,28 @@ class Instance(KaitenModel):
 
     updated_by: User = Field(alias="updatedBy")
     """User who last updated this instance"""
+
+
+class InstanceAIModelUsageUnauthorizedDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    entitlement_slug: str
+
+    model: str
+
+    reason: str
+
+    request_type: str = Field(alias="requestType")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class InstanceAddon(KaitenModel):
@@ -3147,7 +4210,9 @@ class LicenseEntitlement(KaitenModel):
     entitlement_type: LicenseEntitlementType | str | None = Field(
         default=None, alias="entitlementType"
     )
-    """Type of entitlement (BOOLEAN, NUMBER, or CONFIG)"""
+    """Definition type of the granted entitlement. NUMBER_AI_CREDIT is a calculated numeric
+    entitlement; its granted allowance and usage value still use the number shape.
+    """
 
     license_id: str = Field(alias="licenseId")
     """Unique identifier for the license this entitlement belongs to"""
@@ -3158,10 +4223,10 @@ class LicenseEntitlement(KaitenModel):
     limit_cap_exceeded_overage_percent: int | None = Field(
         default=None, alias="limitCapExceededOveragePercent"
     )
-    """Derives this grant's enforcement from its own numeric value: -1 when the value is
-    unlimited (no cap, no overage); otherwise 0 rejects usage above the value (hard limit)
-    and a positive percentage allows usage to exceed it by that much before being rejected
-    (soft limit). Null for non-numeric (BOOLEAN/CONFIG) grants.
+    """Enforcement derived from the numeric allowance: -1 is unlimited; otherwise 0 is a hard
+    limit and a positive percentage permits overage. AI reservations and numeric adjustments
+    use this bound; AI commits account actual usage even beyond it. Null for non-numeric
+    (BOOLEAN/CONFIG) grants.
     """
 
     updated_at: datetime = Field(alias="updatedAt")
@@ -3234,6 +4299,14 @@ class LicenseFamilyView(KaitenModel):
     """Every version of the family, oldest first. Only returned when explicitly requested with
     include=versions, and then never null: a family always has at least one version.
     """
+
+
+class LicenseTerm(KaitenModel):
+    evaluated_at: datetime = Field(alias="evaluatedAt")
+    """UTC database instant used to determine the current term state"""
+
+    status: LicenseTermStatus | str
+    """State of the assigned license interval at evaluatedAt"""
 
 
 class LineDifference(KaitenModel):
@@ -3365,6 +4438,98 @@ class MinimumAmount(KaitenModel):
 
     unit_amount_decimal: str = Field(alias="unitAmountDecimal")
     """In minor units, above 0"""
+
+
+class Model(KaitenModel):
+    created_at: datetime = Field(alias="createdAt")
+
+    description: str | None = None
+
+    external_ids: list[str] | None = Field(default=None, alias="externalIds")
+    """Exact provider identifiers, unique per organization; cannot shadow another model's slug"""
+
+    id: str
+
+    metadata: dict[str, Any] | None = None
+
+    modality: ModelModality | str
+
+    name: str
+
+    slug: str
+    """Immutable URL-friendly identifier, unique per organization"""
+
+    status: ModelStatus | str
+    """ACTIVE authorizes usage; DEPRECATED keeps existing rules; ARCHIVED authorizes none.
+    Reversible.
+    """
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    vendor: str
+
+    vendor_costs: VendorCosts | None = Field(default=None, alias="vendorCosts")
+
+
+class ModelDelivered(KaitenModel):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    created_at: datetime = Field(alias="createdAt")
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    description: str | None = None
+
+    external_ids: list[str] | None = Field(default=None, alias="externalIds")
+    """Exact provider identifiers, unique per organization; cannot shadow another model's slug"""
+
+    id: str
+
+    metadata: dict[str, Any] | None = None
+
+    modality: ModelModality | str
+
+    name: str
+
+    slug: str
+    """Immutable URL-friendly identifier, unique per organization"""
+
+    status: ModelStatus | str
+    """ACTIVE authorizes usage; DEPRECATED keeps existing rules; ARCHIVED authorizes none.
+    Reversible.
+    """
+
+    updated_at: datetime = Field(alias="updatedAt")
+
+    vendor: str
+
+    vendor_costs: VendorCosts | None = Field(default=None, alias="vendorCosts")
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
+class ModelUpdatedDelivered(KaitenModel):
+    after: Model
+
+    before: Model
+
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
 
 
 class NumberEntitlementValue(KaitenModel):
@@ -4101,6 +5266,7 @@ class PublicAddOnEntitlement(KaitenModel):
     slug: str
 
     type: EntitlementType | str
+    """Entitlement definition type. AI credit entitlements still carry numeric allowances."""
 
     value: Any
 
@@ -4210,8 +5376,9 @@ class PublicPlanEntitlement(KaitenModel):
     icon: str | None
 
     limit_cap_exceeded_overage_percent: int | None = Field(alias="limitCapExceededOveragePercent")
-    """How far usage may exceed a NUMBER grant before it is refused: 0 is a hard limit, -1 is
-    unlimited; null for other types
+    """Overage policy for numeric-family grants: 0 is a hard limit and -1 is unlimited; null
+    for non-numeric types. AI reservations use this bound, while commits account actual
+    usage even beyond it.
     """
 
     name: str
@@ -4225,13 +5392,14 @@ class PublicPlanEntitlement(KaitenModel):
     slug: str
 
     type: EntitlementType | str
+    """Entitlement definition type. AI credit entitlements still carry numeric allowances."""
 
     unit_plural: str | None = Field(alias="unitPlural")
 
     unit_singular: str | None = Field(alias="unitSingular")
 
     unlimited: bool
-    """A NUMBER grant with no limit"""
+    """A numeric-family grant, including AI credits, with no limit"""
 
     value: Any
     """The granted value: a boolean, a number, or a configuration object"""
@@ -4586,7 +5754,35 @@ class Release(KaitenModel):
     """Version of the release"""
 
 
+class ReportEntitlementUsageBody(KaitenModel):
+    behavior: UsageBehavior | str | None = None
+    """Numeric behavior: append folds the value into the counter; set replaces it for ordinary
+    NUMBER entitlements. AI credit entitlements accept only append adjustments. For
+    ai_usage, omit behavior or use append; phase selects reserve or commit.
+    """
+
+    metadata: dict[str, Any] | None = None
+    """Optional metadata for the usage report, a JSON object stored with it in the usage
+    history when its compact encoding is at most 4 KiB. Above that it is not stored, the
+    report is still counted, and the response carries Kaiten-Metadata-Dropped: too_large. It
+    must contain no personal data: anyone who can read the organization's instances can read
+    it, for as long as the usage history is kept. Numbers are read as 64-bit floats, so send
+    large identifiers as strings.
+    """
+
+    value: ReportUsageValue
+    """Usage input for an entitlement, discriminated by type. Ordinary numeric entitlements
+    accept number with append or set. NUMBER_AI_CREDIT is a numeric entitlement with model-
+    usage calculation: send ai_usage to reserve or commit provider quantities, or number
+    with append for credit adjustments/refunds. Read responses remain numeric credit
+    counters.
+    """
+
+
 class ReportedEntitlementUsage(KaitenModel):
+    ai: AiUsageOutcome | None = None
+    """Outcome of this AI report; absent on ordinary reads"""
+
     current_period_end: datetime | None = Field(default=None, alias="currentPeriodEnd")
     """End of the current usage window (exclusive). Null for a lifetime entitlement (no
     configured reset period).
@@ -4624,20 +5820,23 @@ class ReportedEntitlementUsage(KaitenModel):
     """
 
     provenance: Provenance | None
-    """What the licence, the add-ons and the boosts each contribute. Null on a replay
-    (Idempotent-Replayed): the journal does not store it.
+    """What the licence, the add-ons and the boosts each contribute. Null on numeric journal
+    replay; AI phase replay preserves its original snapshot.
     """
+
+    reserved: str | None = None
+    """Open, unexpired reserved credits; present only on AI credit pools"""
 
     source: EntitlementSource | str | None
     """license: the licence grants it (add-ons, boosts and an exception may change it); addon:
-    an add-on attached does; exception: only the instance's exception does. Null on a replay
-    (Idempotent-Replayed): the journal does not store it.
+    an add-on attached does; exception: only the instance's exception does. Null on numeric
+    journal replay; AI phase replay preserves its original snapshot.
     """
 
     transaction_id: str | None = Field(alias="transactionId")
     """The Idempotency-Key this report was accepted under, echoed on the first answer and on
-    every replay; null when the request carried none. A client can tell from it that the
-    server honours the key.
+    every replay; null when the request carried none (always null for AI usage, whose phase
+    key is ai.transactionId). A client can tell from it that the server honours the key.
     """
 
     value: EntitlementValue
@@ -5248,6 +6447,9 @@ class TargetingContextNode(KaitenModel):
     description: str | None = None
     """What this value means, shown by the editor"""
 
+    entitlement_type: str | None = Field(default=None, alias="entitlementType")
+    """Original catalogue type on a known entitlement entry only, not a metadata or CONFIG key"""
+
     entries: list[TargetingContextNode] | None = None
     """Shape of each known key, for a map whose entries differ. Named after the key"""
 
@@ -5288,6 +6490,11 @@ class TargetingRuleIssue(KaitenModel):
 
 
 class TargetingRuleRehearsal(KaitenModel):
+    entitlement_types: dict[str, str] = Field(alias="entitlementTypes")
+    """Original catalogue types by known entitlement slug; classifies facts.entitlements
+    without interpreting arbitrary CONFIG or metadata keys
+    """
+
     evaluation_error: str | None = Field(default=None, alias="evaluationError")
     """Why the engine could not answer, when it could not — e.g. the rule reads a host
     attribute this context does not carry. At a real evaluation the rule would simply not
@@ -5510,6 +6717,22 @@ class Variant(KaitenModel):
     name: str
 
     value: Any
+
+
+class VendorCosts(KaitenModel):
+    currency: Literal["USD"]
+
+    per_cache_write_token: str | None = Field(default=None, alias="perCacheWriteToken")
+
+    per_cached_input_token: str | None = Field(default=None, alias="perCachedInputToken")
+
+    per_input_token: str | None = Field(default=None, alias="perInputToken")
+
+    per_output_token: str | None = Field(default=None, alias="perOutputToken")
+
+    per_request: str | None = Field(default=None, alias="perRequest")
+
+    per_unit: str | None = Field(default=None, alias="perUnit")
 
 
 class Voucher(KaitenModel):
@@ -6228,6 +7451,8 @@ EntitlementValue = Annotated[
 ]
 """A typed entitlement value, discriminated by ``type``: a number, a boolean or a config object."""
 
+ReportUsageValue = Annotated[NumberEntitlementValue | AiUsageValue, Field(discriminator="type")]
+
 Targeting = Annotated[
     BasicTargeting | RolloutDateTargeting | RolloutPercentageTargeting, Field(discriminator="type")
 ]
@@ -6241,6 +7466,18 @@ for _model in (
     Addon,
     AddonEntitlement,
     AddonFamily,
+    AiCredits,
+    AiInference,
+    AiInferencePage,
+    AiInferencePricing,
+    AiInferenceRates,
+    AiInferenceRefund,
+    AiReservations,
+    AiUsage,
+    AiUsageOutcome,
+    AiUsageRule,
+    AiUsageValue,
+    AiVendorCost,
     AuditActor,
     AuditTrail,
     BasicTargeting,
@@ -6270,6 +7507,10 @@ for _model in (
     ConnectorSettings,
     ConnectorSettingsSchema,
     ConnectorState,
+    ConversionRates,
+    ConversionRule,
+    ConversionRuleDelivered,
+    ConversionRuleUpdatedDelivered,
     CreatedCustomerSession,
     Customer,
     CustomerBilling,
@@ -6277,6 +7518,44 @@ for _model in (
     CustomerInProvider,
     CustomerIntegration,
     CustomerIntegrationResource,
+    DashboardArchivedVersion,
+    DashboardAttention,
+    DashboardAttentionArchived,
+    DashboardAttentionInstances,
+    DashboardAttentionLicenses,
+    DashboardAttentionMeters,
+    DashboardAttentionReports,
+    DashboardAttentionTokens,
+    DashboardAttentionZones,
+    DashboardBilling,
+    DashboardConnector,
+    DashboardConnectors,
+    DashboardCustomerFigures,
+    DashboardDayReports,
+    DashboardFeatureFlags,
+    DashboardFigures,
+    DashboardFlagEvaluations,
+    DashboardInstance,
+    DashboardInstanceFigures,
+    DashboardInstanceReports,
+    DashboardIntegrations,
+    DashboardInvoicedCurrency,
+    DashboardLicenseEnding,
+    DashboardLicenseFamilyMix,
+    DashboardLicenseVersionMix,
+    DashboardLicenses,
+    DashboardLicensesEnding,
+    DashboardMeter,
+    DashboardPublishableKeys,
+    DashboardRangeWindow,
+    DashboardStandingCounts,
+    DashboardSubscriptions,
+    DashboardSummary,
+    DashboardTokenExpiring,
+    DashboardTokens,
+    DashboardUsageReportFigures,
+    DashboardUsageReports,
+    DashboardZone,
     DeletedAddonDelivered,
     Deployment,
     DeploymentZone,
@@ -6308,6 +7587,7 @@ for _model in (
     HoldDetail,
     HoldRecord,
     Instance,
+    InstanceAIModelUsageUnauthorizedDelivered,
     InstanceAddon,
     InstanceBilling,
     InstanceEntitlementCapExceeded,
@@ -6334,6 +7614,7 @@ for _model in (
     License,
     LicenseEntitlement,
     LicenseFamilyView,
+    LicenseTerm,
     LineDifference,
     LineReportPage,
     ManifestEnvelope,
@@ -6343,6 +7624,9 @@ for _model in (
     MetadataFieldImpactSample,
     MetadataFieldReordered,
     MinimumAmount,
+    Model,
+    ModelDelivered,
+    ModelUpdatedDelivered,
     NumberEntitlementValue,
     Outcome,
     OverageLimit,
@@ -6399,6 +7683,7 @@ for _model in (
     Redemption,
     RedemptionRules,
     Release,
+    ReportEntitlementUsageBody,
     ReportedEntitlementUsage,
     RolloutDateTargeting,
     RolloutDateVariant,
@@ -6443,6 +7728,7 @@ for _model in (
     User,
     Validity,
     Variant,
+    VendorCosts,
     Voucher,
     AddonDelivered,
     AddonGrantUpdateDelivered,

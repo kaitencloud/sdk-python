@@ -11,6 +11,8 @@
 
 core:
   operations:
+    getDashboardSummary: dashboard.summary
+
     # billing: settings, capabilities and the payment providers
     getBillingSettings: billing.get_settings
     updateBillingSettings: billing.update_settings
@@ -137,6 +139,20 @@ core:
     lookupVoucher: billing.vouchers.lookup
     validateVoucher: billing.vouchers.validate
 
+    # AI credits: the model catalogue, the conversion rules and the history
+    listModels: models.list
+    createModel: models.create
+    getModel: models.get
+    updateModel: models.update
+    deleteModel: models.delete
+    listConversionRules: licenses.list_conversion_rules
+    createConversionRule: licenses.create_conversion_rule
+    getConversionRule: licenses.get_conversion_rule
+    updateConversionRule: licenses.update_conversion_rule
+    archiveConversionRule: licenses.archive_conversion_rule
+    listAiInferences: instances.list_ai_inferences
+    listAiReservations: instances.list_ai_reservations
+
     # components
     list-components: components.list
     get-component: components.get
@@ -212,7 +228,13 @@ core:
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
     getEntitlementUsageMetrics: instances.get_usage
-    reportEntitlementUsageMetric: [instances.report_usage, instances.report_usage_detailed]
+    # One operation, four report shapes: a number, a number under an idempotency key, or
+    # one phase of an AI call (kaitencloud.ai reserves, runs and commits through the last two).
+    reportEntitlementUsageMetric:
+      - instances.report_usage
+      - instances.report_usage_detailed
+      - instances.reserve_ai_usage
+      - instances.commit_ai_usage
     listUsageReports: instances.list_usage_reports
     exportUsageReports: instances.export_usage_reports
     exportOrganizationUsageReports: instances.export_organization_usage_reports
@@ -275,6 +297,15 @@ core:
     delete-service-account-token: service_accounts.delete_token
 
   excluded:
+    getAiUsageCapabilities: >-
+      Whether AI credits are switched on for the organization. Excluded only on this branch:
+      the AI charge work stacked on it wraps the operation, and maps it there. The SDK does
+      not pre-check the gate -- a refused reserve says so -- so nothing here depends on it.
+    listOrganizationAiInferences: >-
+      Excluded only on this branch: the AI charge work stacked on it wraps the operation.
+    refundAiInference: >-
+      Excluded only on this branch: the AI charge work stacked on it wraps the operation.
+
     listNotifications: >-
       A person's own notification feed. It addresses the signed-in user's rows -- an unread
       count and a set of choices about what to be told -- and a machine client holding an API

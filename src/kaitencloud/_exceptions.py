@@ -18,12 +18,15 @@ __all__ = [
     "APIResponseValidationError",
     "APIStatusError",
     "APITimeoutError",
+    "AiUsageUnsupportedError",
     "AuthenticationError",
     "BadRequestError",
     "ConflictError",
     "CredentialError",
+    "InsufficientCreditsError",
     "InternalServerError",
     "KaitenError",
+    "ModelNotAuthorizedError",
     "NotFoundError",
     "PaginationError",
     "PermissionDeniedError",
@@ -31,6 +34,7 @@ __all__ = [
     "ServiceUnavailableError",
     "ThresholdExceededError",
     "TransactionIdReusedError",
+    "UnknownModelError",
     "UnprocessableEntityError",
     "WebhookPayloadError",
     "WebhookVerificationError",
@@ -171,11 +175,38 @@ class TransactionIdReusedError(ConflictError):
     The same key with the same behavior and value is a replay, applied once; with another
     behavior or value, it is this error. Nothing was recorded, and sending it again will not
     change the answer: give the report a key of its own.
+
+    An AI report raises it for the same reason: the same id and phase arrived with another body,
+    or a reservation was made on an id already reserved or closed. A bug in the caller, never a
+    transient failure, so it is not retried.
     """
 
 
 class UnprocessableEntityError(APIStatusError):
     """The API answered 422: the request is well-formed but its content is refused."""
+
+
+class InsufficientCreditsError(ThresholdExceededError):
+    """An AI usage reservation does not fit in what is left of the credit pool.
+
+    Raised before the provider is called: nothing was reserved, and nothing is owed.
+    """
+
+
+class ModelNotAuthorizedError(UnprocessableEntityError):
+    """The model may not be reserved against: it is archived, or no conversion rule prices it."""
+
+
+class UnknownModelError(UnprocessableEntityError):
+    """The model is in neither the catalogue's slugs nor its provider ids."""
+
+
+class AiUsageUnsupportedError(UnprocessableEntityError):
+    """The API cannot take an AI usage report on this entitlement.
+
+    Either the deployment predates AI credits, or the entitlement is not an AI credit pool
+    aggregated by ``SUM``. The provider wrappers log it once and keep serving calls unreported.
+    """
 
 
 class RateLimitError(APIStatusError):
@@ -226,6 +257,36 @@ def make_status_error(
         error_class = InternalServerError if status >= 500 else APIStatusError
     problem = parse_problem(response)
     return error_class(_message(response, problem), response=response, problem=problem)
+
+
+# Only known capability/legacy validation responses mean AI usage is unsupported.
+# Unknown validation codes must remain caller errors, not enable unmetered fallback.
+_AI_UNSUPPORTED_CODES = frozenset({"", "InvalidValueType", "AiUsageUnsupportedEntitlement"})
+
+
+def make_ai_error(error: APIStatusError) -> APIStatusError:
+    """The typed error an AI usage report answered with ``error`` stands for.
+
+    The status alone does not say it: a 409 is a full pool or a reused transaction id, and a
+    422 is a refused model, a malformed body or a deployment without AI credits.
+    """
+    reason = (error.code or "").rsplit(".", 1)[-1]
+    target: type[APIStatusError] | None = None
+    if error.status_code == 409:
+        target = {
+            "ThresholdExceeded": InsufficientCreditsError,
+            "TransactionIdReused": TransactionIdReusedError,
+        }.get(reason)
+    elif error.status_code == 422:
+        target = {
+            "UnknownModel": UnknownModelError,
+            "ModelNotAuthorized": ModelNotAuthorizedError,
+        }.get(reason)
+        if target is None and reason in _AI_UNSUPPORTED_CODES:
+            target = AiUsageUnsupportedError
+    if target is None:
+        return error
+    return target(str(error), response=error.response, problem=error.problem)
 
 
 def parse_problem(response: httpx.Response) -> Problem | None:

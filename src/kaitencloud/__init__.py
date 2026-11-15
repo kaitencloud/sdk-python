@@ -17,10 +17,11 @@ from __future__ import annotations
 import importlib
 from typing import TYPE_CHECKING, Any
 
-from . import targeting, types, usage
+from . import ai, targeting, types, usage
 from ._async.client import AsyncKaitenClient, AsyncKaitenPlatformClient
 from ._constants import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT
 from ._exceptions import (
+    AiUsageUnsupportedError,
     APIConnectionError,
     APIResponseValidationError,
     APIStatusError,
@@ -29,8 +30,10 @@ from ._exceptions import (
     BadRequestError,
     ConflictError,
     CredentialError,
+    InsufficientCreditsError,
     InternalServerError,
     KaitenError,
+    ModelNotAuthorizedError,
     NotFoundError,
     PaginationError,
     PermissionDeniedError,
@@ -38,6 +41,7 @@ from ._exceptions import (
     ServiceUnavailableError,
     ThresholdExceededError,
     TransactionIdReusedError,
+    UnknownModelError,
     UnprocessableEntityError,
     WebhookPayloadError,
     WebhookVerificationError,
@@ -60,17 +64,20 @@ __all__ = [
     "APIResponseValidationError",
     "APIStatusError",
     "APITimeoutError",
+    "AiUsageUnsupportedError",
     "AsyncKaitenClient",
     "AsyncKaitenPlatformClient",
     "AuthenticationError",
     "BadRequestError",
     "ConflictError",
     "CredentialError",
+    "InsufficientCreditsError",
     "InternalServerError",
     "KaitenClient",
     "KaitenError",
     "KaitenModel",
     "KaitenPlatformClient",
+    "ModelNotAuthorizedError",
     "NotFoundError",
     "NotGiven",
     "PaginationError",
@@ -79,11 +86,13 @@ __all__ = [
     "ServiceUnavailableError",
     "ThresholdExceededError",
     "TransactionIdReusedError",
+    "UnknownModelError",
     "UnprocessableEntityError",
     "UsageReportResult",
     "WebhookPayloadError",
     "WebhookVerificationError",
     "__version__",
+    "ai",
     "targeting",
     "types",
     "usage",

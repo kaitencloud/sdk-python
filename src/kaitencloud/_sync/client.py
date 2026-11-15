@@ -32,6 +32,7 @@ from .resources import (
     Components,
     Connectors,
     Customers,
+    Dashboard,
     DeploymentZones,
     EntitlementGroups,
     Entitlements,
@@ -41,6 +42,7 @@ from .resources import (
     LicenseFamilies,
     Licenses,
     MetadataFields,
+    Models,
     Releases,
     ServiceAccounts,
 )
@@ -150,6 +152,7 @@ class KaitenClient(_BaseClient):
     """Connectors: activation and settings of the integrations this deployment offers."""
 
     customers: Customers
+    dashboard: Dashboard
     """Customers: the end clients of your product."""
 
     deployment_zones: DeploymentZones
@@ -221,6 +224,7 @@ class KaitenClient(_BaseClient):
         self.components = Components(api)
         self.connectors = Connectors(api)
         self.customers = Customers(api)
+        self.dashboard = Dashboard(api)
         self.deployment_zones = DeploymentZones(api)
         self.entitlement_groups = EntitlementGroups(api)
         self.entitlements = Entitlements(api)
@@ -230,6 +234,7 @@ class KaitenClient(_BaseClient):
         self.license_families = LicenseFamilies(api)
         self.licenses = Licenses(api)
         self.metadata_fields = MetadataFields(api)
+        self.models = Models(api)
         self.releases = Releases(api)
         self.service_accounts = ServiceAccounts(api)
 
