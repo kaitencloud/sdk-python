@@ -2,7 +2,7 @@
 # `task sync:openapi`; never edit the snapshots themselves by hand.
 repository: kaitencloud/kaiten
 ref: origin/main
-commit: 7d654e08279aed0a61fc90d93707a163e0f3926d
+commit: b24bda808d9a59838ab826c189f99f7657ce345c
 synced_at: "2026-11-15"
 files:
   openapi.yaml: app/openapi.yaml

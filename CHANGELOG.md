@@ -69,6 +69,10 @@ only gained optional arguments.
   `EntitlementUsage.source`, `AuditTrail.actor`, `ConnectorSettings.configured`, the trial and
   catalog settings of `LicenseFamilyView`, and the period rollover event's `reason`. From an older
   Kaiten, those reads raise `APIResponseValidationError`, and that event `WebhookPayloadError`.
+- `dashboard.summary()` requires a Kaiten that reads each record of activity only as far back as
+  the organization keeps it: `DashboardSummary.range` carries `usageHistoryFrom`,
+  `usageHistoryDays`, `auditTrailFrom` and `auditTrailDays`, and a deployment that does not send
+  them raises `APIResponseValidationError`.
 - `ResetAnchor` gains `BILLING_PERIOD`, and `Scope` the `read:` and `write:` scopes of `addons`,
   `billing`, `customer_sessions`, `profile`, `publishable_keys`, `users`, `voucher_redemptions` and
   `vouchers`.

@@ -2063,10 +2063,12 @@ class DashboardFeatureFlags(KaitenModel):
     enabled: int
 
     evaluations: int
-    """Evaluations recorded in the range; a floor, the evaluation publisher drops under pressure"""
+    """Evaluations recorded since range.auditTrailFrom; a floor, the evaluation publisher drops
+    under pressure
+    """
 
     not_evaluated: int = Field(alias="notEvaluated")
-    """Flags with no evaluation in the range"""
+    """Flags with no evaluation since range.auditTrailFrom"""
 
     per_flag: list[DashboardFlagEvaluations] = Field(alias="perFlag")
     """Every flag, most evaluated first"""
@@ -2110,8 +2112,8 @@ class DashboardInstance(KaitenModel):
 
 class DashboardInstanceFigures(KaitenModel):
     active_in_range: int = Field(alias="activeInRange")
-    """Instances with at least one report, accepted or refused, or one entitlement read in the
-    range
+    """Instances with an accepted report since range.usageHistoryFrom, or a refused report or
+    an entitlement read since range.auditTrailFrom
     """
 
     by_standing: DashboardStandingCounts = Field(alias="byStanding")
@@ -2144,7 +2146,7 @@ class DashboardInstanceReports(KaitenModel):
     instance_slug: str = Field(alias="instanceSlug")
 
     last_read_at: datetime | None = Field(alias="lastReadAt")
-    """The last entitlement value read in the range"""
+    """The last entitlement value read since range.auditTrailFrom"""
 
     last_report_at: datetime | None = Field(alias="lastReportAt")
 
@@ -2157,12 +2159,14 @@ class DashboardInstanceReports(KaitenModel):
     rejected24h: int
 
     silent: bool
-    """No report, accepted or refused, and no entitlement read in the range"""
+    """No accepted report since range.usageHistoryFrom, and no refused report nor entitlement
+    read since range.auditTrailFrom
+    """
 
     standing: InstanceStanding | str
     """The one word for the instance: atLimit when a meter refuses, watch when one is above its
-    warning threshold, silent when nothing reported or read in the range, healthy otherwise;
-    computed over every meter of the instance
+    warning threshold, silent when nothing was reported or read in either window, healthy
+    otherwise; computed over every meter of the instance
     """
 
 
@@ -2319,6 +2323,17 @@ class DashboardPublishableKeys(KaitenModel):
 
 
 class DashboardRangeWindow(KaitenModel):
+    audit_trail_days: int = Field(alias="auditTrailDays")
+    """The calendar days from auditTrailFrom to To, today included; days when the audit trail
+    covers the whole period
+    """
+
+    audit_trail_from: datetime = Field(alias="auditTrailFrom")
+    """Where refused reports, entitlement reads and flag evaluations are read from: the start
+    of the period's first whole day, or later when the organization keeps its audit trail
+    for less
+    """
+
     days: int
 
     from_: datetime = Field(alias="from")
@@ -2326,6 +2341,16 @@ class DashboardRangeWindow(KaitenModel):
     range: DashboardRange | str
 
     to: datetime
+
+    usage_history_days: int = Field(alias="usageHistoryDays")
+    """The calendar days from usageHistoryFrom to To, today included; days when the usage
+    history covers the whole period
+    """
+
+    usage_history_from: datetime = Field(alias="usageHistoryFrom")
+    """Where the accepted usage reports are read from: the start of the period's first whole
+    day, or later when the organization keeps its usage history for less
+    """
 
 
 class DashboardStandingCounts(KaitenModel):
@@ -2410,10 +2435,12 @@ class DashboardTokens(KaitenModel):
 
 class DashboardUsageReportFigures(KaitenModel):
     accepted: int
-    """Reports journalled in the range"""
+    """Reports accepted on the days usageReports.perDay covers: from the later of
+    range.usageHistoryFrom and range.auditTrailFrom
+    """
 
     rejected: int
-    """Reports refused in the range, from the audit trail"""
+    """Reports refused on the same days, from the audit trail"""
 
     rejected24h: int
 
@@ -2423,6 +2450,9 @@ class DashboardUsageReports(KaitenModel):
     """Every instance, most reports first"""
 
     per_day: list[DashboardDayReports] = Field(alias="perDay")
+    """One entry a calendar day, today last, from the later of range.usageHistoryFrom and
+    range.auditTrailFrom: the days both the accepted and the refused reports are kept
+    """
 
 
 class DashboardZone(KaitenModel):
