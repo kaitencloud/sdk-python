@@ -17,6 +17,7 @@ from ...types import (
     License,
     LicenseEntitlement,
     LicenseType,
+    PricingType,
 )
 from ._base import AsyncResource
 
@@ -54,6 +55,10 @@ class AsyncLicenses(AsyncResource):
         family_slug: str | None = None,
         family_id: str | None = None,
         lifecycle_state: Literal["DRAFT", "PUBLISHED"] | None = None,
+        pricing_type: PricingType | None = None,
+        trial_period_days: int | None = None,
+        requires_payment_method: bool | None = None,
+        self_serve_cta_url: str | None = None,
     ) -> License:
         """Create a license: a new license family, or the next version of an existing one.
 
@@ -80,6 +85,15 @@ class AsyncLicenses(AsyncResource):
             lifecycle_state: ``DRAFT`` to create the version off sale, to be put on sale with
                 :meth:`publish`. ``PUBLISHED`` when omitted. A version is never created
                 ``ARCHIVED``: it is archived with :meth:`archive` once it has been on sale.
+            pricing_type: How the version is sold: ``FREE`` or ``PAID`` can be bought self-serve,
+                ``CUSTOM`` sends a buyer to ``self_serve_cta_url`` or a conversation. ``CUSTOM``
+                when omitted.
+            trial_period_days: The trial a subscription to the version starts with by default,
+                1 to 365 days.
+            requires_payment_method: Whether self-serve signup captures a payment method before
+                activation.
+            self_serve_cta_url: Where a buyer is sent when the version cannot be bought
+                self-serve: an http(s) URL.
 
         Raises:
             NotFoundError: ``family_slug`` or ``family_id`` names no family
@@ -102,6 +116,10 @@ class AsyncLicenses(AsyncResource):
                     "familySlug": family_slug,
                     "familyId": family_id,
                     "lifecycleState": lifecycle_state,
+                    "pricingType": pricing_type,
+                    "trialPeriodDays": trial_period_days,
+                    "requiresPaymentMethod": requires_payment_method,
+                    "selfServeCtaUrl": self_serve_cta_url,
                 }
             ),
         }
@@ -116,6 +134,10 @@ class AsyncLicenses(AsyncResource):
         description: str = "",
         is_default: bool = False,
         version_name: str | None = None,
+        pricing_type: PricingType | None = None,
+        trial_period_days: int | None = None,
+        requires_payment_method: bool | None = None,
+        self_serve_cta_url: str | None = None,
     ) -> None:
         """Replace a license version's details.
 
@@ -123,6 +145,11 @@ class AsyncLicenses(AsyncResource):
         are not part of it: the first three never change, and the state moves only through
         :meth:`publish`, :meth:`archive` and :meth:`unarchive`. ``is_default=True`` takes the
         flag from the family's previous default, and ``False`` unsets it on this version.
+
+        The commercial terms -- ``pricing_type``, ``trial_period_days``,
+        ``requires_payment_method`` and ``self_serve_cta_url`` -- keep their value when left
+        out, as :meth:`create` describes them. ``trial_period_days=0`` removes the trial, and
+        ``self_serve_cta_url=""`` the URL.
 
         Raises:
             ConflictError: ``is_default=True`` on a version that is not ``PUBLISHED``
@@ -133,7 +160,15 @@ class AsyncLicenses(AsyncResource):
             "description": description,
             "type": type,
             "isDefault": is_default,
-            **compact({"versionName": version_name}),
+            **compact(
+                {
+                    "versionName": version_name,
+                    "pricingType": pricing_type,
+                    "trialPeriodDays": trial_period_days,
+                    "requiresPaymentMethod": requires_payment_method,
+                    "selfServeCtaUrl": self_serve_cta_url,
+                }
+            ),
         }
         await self._api.send_empty("PUT", api_path("licenses", license_slug), body=body)
 

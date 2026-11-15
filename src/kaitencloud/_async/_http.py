@@ -12,7 +12,7 @@ from typing import Any, TypeVar
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from .._constants import DEFAULT_TIMEOUT, MAX_PAGE_SIZE
+from .._constants import DEFAULT_TIMEOUT, MAX_PAGE_SIZE, MAX_REPORT_PAGE_SIZE
 from .._exceptions import (
     APIConnectionError,
     APIResponseValidationError,
@@ -22,7 +22,15 @@ from .._exceptions import (
     make_status_error,
 )
 from .._types import NOT_GIVEN, AsyncCredential, NotGiven, TimeoutTypes
-from .._utils import USER_AGENT, Surface, async_resolve_token, async_sleep, check_token, retry_delay
+from .._utils import (
+    PUBLISHABLE_KEY_PREFIX,
+    USER_AGENT,
+    Surface,
+    async_resolve_token,
+    async_sleep,
+    check_token,
+    retry_delay,
+)
 
 __all__ = ["AsyncAPIClient"]
 
@@ -96,9 +104,9 @@ class AsyncAPIClient:
         *,
         params: Mapping[str, Any] | None = None,
         body: Any = None,
+        headers: Mapping[str, str] | None = None,
         idempotent: bool | None = None,
         errors: Mapping[int, type[APIStatusError]] | None = None,
-        headers: Mapping[str, str] | None = None,
         omit_headers: Collection[str] = (),
         max_retries: int | None = None,
         retry_statuses: Collection[int] | None = None,
@@ -128,7 +136,7 @@ class AsyncAPIClient:
                 url,
                 params=_query(params),
                 body=body,
-                headers={**await self._headers(), **(headers or {})},
+                headers={**await self._headers(path), **(headers or {})},
             )
             for name in omit_headers:
                 if name in request.headers:
@@ -286,6 +294,43 @@ class AsyncAPIClient:
             rows.append(row)
         return rows
 
+    async def list_reports(
+        self,
+        path: str,
+        model: type[ModelT],
+        *,
+        params: Mapping[str, Any] | None = None,
+        limit: int | None = None,
+    ) -> list[ModelT]:
+        """Every row of a usage report history, which pages by ``afterSeq`` rather than a cursor.
+
+        ``limit`` is a ceiling, as for :meth:`paginate`. A ``nextAfterSeq`` that does not move
+        past the page it follows raises :class:`PaginationError`.
+        """
+        rows: list[ModelT] = []
+        after: int | None = None
+        while True:
+            size = MAX_REPORT_PAGE_SIZE
+            if limit is not None:
+                size = min(size, limit - len(rows))
+            response = await self.request(
+                "GET", path, params={**(params or {}), "afterSeq": after, "limit": size}
+            )
+            page = self.decode(response)
+            if not isinstance(page, dict) or not isinstance(page.get("items"), list):
+                raise APIResponseValidationError(
+                    f"GET {path}: expected a page of items", response=response
+                )
+            rows += [self.validate(model, item, response) for item in page["items"]]
+            following = page.get("nextAfterSeq")
+            if following is None or (limit is not None and len(rows) >= limit):
+                return rows[:limit]
+            if not isinstance(following, int) or (after is not None and following <= after):
+                raise PaginationError(
+                    f"GET {path}: the API reported more rows but no afterSeq past {after}"
+                )
+            after = following
+
     @staticmethod
     def decode(response: httpx.Response) -> Any:
         if not response.content:
@@ -327,14 +372,15 @@ class AsyncAPIClient:
             method, url, params=params, json=body, headers=headers, timeout=self.timeout
         )
 
-    async def _headers(self) -> dict[str, str]:
-        token = check_token(await async_resolve_token(self.credential), self.surface)
-        return {
-            "Accept": "application/json",
-            "User-Agent": USER_AGENT,
-            **self.default_headers,
-            "Authorization": f"Bearer {token}",
-        }
+    async def _headers(self, path: str) -> dict[str, str]:
+        token = check_token(await async_resolve_token(self.credential), self.surface, path)
+        headers = {"Accept": "application/json", "User-Agent": USER_AGENT, **self.default_headers}
+        if token.startswith(PUBLISHABLE_KEY_PREFIX):
+            # Not a bearer credential: the API refuses a publishable key sent as Authorization.
+            headers["X-Kaiten-Publishable-Key"] = token
+        else:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
 
     async def _back_off(
         self,

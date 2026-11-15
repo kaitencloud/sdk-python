@@ -8,7 +8,7 @@ from __future__ import annotations
 import builtins
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from ..._ai import (
     AI_MAX_RETRIES,
@@ -18,9 +18,18 @@ from ..._ai import (
     new_transaction_id,
 )
 from ..._ai_models import AiEntitlementUsage
-from ..._exceptions import APIStatusError, ThresholdExceededError, make_ai_error
+from ..._constants import EXPORT_MEDIA_TYPES
+from ..._exceptions import (
+    APIStatusError,
+    ThresholdExceededError,
+    TransactionIdReusedError,
+    make_ai_error,
+)
+from ..._models import UsageReportResult
+from ..._types import EntitlementValueInput
 from ..._utils import (
     api_path,
+    check_limit,
     compact,
     format_datetime,
     integration_body,
@@ -35,12 +44,16 @@ from ...types import (
     AiReservations,
     AiUsageParam,
     AuditTrail,
+    EntitlementException,
     EntitlementUsage,
+    ExceptionKind,
     Instance,
     InstanceIntegration,
     InstanceStatus,
     IntegrationParam,
+    ReportedEntitlementUsage,
     UsageBehavior,
+    UsageReport,
 )
 from ._base import Resource
 
@@ -253,24 +266,77 @@ class Instances(Resource):
             ThresholdExceededError: The report would take usage past the maximum the license
                 allows -- the granted value plus its overage allowance. Nothing was recorded.
 
-        Never retried automatically: without an idempotency key on the wire, a report retried
-        after a lost response would be counted twice.
+        Never retried automatically: a report retried after a lost response would be counted
+        twice. :meth:`report_usage_detailed` sends one under an idempotency key, which makes
+        sending it again safe.
         """
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise TypeError(f"usage must be a number, got {type(value).__name__}")
-        body = compact(
-            {
-                "value": {"type": "number", "value": value},
-                "behavior": behavior,
-                "metadata": dict(metadata) if metadata is not None else None,
-            }
-        )
         return self._api.send(
             "POST",
-            api_path("instances", instance_slug, "entitlements", entitlement_slug, "usage"),
+            _usage_path(instance_slug, entitlement_slug),
             EntitlementUsage,
-            body=body,
+            body=_usage_report(value, behavior, metadata),
             errors={409: ThresholdExceededError},
+        )
+
+    def report_usage_detailed(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        value: float,
+        *,
+        behavior: UsageBehavior = "append",
+        metadata: Mapping[str, Any] | None = None,
+        transaction_id: str | None = None,
+    ) -> UsageReportResult:
+        """Report usage, under an idempotency key, and return what the API said about it.
+
+        Kaiten applies a report at most once per key, instance and entitlement within its
+        idempotency window -- 35 days by default. A report sent again under the same key, with
+        the same behavior and value, answers the original report and counts nothing: it comes
+        back with ``replayed`` set.
+
+        Args:
+            instance_slug: The instance that consumed.
+            entitlement_slug: The entitlement consumed.
+            value: The amount, as :meth:`report_usage` takes it.
+            behavior: ``"append"`` (the default) or ``"set"``.
+            metadata: Free-form metadata, stored with the report in the usage history when its
+                compact JSON is at most 4 KiB; above, it is dropped and ``metadata_dropped`` set.
+                It must hold no personal data.
+            transaction_id: The id of the business event the report counts -- 1 to 128 of
+                letters, digits, ``.``, ``_``, ``:`` and ``-``, e.g. ``"llm-call-9f2c:tokens"``.
+                Sent as the ``Idempotency-Key`` header.
+
+        Raises:
+            ThresholdExceededError: The report would take usage past the maximum the license
+                allows. Nothing was recorded.
+            TransactionIdReusedError: The key was spent on a report with another behavior or
+                value. Nothing was recorded.
+
+        Never retried automatically, key or not: a Kaiten older than keys ignores the header and
+        would count a resent report twice. Resend it yourself, under the same key.
+        """
+        try:
+            response = self._api.request(
+                "POST",
+                _usage_path(instance_slug, entitlement_slug),
+                body=_usage_report(value, behavior, metadata),
+                headers=compact({"Idempotency-Key": transaction_id}),
+                errors={409: ThresholdExceededError},
+            )
+        except ThresholdExceededError as error:
+            # The usage endpoint answers 409 for two reasons; only the code tells them apart.
+            if error.code == "ReportEntitlementUsageMetric.TransactionIdReused":
+                raise TransactionIdReusedError(
+                    str(error), response=error.response, problem=error.problem
+                ) from None
+            raise
+        return UsageReportResult(
+            usage=self._api.validate(
+                ReportedEntitlementUsage, self._api.decode(response), response
+            ),
+            replayed=response.headers.get("Idempotent-Replayed") == "true",
+            metadata_dropped=bool(response.headers.get("Kaiten-Metadata-Dropped")),
         )
 
     def reserve_ai_usage(
@@ -406,6 +472,241 @@ class Instances(Resource):
                 raise
             raise mapped from error
 
+    def list_ai_inferences(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        from_: datetime | None = None,
+        to: datetime | None = None,
+        status: AiInferenceStatus | None = None,
+        transaction_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> AiInferencePage:
+        """One newest-first page; pass its next_cursor to fetch the next page."""
+        return self._api.get(
+            api_path(
+                "instances", instance_slug, "entitlements", entitlement_slug, "usage", "inferences"
+            ),
+            AiInferencePage,
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "status": status,
+                "transactionId": transaction_id,
+                "cursor": cursor,
+                "limit": limit,
+            },
+        )
+
+    def list_ai_reservations(self, instance_slug: str, entitlement_slug: str) -> AiReservations:
+        """The pool's open, unexpired reservations."""
+        return self._api.get(
+            api_path(
+                "instances",
+                instance_slug,
+                "entitlements",
+                entitlement_slug,
+                "usage",
+                "reservations",
+            ),
+            AiReservations,
+        )
+
+    def list_usage_reports(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        transaction_id: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[UsageReport]:
+        """Return the usage history of one entitlement for an instance, oldest report first.
+
+        Every report the API accepted in the range, with the counter before and after it and
+        the limit in force. Decimals are strings, exact to the digit. Reports are kept for the
+        organization's usage history retention.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The entitlement.
+            from_: Start of the range, inclusive. Defaults to 30 days before ``to``; a moment
+                before the usage history starts is refused (``ListUsageReports.OutsideRetention``).
+            to: End of the range, exclusive. Defaults to now.
+            transaction_id: Only the report sent with this key.
+            limit: The most reports to return. Every page is walked when omitted.
+        """
+        return self._api.list_reports(
+            api_path(
+                "instances", instance_slug, "entitlements", entitlement_slug, "usage", "reports"
+            ),
+            UsageReport,
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "transactionId": transaction_id,
+            },
+            limit=check_limit(limit),
+        )
+
+    def export_usage_reports(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        format: Literal["csv", "json"] = "csv",
+    ) -> bytes:
+        """Return the usage history of one entitlement for an instance, exported.
+
+        At most 366 days per call, decimals written exactly as the journal stores them.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The entitlement.
+            from_: Start of the range, inclusive (see :meth:`list_usage_reports`).
+            to: End of the range, exclusive. Defaults to now.
+            format: ``"csv"`` (the default), RFC 4180 with a header row, or ``"json"`` for
+                NDJSON, one report per line in the shape :meth:`list_usage_reports` returns.
+        """
+        response = self._api.request(
+            "GET",
+            api_path(
+                "instances",
+                instance_slug,
+                "entitlements",
+                entitlement_slug,
+                "usage",
+                "reports",
+                "export",
+            ),
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "format": format,
+            },
+            headers={"Accept": EXPORT_MEDIA_TYPES[format]},
+        )
+        return response.content
+
+    def export_organization_usage_reports(
+        self,
+        *,
+        from_: datetime | str | None = None,
+        to: datetime | str | None = None,
+        format: Literal["csv", "json"] = "csv",
+        instance_slug: str | None = None,
+        instance_id: str | None = None,
+        entitlement_slug: str | None = None,
+        entitlement_id: str | None = None,
+    ) -> bytes:
+        """Return the whole organization's usage history, exported, ordered by acceptance.
+
+        Every instance and entitlement, at most 31 days per call: keep it before deleting the
+        organization. ``instance_id`` and ``entitlement_id`` reach deleted ones, whose reports
+        are kept.
+
+        Args:
+            from_: Start of the range, inclusive (see :meth:`list_usage_reports`).
+            to: End of the range, exclusive. Defaults to now.
+            format: ``"csv"`` (the default) or ``"json"`` for NDJSON.
+            instance_slug: Only this instance.
+            instance_id: Only this instance, by id.
+            entitlement_slug: Only this entitlement.
+            entitlement_id: Only this entitlement, by id.
+        """
+        response = self._api.request(
+            "GET",
+            "/usage/reports/export",
+            params={
+                "from": optional_datetime(from_),
+                "to": optional_datetime(to),
+                "format": format,
+                "instanceSlug": instance_slug,
+                "instanceId": instance_id,
+                "entitlementSlug": entitlement_slug,
+                "entitlementId": entitlement_id,
+            },
+            headers={"Accept": EXPORT_MEDIA_TYPES[format]},
+        )
+        return response.content
+
+    def list_entitlement_exceptions(
+        self, instance_slug: str, *, include_inactive: bool = False
+    ) -> builtins.list[EntitlementException]:
+        """Return the instance's entitlement exceptions, latest start first, with their status.
+
+        Args:
+            instance_slug: The instance.
+            include_inactive: Also return the revoked and ended ones. Only the active and the
+                scheduled ones otherwise.
+        """
+        return self._api.get_list(
+            api_path("instances", instance_slug, "entitlement-exceptions"),
+            EntitlementException,
+            params={"filter": "all" if include_inactive else None},
+        )
+
+    def create_entitlement_exception(
+        self,
+        instance_slug: str,
+        entitlement_slug: str,
+        *,
+        kind: ExceptionKind,
+        reason: str,
+        value: EntitlementValueInput | None = None,
+        starts_at: datetime | str | None = None,
+        ends_at: datetime | str | None = None,
+    ) -> EntitlementException:
+        """Override one entitlement of an instance, for a while, and return the exception.
+
+        An exception is your explicit, dated decision on one instance: the last layer of its
+        effective entitlements, after the license, the add-ons and the boosts. It wins over
+        them, and may lower the value. An instance has one unrevoked exception per entitlement
+        at any moment. It works whether or not billing is enabled.
+
+        Args:
+            instance_slug: The instance.
+            entitlement_slug: The entitlement it overrides, granted or not.
+            kind: ``SET`` works on every type; ``ADD`` and ``UNLIMITED`` on numbers only.
+            reason: Why, 1 to 500 characters, shown to you only.
+            value: For ``SET``, a number of 0 or more, a ``bool`` or a mapping, by the
+                entitlement's type; for ``ADD``, a number above 0; nothing for ``UNLIMITED``.
+            starts_at: When it starts: now when omitted; a future moment schedules it.
+            ends_at: When it ends. It never does when omitted.
+        """
+        body = {
+            "entitlementSlug": entitlement_slug,
+            "kind": kind,
+            "reason": reason,
+            **compact(
+                {
+                    "value": dict(value) if isinstance(value, Mapping) else value,
+                    "startsAt": optional_datetime(starts_at),
+                    "endsAt": optional_datetime(ends_at),
+                }
+            ),
+        }
+        return self._api.send(
+            "POST",
+            api_path("instances", instance_slug, "entitlement-exceptions"),
+            EntitlementException,
+            body=body,
+        )
+
+    def revoke_entitlement_exception(self, instance_slug: str, exception_id: str) -> None:
+        """Revoke an exception, which is kept: a scheduled one never starts, an active one ends.
+
+        Revoking one already revoked or ended changes nothing.
+        """
+        self._api.send_empty(
+            "DELETE", api_path("instances", instance_slug, "entitlement-exceptions", exception_id)
+        )
+
     def get_integration(self, instance_slug: str, integration_name: str) -> InstanceIntegration:
         """Return the instance's link to the ``integration_name`` adapter."""
         return self._api.get(
@@ -468,48 +769,6 @@ class Instances(Resource):
             "DELETE", api_path("instances", instance_slug, "integrations", integration_name)
         )
 
-    def list_ai_inferences(
-        self,
-        instance_slug: str,
-        entitlement_slug: str,
-        *,
-        from_: datetime | None = None,
-        to: datetime | None = None,
-        status: AiInferenceStatus | None = None,
-        transaction_id: str | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
-    ) -> AiInferencePage:
-        """One newest-first page; pass its next_cursor to fetch the next page."""
-        return self._api.get(
-            api_path(
-                "instances", instance_slug, "entitlements", entitlement_slug, "usage", "inferences"
-            ),
-            AiInferencePage,
-            params={
-                "from": optional_datetime(from_),
-                "to": optional_datetime(to),
-                "status": status,
-                "transactionId": transaction_id,
-                "cursor": cursor,
-                "limit": limit,
-            },
-        )
-
-    def list_ai_reservations(self, instance_slug: str, entitlement_slug: str) -> AiReservations:
-        """The pool's open, unexpired reservations."""
-        return self._api.get(
-            api_path(
-                "instances",
-                instance_slug,
-                "entitlements",
-                entitlement_slug,
-                "usage",
-                "reservations",
-            ),
-            AiReservations,
-        )
-
 
 def _instance(
     *,
@@ -536,3 +795,21 @@ def _instance(
             }
         ),
     }
+
+
+def _usage_path(instance_slug: str, entitlement_slug: str) -> str:
+    return api_path("instances", instance_slug, "entitlements", entitlement_slug, "usage")
+
+
+def _usage_report(
+    value: float, behavior: UsageBehavior, metadata: Mapping[str, Any] | None
+) -> dict[str, Any]:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"usage must be a number, got {type(value).__name__}")
+    return compact(
+        {
+            "value": {"type": "number", "value": value},
+            "behavior": behavior,
+            "metadata": dict(metadata) if metadata is not None else None,
+        }
+    )

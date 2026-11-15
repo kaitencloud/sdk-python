@@ -25,6 +25,8 @@ from kaitencloud import (
     KaitenClient,
     KaitenPlatformClient,
 )
+from kaitencloud._async.resources._base import AsyncResource
+from kaitencloud._sync.resources._base import Resource
 
 SURFACES = ["core", "platform"]
 LIFECYCLE = {"close", "with_options"}
@@ -66,14 +68,20 @@ def public_methods(client: Any) -> set[str]:
         for name, _ in inspect.getmembers(type(client), inspect.isfunction)
         if not name.startswith("_") and name not in LIFECYCLE
     }
-    for namespace, resource in vars(client).items():
-        if namespace.startswith("_"):
-            continue
+    # Namespaces nest -- client.billing.invoices -- so walk them all the way down.
+    namespaces = [(name, value) for name, value in vars(client).items() if not name.startswith("_")]
+    while namespaces:
+        path, resource = namespaces.pop()
         exposed |= {
-            f"{namespace}.{name}"
+            f"{path}.{name}"
             for name, _ in inspect.getmembers(type(resource), inspect.isfunction)
             if not name.startswith("_")
         }
+        namespaces += [
+            (f"{path}.{name}", value)
+            for name, value in inspect.getmembers(resource)
+            if not name.startswith("_") and isinstance(value, (AsyncResource, Resource))
+        ]
     return exposed
 
 

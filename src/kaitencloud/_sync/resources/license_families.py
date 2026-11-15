@@ -8,8 +8,8 @@ from __future__ import annotations
 import builtins
 from typing import Any
 
-from ..._utils import api_path
-from ...types import LicenseFamilyView
+from ..._utils import api_path, compact
+from ...types import LicenseFamilyView, TrialEndWithoutPaymentMethod
 from ._base import Resource
 
 __all__ = ["LicenseFamilies"]
@@ -60,4 +60,39 @@ class LicenseFamilies(Resource):
             params["include"] = "versions"
         return self._api.get(
             api_path("license-families", family_slug), LicenseFamilyView, params=params or None
+        )
+
+    def update(
+        self,
+        family_slug: str,
+        *,
+        is_public: bool | None = None,
+        fallback_license_family_slug: str | None = None,
+        trial_end_without_payment_method: TrialEndWithoutPaymentMethod | None = None,
+        trial_reminder_days: int | None = None,
+    ) -> LicenseFamilyView:
+        """Change a family's own settings, and return the family; what is omitted keeps its value.
+
+        Args:
+            family_slug: The family's slug.
+            is_public: List the family's default ``PUBLISHED`` version, with its ``ACTIVE``
+                prices, in the public catalog. Families are private until made public.
+            fallback_license_family_slug: Another family of the organization, every version of
+                it priced ``FREE``, whose default version an instance moves to when its
+                subscription ends. ``""`` removes the fallback.
+            trial_end_without_payment_method: What a trial charged automatically becomes at its
+                end when the customer has no active payment method: ``CANCEL`` or ``CONVERT``.
+            trial_reminder_days: How many days before a trial's end ``trial_will_end`` fires,
+                1 to 30, for the trials started after the change.
+        """
+        body = compact(
+            {
+                "isPublic": is_public,
+                "fallbackLicenseFamilySlug": fallback_license_family_slug,
+                "trialEndWithoutPaymentMethod": trial_end_without_payment_method,
+                "trialReminderDays": trial_reminder_days,
+            }
+        )
+        return self._api.send(
+            "PATCH", api_path("license-families", family_slug), LicenseFamilyView, body=body
         )

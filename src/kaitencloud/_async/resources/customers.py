@@ -33,6 +33,7 @@ class AsyncCustomers(AsyncResource):
         external_customer_id: str | None = None,
         domain: str | None = None,
         integrations: Mapping[str, IntegrationParam] | None = None,
+        billing_email: str | None = None,
     ) -> Customer:
         """Create a customer.
 
@@ -44,6 +45,8 @@ class AsyncCustomers(AsyncResource):
             domain: Its domain name, e.g. ``"acme.com"``.
             integrations: Links to records in third-party systems, keyed by adapter name.
                 Only settable here: afterwards, use :meth:`update_integration`.
+            billing_email: Where invoices sent to the customer are delivered, at most 254
+                characters. Personal data: never included in event payloads.
 
         Raises:
             ConflictError: The slug is taken, or the organization reached its customer limit.
@@ -55,6 +58,7 @@ class AsyncCustomers(AsyncResource):
                 "externalCustomerId": external_customer_id,
                 "domain": domain,
                 "integrations": integrations_body(integrations),
+                "billingEmail": billing_email,
             }
         )
         return await self._api.send("POST", "/customers", Customer, body=body)
@@ -66,13 +70,22 @@ class AsyncCustomers(AsyncResource):
         name: str,
         external_customer_id: str | None = None,
         domain: str | None = None,
+        billing_email: str | None = None,
     ) -> None:
         """Replace a customer's details.
 
         A full replacement: the external customer id and the domain are cleared when left out.
-        The slug cannot be changed, and integrations have their own methods.
+        The billing e-mail is the exception: left out, it keeps its value, and ``""`` removes
+        it. The slug cannot be changed, and integrations have their own methods.
         """
-        body = compact({"name": name, "externalCustomerId": external_customer_id, "domain": domain})
+        body = compact(
+            {
+                "name": name,
+                "externalCustomerId": external_customer_id,
+                "domain": domain,
+                "billingEmail": billing_email,
+            }
+        )
         await self._api.send_empty("PUT", api_path("customers", customer_slug), body=body)
 
     async def delete(self, customer_slug: str) -> None:

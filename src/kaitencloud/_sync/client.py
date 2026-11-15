@@ -28,6 +28,7 @@ from .._utils import normalize_base_url
 from ..types import PlatformCredential
 from ._http import APIClient
 from .resources import (
+    Billing,
     Components,
     Connectors,
     Customers,
@@ -45,6 +46,7 @@ from .resources import (
     ServiceAccounts,
 )
 from .resources.platform import (
+    PlatformBilling,
     PlatformConnectors,
     PlatformOrganizations,
     PlatformTokens,
@@ -116,7 +118,7 @@ class KaitenClient(_BaseClient):
 
     The Core API is what an organization's own credential talks to: an organization token
     (``ksh_...``) or a JWT from your identity provider. It covers customers, instances,
-    licenses, entitlements and usage, feature flags, releases and connectors::
+    licenses, entitlements and usage, billing, feature flags, releases and connectors::
 
         with KaitenClient(
             base_url="https://kaiten.example.com", token="ksh_..."
@@ -138,6 +140,9 @@ class KaitenClient(_BaseClient):
         http_client: An :class:`httpx.Client` to send requests with, for proxies, custom
             TLS or transports. The Kaiten client never closes a client it did not create.
     """
+
+    billing: Billing
+    """Billing: prices, subscriptions, invoices, add-ons, vouchers and the public catalog."""
 
     components: Components
     """Components: the versioned building blocks releases are made of."""
@@ -213,6 +218,7 @@ class KaitenClient(_BaseClient):
 
     def _bind(self) -> None:
         api = self._api
+        self.billing = Billing(api)
         self.components = Components(api)
         self.connectors = Connectors(api)
         self.customers = Customers(api)
@@ -254,6 +260,9 @@ class KaitenPlatformClient(_BaseClient):
         default_headers: Headers sent with every request.
         http_client: An :class:`httpx.Client` to send requests with.
     """
+
+    billing: PlatformBilling
+    """Billing across organizations: closing their due periods."""
 
     connectors: PlatformConnectors
     """The deployment-wide connector registry."""
@@ -310,6 +319,7 @@ class KaitenPlatformClient(_BaseClient):
 
     def _bind(self) -> None:
         api = self._api
+        self.billing = PlatformBilling(api)
         self.connectors = PlatformConnectors(api)
         self.organizations = PlatformOrganizations(api)
         self.tokens = PlatformTokens(api)
