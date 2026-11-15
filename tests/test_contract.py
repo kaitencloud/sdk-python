@@ -183,6 +183,12 @@ CASES = [
         minimal=lambda c: c.customers.update_integration("acme", "attio", external_id="rec_1"),
     ),
     Case("delete-customer-integration", lambda c: c.customers.delete_integration("acme", "attio")),
+    # dashboard
+    Case(
+        "getDashboardSummary",
+        lambda c: c.dashboard.summary(range="30d"),
+        minimal=lambda c: c.dashboard.summary(),
+    ),
     # deployment zones
     Case("list-deployment-zones", lambda c: c.deployment_zones.list()),
     Case("get-deployment-zone-by-slug", lambda c: c.deployment_zones.get("eu-west-1")),

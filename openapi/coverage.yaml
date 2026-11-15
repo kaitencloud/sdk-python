@@ -11,6 +11,8 @@
 
 core:
   operations:
+    getDashboardSummary: dashboard.summary
+
     # billing: settings, capabilities and the payment providers
     getBillingSettings: billing.get_settings
     updateBillingSettings: billing.update_settings
@@ -295,12 +297,6 @@ core:
     delete-service-account-token: service_accounts.delete_token
 
   excluded:
-    getDashboardSummary: >-
-      The console's dashboard summary: one figure set the API computes for the two views of its
-      home screen, over an instance fleet. It answers "how does the console draw this page",
-      not a question a machine client asks, and every number in it is reachable through the
-      operations this file already maps.
-
     getAiUsageCapabilities: >-
       Whether AI credits are switched on for the organization. Excluded only on this branch:
       the AI charge work stacked on it wraps the operation, and maps it there. The SDK does

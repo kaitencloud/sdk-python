@@ -5,6 +5,7 @@ from .billing import AsyncBilling
 from .components import AsyncComponents
 from .connectors import AsyncConnectors
 from .customers import AsyncCustomers
+from .dashboard import AsyncDashboard
 from .deployment_zones import AsyncDeploymentZones
 from .entitlement_groups import AsyncEntitlementGroups
 from .entitlements import AsyncEntitlements
@@ -23,6 +24,7 @@ __all__ = [
     "AsyncComponents",
     "AsyncConnectors",
     "AsyncCustomers",
+    "AsyncDashboard",
     "AsyncDeploymentZones",
     "AsyncEntitlementGroups",
     "AsyncEntitlements",

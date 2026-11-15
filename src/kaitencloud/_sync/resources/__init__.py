@@ -7,6 +7,7 @@ from .billing import Billing
 from .components import Components
 from .connectors import Connectors
 from .customers import Customers
+from .dashboard import Dashboard
 from .deployment_zones import DeploymentZones
 from .entitlement_groups import EntitlementGroups
 from .entitlements import Entitlements
@@ -25,6 +26,7 @@ __all__ = [
     "Components",
     "Connectors",
     "Customers",
+    "Dashboard",
     "DeploymentZones",
     "EntitlementGroups",
     "Entitlements",

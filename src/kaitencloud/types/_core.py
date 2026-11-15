@@ -102,6 +102,45 @@ __all__ = [
     "CustomerInProvider",
     "CustomerIntegration",
     "CustomerIntegrationResource",
+    "DashboardArchivedVersion",
+    "DashboardAttention",
+    "DashboardAttentionArchived",
+    "DashboardAttentionInstances",
+    "DashboardAttentionLicenses",
+    "DashboardAttentionMeters",
+    "DashboardAttentionReports",
+    "DashboardAttentionTokens",
+    "DashboardAttentionZones",
+    "DashboardBilling",
+    "DashboardConnector",
+    "DashboardConnectors",
+    "DashboardCustomerFigures",
+    "DashboardDayReports",
+    "DashboardFeatureFlags",
+    "DashboardFigures",
+    "DashboardFlagEvaluations",
+    "DashboardInstance",
+    "DashboardInstanceFigures",
+    "DashboardInstanceReports",
+    "DashboardIntegrations",
+    "DashboardInvoicedCurrency",
+    "DashboardLicenseEnding",
+    "DashboardLicenseFamilyMix",
+    "DashboardLicenseVersionMix",
+    "DashboardLicenses",
+    "DashboardLicensesEnding",
+    "DashboardMeter",
+    "DashboardPublishableKeys",
+    "DashboardRange",
+    "DashboardRangeWindow",
+    "DashboardStandingCounts",
+    "DashboardSubscriptions",
+    "DashboardSummary",
+    "DashboardTokenExpiring",
+    "DashboardTokens",
+    "DashboardUsageReportFigures",
+    "DashboardUsageReports",
+    "DashboardZone",
     "DefaultVariant",
     "DeletedAddonDelivered",
     "Deployment",
@@ -165,6 +204,7 @@ __all__ = [
     "InstanceIntegration",
     "InstanceIntegrationResource",
     "InstanceLifecycleStageChanged",
+    "InstanceStanding",
     "InstanceStatus",
     "InstanceStatusChanged",
     "InstanceUpdateDelivered",
@@ -439,6 +479,9 @@ charges the customer's payment method.
 
 ConversionRuleStatus = Literal["ACTIVE", "ARCHIVED"]
 
+DashboardRange = Literal["7d", "30d", "90d"]
+"""The window a dashboard summary covers: seven, thirty or ninety days."""
+
 DiscountAppliesTo = Literal["LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"]
 """What a price voucher discounts."""
 
@@ -478,6 +521,12 @@ HandoffStatus = Literal["NOT_REQUIRED", "PENDING", "ACKNOWLEDGED"]
 IncreaseBilling = Literal["TRUE_UP", "NEXT_BOUNDARY"]
 """How a mid-period increase of an add-on billed in advance is billed: a ``TRUE_UP`` line, or
 from the ``NEXT_BOUNDARY``.
+"""
+
+InstanceStanding = Literal["atLimit", "watch", "silent", "healthy"]
+"""The one word for an instance, over every one of its meters: ``atLimit`` when a meter
+refuses, ``watch`` when one is above its warning threshold, ``silent`` when nothing reported
+or read in the range, ``healthy`` otherwise.
 """
 
 InstanceStatus = Literal["HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"]
@@ -1878,6 +1927,522 @@ class CustomerIntegrationResource(KaitenModel):
 
     web_url: str | None = Field(default=None, alias="webUrl")
     """Absolute http(s) link to the record in the third-party system"""
+
+
+class DashboardArchivedVersion(KaitenModel):
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    default_license_name: str | None = Field(alias="defaultLicenseName")
+    """The version the family serves instead, when it has a published default"""
+
+    family_slug: str = Field(alias="familySlug")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+    version: int
+
+
+class DashboardAttention(KaitenModel):
+    archived_versions: DashboardAttentionArchived = Field(alias="archivedVersions")
+    """Instances pinned to a License version withdrawn from sale"""
+
+    checked: list[str]
+    """The checks that ran; one the caller's scopes exclude is absent"""
+
+    instances_not_healthy: DashboardAttentionInstances = Field(alias="instancesNotHealthy")
+    """Instances whose status is not HEALTHY"""
+
+    licenses_ending30d: DashboardAttentionLicenses = Field(alias="licensesEnding30d")
+    """Instances whose License ends within 30 days"""
+
+    limits_reached: DashboardAttentionMeters = Field(alias="limitsReached")
+    """Meters at the most their grant allows, a hard limit or an allowance used up: the next
+    report is refused
+    """
+
+    near_threshold: DashboardAttentionMeters = Field(alias="nearThreshold")
+    """Meters at or above the warning threshold of their grant, below the limit; an entitlement
+    with no threshold never is
+    """
+
+    rejected_reports24h: DashboardAttentionReports = Field(alias="rejectedReports24h")
+    """Usage reports refused in the last 24 hours, by instance"""
+
+    silent_instances: DashboardAttentionInstances = Field(alias="silentInstances")
+    """Instances with no report, accepted or refused, and no entitlement read in the range"""
+
+    tokens_expiring30d: DashboardAttentionTokens = Field(alias="tokensExpiring30d")
+    """Service account tokens that expire within 30 days"""
+
+    zones_behind: DashboardAttentionZones = Field(alias="zonesBehind")
+    """Deployment zones running a release older than the newest one"""
+
+
+class DashboardAttentionArchived(KaitenModel):
+    count: int
+
+    items: list[DashboardArchivedVersion]
+
+
+class DashboardAttentionInstances(KaitenModel):
+    count: int
+
+    items: list[DashboardInstance]
+
+
+class DashboardAttentionLicenses(KaitenModel):
+    count: int
+
+    items: list[DashboardLicenseEnding]
+
+
+class DashboardAttentionMeters(KaitenModel):
+    count: int
+
+    items: list[DashboardMeter]
+
+
+class DashboardAttentionReports(KaitenModel):
+    count: int
+
+    items: list[DashboardInstanceReports]
+
+
+class DashboardAttentionTokens(KaitenModel):
+    count: int
+
+    items: list[DashboardTokenExpiring]
+
+
+class DashboardAttentionZones(KaitenModel):
+    count: int
+
+    items: list[DashboardZone]
+
+
+class DashboardBilling(KaitenModel):
+    invoiced_this_month: list[DashboardInvoicedCurrency] = Field(alias="invoicedThisMonth")
+    """Since the start of the calendar month, per currency, largest first"""
+
+    subscriptions: DashboardSubscriptions
+
+
+class DashboardConnector(KaitenModel):
+    activated: bool
+
+    activated_at: datetime | None = Field(alias="activatedAt")
+
+    name: str
+
+
+class DashboardConnectors(KaitenModel):
+    items: list[DashboardConnector]
+
+
+class DashboardCustomerFigures(KaitenModel):
+    created_in_range: int = Field(alias="createdInRange")
+
+    total: int
+
+
+class DashboardDayReports(KaitenModel):
+    accepted: int
+
+    day: datetime
+
+    rejected: int
+
+
+class DashboardFeatureFlags(KaitenModel):
+    enabled: int
+
+    evaluations: int
+    """Evaluations recorded in the range; a floor, the evaluation publisher drops under pressure"""
+
+    not_evaluated: int = Field(alias="notEvaluated")
+    """Flags with no evaluation in the range"""
+
+    per_flag: list[DashboardFlagEvaluations] = Field(alias="perFlag")
+    """Every flag, most evaluated first"""
+
+    total: int
+
+
+class DashboardFigures(KaitenModel):
+    customers: DashboardCustomerFigures
+
+    instances: DashboardInstanceFigures
+
+    usage_reports: DashboardUsageReportFigures = Field(alias="usageReports")
+
+
+class DashboardFlagEvaluations(KaitenModel):
+    enabled: bool
+
+    evaluations: int
+
+    name: str
+
+    slug: str
+
+
+class DashboardInstance(KaitenModel):
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    last_activity_at: datetime | None = Field(alias="lastActivityAt")
+    """The last accepted report or entitlement read in the range; null when silent"""
+
+    status: str | None = None
+    """The instance's status, on the status check"""
+
+
+class DashboardInstanceFigures(KaitenModel):
+    active_in_range: int = Field(alias="activeInRange")
+    """Instances with at least one report, accepted or refused, or one entitlement read in the
+    range
+    """
+
+    by_standing: DashboardStandingCounts = Field(alias="byStanding")
+    """Instances by standing, over the whole organization"""
+
+    by_status: dict[str, int] = Field(alias="byStatus")
+    """HEALTHY, DEGRADED, INCIDENT, MAINTENANCE"""
+
+    created_in_range: int = Field(alias="createdInRange")
+
+    silent_in_range: int = Field(alias="silentInRange")
+
+    total: int
+
+
+class DashboardInstanceReports(KaitenModel):
+    accepted: int
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    headline: DashboardMeter | None = None
+    """The meter that decides the standing, when one does: a meter at its limit before one
+    above its threshold, the higher ratio first
+    """
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    last_read_at: datetime | None = Field(alias="lastReadAt")
+    """The last entitlement value read in the range"""
+
+    last_report_at: datetime | None = Field(alias="lastReportAt")
+
+    license_name: str = Field(alias="licenseName")
+
+    license_state: LicenseLifecycleState | str = Field(alias="licenseState")
+
+    rejected: int
+
+    rejected24h: int
+
+    silent: bool
+    """No report, accepted or refused, and no entitlement read in the range"""
+
+    standing: InstanceStanding | str
+    """The one word for the instance: atLimit when a meter refuses, watch when one is above its
+    warning threshold, silent when nothing reported or read in the range, healthy otherwise;
+    computed over every meter of the instance
+    """
+
+
+class DashboardIntegrations(KaitenModel):
+    connectors: DashboardConnectors | None = None
+    """Absent when the caller cannot read the organization's connectors"""
+
+    publishable_keys: DashboardPublishableKeys | None = Field(default=None, alias="publishableKeys")
+    """Absent when the caller cannot read publishable keys"""
+
+    tokens: DashboardTokens | None = None
+    """Service accounts and their tokens; absent when the caller cannot read tokens"""
+
+
+class DashboardInvoicedCurrency(KaitenModel):
+    currency: str
+
+    invoices: int
+
+    overdue: int
+
+    paid: int
+
+    total_minor: int = Field(alias="totalMinor")
+
+
+class DashboardLicenseEnding(KaitenModel):
+    billing_status: str | None = Field(alias="billingStatus")
+    """The instance's subscription status, when it has one; null too when the caller cannot
+    read billing (the billing block says which)
+    """
+
+    cancel_at_period_end: bool = Field(alias="cancelAtPeriodEnd")
+    """The subscription ends with its period rather than renewing; false without one, and when
+    the caller cannot read billing
+    """
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    ends_at: datetime = Field(alias="endsAt")
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+
+class DashboardLicenseFamilyMix(KaitenModel):
+    family_slug: str = Field(alias="familySlug")
+
+    instances: int
+
+    versions: list[DashboardLicenseVersionMix]
+
+
+class DashboardLicenseVersionMix(KaitenModel):
+    instances: int
+
+    is_default: bool = Field(alias="isDefault")
+
+    lifecycle_state: LicenseLifecycleState | str = Field(alias="lifecycleState")
+
+    name: str
+
+    slug: str
+
+    version: int
+
+
+class DashboardLicenses(KaitenModel):
+    archived: list[DashboardArchivedVersion]
+
+    ending: DashboardLicensesEnding
+
+    mix: list[DashboardLicenseFamilyMix]
+
+
+class DashboardLicensesEnding(KaitenModel):
+    items: list[DashboardLicenseEnding]
+    """The next five to end"""
+
+    within180_days: int = Field(alias="within180Days")
+
+    within30_days: int = Field(alias="within30Days")
+
+
+class DashboardMeter(KaitenModel):
+    above_warning: bool = Field(alias="aboveWarning")
+    """Usage is at or past the warning threshold of the grant, below the limit, as the report
+    path warns; never without a threshold
+    """
+
+    allowance_percent: int = Field(alias="allowancePercent")
+    """0 is a hard limit, -1 an unlimited allowance"""
+
+    customer_name: str = Field(alias="customerName")
+
+    customer_slug: str = Field(alias="customerSlug")
+
+    entitlement_name: str = Field(alias="entitlementName")
+
+    entitlement_slug: str = Field(alias="entitlementSlug")
+
+    granted: float | None
+    """The grant; null when it is unlimited"""
+
+    hard_limit: bool = Field(alias="hardLimit")
+    """The grant allows nothing past itself"""
+
+    instance_name: str = Field(alias="instanceName")
+
+    instance_slug: str = Field(alias="instanceSlug")
+
+    license_name: str = Field(alias="licenseName")
+
+    license_state: LicenseLifecycleState | str = Field(alias="licenseState")
+
+    limit_reached: bool = Field(alias="limitReached")
+    """Usage is at or past maxAllowed: the next report is refused"""
+
+    max_allowed: float | None = Field(alias="maxAllowed")
+    """The grant plus its allowance, the most a report is accepted up to; null when nothing
+    refuses
+    """
+
+    ratio: float | None
+    """used over maxAllowed, or over the grant when nothing refuses; null when there is no
+    grant to measure against
+    """
+
+    unit: str | None
+
+    used: float
+    """Usage in the current window"""
+
+    warning_threshold_percent: int = Field(alias="warningThresholdPercent")
+    """The entitlement's early-warning threshold, a percentage of the grant; 0 when none is
+    configured
+    """
+
+    window_start: datetime | None = Field(alias="windowStart")
+    """Start of the current window of a periodic entitlement; null for a lifetime one"""
+
+
+class DashboardPublishableKeys(KaitenModel):
+    count: int
+    """Keys not revoked"""
+
+    last_used_at: datetime | None = Field(alias="lastUsedAt")
+    """The last use of any of them"""
+
+
+class DashboardRangeWindow(KaitenModel):
+    days: int
+
+    from_: datetime = Field(alias="from")
+
+    range: DashboardRange | str
+
+    to: datetime
+
+
+class DashboardStandingCounts(KaitenModel):
+    at_limit: int = Field(alias="atLimit")
+
+    healthy: int
+
+    silent: int
+
+    watch: int
+
+
+class DashboardSubscriptions(KaitenModel):
+    active: int
+
+    canceled: int
+
+    past_due: int = Field(alias="pastDue")
+
+    trial: int
+
+
+class DashboardSummary(KaitenModel):
+    as_of: datetime = Field(alias="asOf")
+    """When the figures were computed"""
+
+    attention: DashboardAttention
+
+    billing: DashboardBilling | None = None
+    """Subscriptions and this month's invoices; absent when the caller cannot read billing.
+    Whether billing is enabled for the organization is GET /billing/capabilities' answer,
+    not this one's
+    """
+
+    feature_flags: DashboardFeatureFlags | None = Field(default=None, alias="featureFlags")
+    """Absent when the caller cannot read feature flags"""
+
+    figures: DashboardFigures
+
+    integrations: DashboardIntegrations | None = None
+    """Who talks to Kaiten; absent when the caller can read none of tokens, publishable keys
+    and connectors
+    """
+
+    licenses: DashboardLicenses
+
+    range: DashboardRangeWindow
+
+    saturation: list[DashboardMeter]
+    """The meters closest to the most their grant allows, highest ratio first, at most eight"""
+
+    usage_reports: DashboardUsageReports = Field(alias="usageReports")
+
+    zones: list[DashboardZone]
+    """Empty when the caller cannot read deployment zones and releases"""
+
+
+class DashboardTokenExpiring(KaitenModel):
+    expires_at: datetime = Field(alias="expiresAt")
+
+    name: str
+
+    service_account_name: str = Field(alias="serviceAccountName")
+
+    service_account_slug: str = Field(alias="serviceAccountSlug")
+
+    slug: str
+
+
+class DashboardTokens(KaitenModel):
+    active_tokens: int = Field(alias="activeTokens")
+
+    service_accounts: int = Field(alias="serviceAccounts")
+
+    tokens_expiring: list[DashboardTokenExpiring] = Field(alias="tokensExpiring")
+    """The next five to expire"""
+
+    tokens_expiring30_days: int = Field(alias="tokensExpiring30Days")
+
+    tokens_without_expiry: int = Field(alias="tokensWithoutExpiry")
+
+
+class DashboardUsageReportFigures(KaitenModel):
+    accepted: int
+    """Reports journalled in the range"""
+
+    rejected: int
+    """Reports refused in the range, from the audit trail"""
+
+    rejected24h: int
+
+
+class DashboardUsageReports(KaitenModel):
+    by_instance: list[DashboardInstanceReports] = Field(alias="byInstance")
+    """Every instance, most reports first"""
+
+    per_day: list[DashboardDayReports] = Field(alias="perDay")
+
+
+class DashboardZone(KaitenModel):
+    deployed_at: datetime | None = Field(alias="deployedAt")
+
+    deployed_by: str | None = Field(alias="deployedBy")
+
+    instances: int
+
+    name: str
+
+    release_version: str | None = Field(alias="releaseVersion")
+    """Null when nothing was deployed there"""
+
+    releases_behind: int = Field(alias="releasesBehind")
+    """Releases created after the one the zone runs"""
+
+    slug: str
+
+    type: str
 
 
 class DeletedAddonDelivered(KaitenModel):
@@ -6923,6 +7488,44 @@ for _model in (
     CustomerInProvider,
     CustomerIntegration,
     CustomerIntegrationResource,
+    DashboardArchivedVersion,
+    DashboardAttention,
+    DashboardAttentionArchived,
+    DashboardAttentionInstances,
+    DashboardAttentionLicenses,
+    DashboardAttentionMeters,
+    DashboardAttentionReports,
+    DashboardAttentionTokens,
+    DashboardAttentionZones,
+    DashboardBilling,
+    DashboardConnector,
+    DashboardConnectors,
+    DashboardCustomerFigures,
+    DashboardDayReports,
+    DashboardFeatureFlags,
+    DashboardFigures,
+    DashboardFlagEvaluations,
+    DashboardInstance,
+    DashboardInstanceFigures,
+    DashboardInstanceReports,
+    DashboardIntegrations,
+    DashboardInvoicedCurrency,
+    DashboardLicenseEnding,
+    DashboardLicenseFamilyMix,
+    DashboardLicenseVersionMix,
+    DashboardLicenses,
+    DashboardLicensesEnding,
+    DashboardMeter,
+    DashboardPublishableKeys,
+    DashboardRangeWindow,
+    DashboardStandingCounts,
+    DashboardSubscriptions,
+    DashboardSummary,
+    DashboardTokenExpiring,
+    DashboardTokens,
+    DashboardUsageReportFigures,
+    DashboardUsageReports,
+    DashboardZone,
     DeletedAddonDelivered,
     Deployment,
     DeploymentZone,
