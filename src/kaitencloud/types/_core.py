@@ -65,6 +65,7 @@ __all__ = [
     "CancellationDelivered",
     "CancellationMode",
     "CancellationReason",
+    "Capabilities",
     "CheckoutConfirmation",
     "CheckoutConfirmationStatus",
     "CheckoutPayment",
@@ -93,7 +94,7 @@ __all__ = [
     "ConversionRule",
     "ConversionRuleDelivered",
     "ConversionRuleStatus",
-    "ConversionRuleUpdatedDelivered",
+    "ConversionRuleUpdated",
     "CreatedCustomerSession",
     "Customer",
     "CustomerBilling",
@@ -191,7 +192,7 @@ __all__ = [
     "HoldRecord",
     "IncreaseBilling",
     "Instance",
-    "InstanceAIModelUsageUnauthorizedDelivered",
+    "InstanceAIModelUsageUnauthorized",
     "InstanceAddon",
     "InstanceAddonUpdateDelivered",
     "InstanceBilling",
@@ -254,8 +255,10 @@ __all__ = [
     "ModelDelivered",
     "ModelModality",
     "ModelStatus",
-    "ModelUpdatedDelivered",
+    "ModelUpdated",
     "NumberEntitlementValue",
+    "OrganizationAiInference",
+    "OrganizationAiInferencePage",
     "Outcome",
     "OverageLimit",
     "OverrideBehavior",
@@ -854,7 +857,7 @@ class AiInference(KaitenModel):
     operations recorded before snapshots existed.
     """
 
-    refunds: list[AiInferenceRefund]
+    refunds: list[AiInferenceRefund] = Field(default_factory=list, alias="refunds")
     """The refunds of the operation's charge, oldest first. Their sum is credits.refunded."""
 
     report_seq: int | None = Field(default=None, alias="reportSeq")
@@ -878,7 +881,7 @@ class AiInference(KaitenModel):
 
     vendor_cost: AiVendorCost | None = Field(default=None, alias="vendorCost")
 
-    warnings: list[str]
+    warnings: list[str] = Field(default_factory=list, alias="warnings")
     """The warnings of the phase that last wrote the operation."""
 
     window_start: datetime | None = Field(default=None, alias="windowStart")
@@ -1322,6 +1325,10 @@ class CanceledSubscription(KaitenModel):
     updated_at: datetime = Field(alias="updatedAt")
 
 
+class Capabilities(KaitenModel):
+    enabled: bool
+
+
 class CheckoutConfirmation(KaitenModel):
     session: CheckoutSession
 
@@ -1681,12 +1688,12 @@ class ConversionRule(KaitenModel):
 
     created_at: datetime = Field(alias="createdAt")
 
-    created_by: User = Field(alias="createdBy")
+    created_by: User | None = Field(default=None, alias="createdBy")
     """User who created this rule; a service account is a user"""
 
     entitlement_slug: str = Field(alias="entitlementSlug")
 
-    granted_by_addons: bool = Field(alias="grantedByAddons")
+    granted_by_addons: bool | None = Field(default=None, alias="grantedByAddons")
     """Whether an add-on version compatible with the licence's family grants the pool, whatever
     its lifecycle state: instances of the licence can then hold the pool without the licence
     granting it. It says nothing of what any instance holds.
@@ -1712,63 +1719,11 @@ class ConversionRule(KaitenModel):
 
     updated_at: datetime = Field(alias="updatedAt")
 
-    updated_by: User = Field(alias="updatedBy")
+    updated_by: User | None = Field(default=None, alias="updatedBy")
     """User who last changed this rule: its pricing, or its archival"""
 
 
-class ConversionRuleDelivered(KaitenModel):
-    charge_on_error: AiChargeOnError | str = Field(alias="chargeOnError")
-
-    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
-    """With via checkout_session: the session"""
-
-    created_at: datetime = Field(alias="createdAt")
-
-    created_by: User = Field(alias="createdBy")
-    """User who created this rule; a service account is a user"""
-
-    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
-    """With via customer_session: the session"""
-
-    entitlement_slug: str = Field(alias="entitlementSlug")
-
-    granted_by_addons: bool = Field(alias="grantedByAddons")
-    """Whether an add-on version compatible with the licence's family grants the pool, whatever
-    its lifecycle state: instances of the licence can then hold the pool without the licence
-    granting it. It says nothing of what any instance holds.
-    """
-
-    granted_by_license: bool = Field(alias="grantedByLicense")
-
-    id: str
-
-    license_slug: str = Field(alias="licenseSlug")
-
-    maximum_credits_per_request: str | None = Field(alias="maximumCreditsPerRequest")
-
-    minimum_credits_per_request: str = Field(alias="minimumCreditsPerRequest")
-
-    model_slug: str | None = Field(alias="modelSlug")
-
-    rates: ConversionRates
-
-    request_type: AiRequestType | str | None = Field(alias="requestType")
-
-    status: ConversionRuleStatus | str
-
-    updated_at: datetime = Field(alias="updatedAt")
-
-    updated_by: User = Field(alias="updatedBy")
-    """User who last changed this rule: its pricing, or its archival"""
-
-    via: EventVia | str | None = None
-    """customer_session: written through a kst_ customer session, under the vendor principal
-    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
-    Absent otherwise
-    """
-
-
-class ConversionRuleUpdatedDelivered(KaitenModel):
+class ConversionRuleUpdated(KaitenModel):
     after: ConversionRule
 
     before: ConversionRule
@@ -3228,7 +3183,7 @@ class Instance(KaitenModel):
     """User who last updated this instance"""
 
 
-class InstanceAIModelUsageUnauthorizedDelivered(KaitenModel):
+class InstanceAIModelUsageUnauthorized(KaitenModel):
     checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
     """With via checkout_session: the session"""
 
@@ -4471,50 +4426,7 @@ class Model(KaitenModel):
     vendor_costs: VendorCosts | None = Field(default=None, alias="vendorCosts")
 
 
-class ModelDelivered(KaitenModel):
-    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
-    """With via checkout_session: the session"""
-
-    created_at: datetime = Field(alias="createdAt")
-
-    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
-    """With via customer_session: the session"""
-
-    description: str | None = None
-
-    external_ids: list[str] | None = Field(default=None, alias="externalIds")
-    """Exact provider identifiers, unique per organization; cannot shadow another model's slug"""
-
-    id: str
-
-    metadata: dict[str, Any] | None = None
-
-    modality: ModelModality | str
-
-    name: str
-
-    slug: str
-    """Immutable URL-friendly identifier, unique per organization"""
-
-    status: ModelStatus | str
-    """ACTIVE authorizes usage; DEPRECATED keeps existing rules; ARCHIVED authorizes none.
-    Reversible.
-    """
-
-    updated_at: datetime = Field(alias="updatedAt")
-
-    vendor: str
-
-    vendor_costs: VendorCosts | None = Field(default=None, alias="vendorCosts")
-
-    via: EventVia | str | None = None
-    """customer_session: written through a kst_ customer session, under the vendor principal
-    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
-    Absent otherwise
-    """
-
-
-class ModelUpdatedDelivered(KaitenModel):
+class ModelUpdated(KaitenModel):
     after: Model
 
     before: Model
@@ -4543,6 +4455,78 @@ class NumberEntitlementValue(KaitenModel):
 
     value: float
     """Numeric value"""
+
+
+class OrganizationAiInference(KaitenModel):
+    authorized: bool | None = None
+
+    committed_at: datetime | None = Field(default=None, alias="committedAt")
+
+    conversion_rule_id: str | None = Field(default=None, alias="conversionRuleId")
+
+    credits: AiCredits
+
+    denial_reason: str | None = Field(default=None, alias="denialReason")
+
+    entitlement_slug: str | None = Field(default=None, alias="entitlementSlug")
+    """Absent once the entitlement is deleted."""
+
+    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+
+    instance_slug: str | None = Field(default=None, alias="instanceSlug")
+    """Absent once the instance is deleted."""
+
+    license_id: str | None = Field(default=None, alias="licenseId")
+    """The licence whose conversion rules were considered."""
+
+    license_slug: str | None = Field(default=None, alias="licenseSlug")
+    """Absent once the licence is deleted."""
+
+    model: str
+
+    model_slug: str | None = Field(default=None, alias="modelSlug")
+
+    pricing: AiInferencePricing | None = None
+    """The rule snapshot that priced the operation. Absent when no rule applied, and on
+    operations recorded before snapshots existed.
+    """
+
+    refunds: list[AiInferenceRefund]
+    """The refunds of the operation's charge, oldest first. Their sum is credits.refunded."""
+
+    report_seq: int | None = Field(default=None, alias="reportSeq")
+    """The pool's report counter when the operation was counted: the link to the usage journal."""
+
+    reported_at: datetime = Field(alias="reportedAt")
+
+    request_status: str | None = Field(default=None, alias="requestStatus")
+
+    request_type: AiRequestType | str = Field(alias="requestType")
+
+    status: AiInferenceStatus | str
+
+    transaction_id: str = Field(alias="transactionId")
+
+    usage: AiUsage
+
+    value_after: float | None = Field(default=None, alias="valueAfter")
+
+    value_before: float | None = Field(default=None, alias="valueBefore")
+
+    vendor_cost: AiVendorCost | None = Field(default=None, alias="vendorCost")
+
+    warnings: list[str]
+    """The warnings of the phase that last wrote the operation."""
+
+    window_start: datetime | None = Field(default=None, alias="windowStart")
+
+
+class OrganizationAiInferencePage(KaitenModel):
+    has_more: bool = Field(alias="hasMore")
+
+    items: list[OrganizationAiInference] | None
+
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class Outcome(KaitenModel):
@@ -6940,6 +6924,20 @@ class ComponentDelivered(Component):
     """
 
 
+class ConversionRuleDelivered(ConversionRule):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class CustomerEventDelivered(Customer):
     checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
     """With via checkout_session: the session"""
@@ -7228,6 +7226,20 @@ class MismatchedInvoiceDelivered(InvoiceSummary):
     """
 
 
+class ModelDelivered(Model):
+    checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
+    """With via checkout_session: the session"""
+
+    customer_session_id: str | None = Field(default=None, alias="customerSessionId")
+    """With via customer_session: the session"""
+
+    via: EventVia | str | None = None
+    """customer_session: written through a kst_ customer session, under the vendor principal
+    that minted it. checkout_session: written by an anonymous checkout, under system:kaiten.
+    Absent otherwise
+    """
+
+
 class PaidInvoiceDelivered(InvoiceSummary):
     checkout_session_id: str | None = Field(default=None, alias="checkoutSessionId")
     """With via checkout_session: the session"""
@@ -7489,6 +7501,7 @@ for _model in (
     BillingSettings,
     BooleanEntitlementValue,
     CanceledSubscription,
+    Capabilities,
     CheckoutConfirmation,
     CheckoutPayment,
     CheckoutSession,
@@ -7509,8 +7522,7 @@ for _model in (
     ConnectorState,
     ConversionRates,
     ConversionRule,
-    ConversionRuleDelivered,
-    ConversionRuleUpdatedDelivered,
+    ConversionRuleUpdated,
     CreatedCustomerSession,
     Customer,
     CustomerBilling,
@@ -7587,7 +7599,7 @@ for _model in (
     HoldDetail,
     HoldRecord,
     Instance,
-    InstanceAIModelUsageUnauthorizedDelivered,
+    InstanceAIModelUsageUnauthorized,
     InstanceAddon,
     InstanceBilling,
     InstanceEntitlementCapExceeded,
@@ -7625,9 +7637,10 @@ for _model in (
     MetadataFieldReordered,
     MinimumAmount,
     Model,
-    ModelDelivered,
-    ModelUpdatedDelivered,
+    ModelUpdated,
     NumberEntitlementValue,
+    OrganizationAiInference,
+    OrganizationAiInferencePage,
     Outcome,
     OverageLimit,
     Payment,
@@ -7738,6 +7751,7 @@ for _model in (
     CancellationChangeDelivered,
     CancellationDelivered,
     ComponentDelivered,
+    ConversionRuleDelivered,
     CustomerEventDelivered,
     DeploymentZoneDelivered,
     EntitlementDelivered,
@@ -7756,6 +7770,7 @@ for _model in (
     LicensePriceUpdatedEventDelivered,
     MetadataFieldDelivered,
     MismatchedInvoiceDelivered,
+    ModelDelivered,
     PaidInvoiceDelivered,
     PaymentFailedInvoiceDelivered,
     PushFailedInvoiceDelivered,

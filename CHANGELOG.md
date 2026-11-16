@@ -5,6 +5,34 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
 public API, a minor version adds to it, and a patch version fixes it.
 
+## [Unreleased]
+
+### Added
+
+- Explainable AI charges (preview; requires Kaiten 26.11.3 or later):
+  `commit_ai_usage(..., vendor_cost=...)`, sent exactly as spelled; `ai.rule` on report
+  answers; inference rows with their pricing snapshot, license, warnings, report sequence,
+  vendor cost and refunds; the history filters `authorized`, `model_slug`, `model` and
+  `request_type`; `instances.list_organization_ai_inferences()`;
+  `instances.refund_ai_inference()` under a generated, retried `Idempotency-Key`, with one
+  error class per refusal; `instances.get_ai_capabilities()`; `ai.release()`; and the known
+  warnings in `ai.AI_WARNINGS`, `NO_RESERVATION` and `COUNTER_PRECISION_DEGRADED` included.
+- `vendor_cost=` and `on_commit_failure=` on `ai.run`, the meters, the OpenAI and Anthropic
+  drop-ins, and `wrap_openai` / `wrap_anthropic`.
+- `AiUsageDisabledError` for 403 `AIUsage.Disabled`, and `AiCommitFailedError`.
+
+### Changed
+
+- AI metering fails closed. An entitlement that is not an AI credit pool, or a deployment
+  without AI credits, raises `AiUsageUnsupportedError` on every call instead of disabling
+  metering for the rest of the process; a deployment without AI credits is detected through
+  `GET /ai/capabilities`, not guessed from a 422.
+- A commit that fails after its retries raises `AiCommitFailedError` instead of being logged
+  and dropped, unless `on_commit_failure=` is given.
+- The webhook payloads `ModelUpdated`, `ConversionRuleUpdated` and
+  `InstanceAIModelUsageUnauthorized` take those names, without the `Delivered` suffix the
+  generator gave them. Nothing published carried the old names.
+
 ## [1.1.0] - 2026-11-01
 
 Generated and tested against the contract of Kaiten 26.10.8,

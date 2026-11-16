@@ -24,7 +24,7 @@ from ._core import (
     ComponentDelivered,
     ConnectionDelivered,
     ConversionRuleDelivered,
-    ConversionRuleUpdatedDelivered,
+    ConversionRuleUpdated,
     CustomerCreationRejected,
     CustomerEventDelivered,
     DeletedAddonDelivered,
@@ -42,7 +42,7 @@ from ._core import (
     HandoffAcknowledgementDelivered,
     HeldInvoiceDelivered,
     InstanceAddonUpdateDelivered,
-    InstanceAIModelUsageUnauthorizedDelivered,
+    InstanceAIModelUsageUnauthorized,
     InstanceDelivered,
     InstanceEntitlementCapExceeded,
     InstanceEntitlementUsagePeriodRolledOver,
@@ -62,7 +62,7 @@ from ._core import (
     MetadataFieldReordered,
     MismatchedInvoiceDelivered,
     ModelDelivered,
-    ModelUpdatedDelivered,
+    ModelUpdated,
     PaidInvoiceDelivered,
     PaymentFailedInvoiceDelivered,
     PaymentMethodAttachedDelivered,
@@ -1038,7 +1038,7 @@ class InstanceAIModelUsageUnauthorizedEvent(KaitenModel):
     type: Literal["com.kaiten.instance.ai.v1.model_usage_unauthorized"]
     """The event type: what tells one event from another."""
 
-    data: InstanceAIModelUsageUnauthorizedDelivered
+    data: InstanceAIModelUsageUnauthorized
     """What the event is about."""
 
     headers: EventHeaders | None = None
@@ -1855,7 +1855,7 @@ class UpdateConversionRuleEvent(KaitenModel):
     type: Literal["com.kaiten.license.conversion_rule.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: ConversionRuleUpdatedDelivered
+    data: ConversionRuleUpdated
     """What the event is about."""
 
     headers: EventHeaders | None = None
@@ -2266,7 +2266,7 @@ class ModelUpdatedEvent(KaitenModel):
     type: Literal["com.kaiten.model.v1.updated"]
     """The event type: what tells one event from another."""
 
-    data: ModelUpdatedDelivered
+    data: ModelUpdated
     """What the event is about."""
 
     headers: EventHeaders | None = None

@@ -13,7 +13,7 @@ Usage::
     uv run python scripts/generate_models.py          # rewrite src/kaitencloud/types/
     uv run python scripts/generate_models.py --check  # exit 1 when the committed files are stale
 
-Four rules shape the output, each because the alternative breaks a caller:
+Five rules shape the output, each because the alternative breaks a caller:
 
 - Only what the SDK can return is generated: the response schemas of the operations
   ``openapi/coverage.yaml`` maps, and the payloads of the published webhooks. Request bodies
@@ -27,6 +27,9 @@ Four rules shape the output, each because the alternative breaks a caller:
 - A model keeps its class. A webhook payload the contract renamed keeps the name it was
   published under, and one that is a resource plus who wrote the change subclasses that
   resource's model, so an event's ``data`` stays an instance of the class it had.
+- A model reads the servers it may meet. A property the contract made required after a
+  release this SDK supports is named in ``LATE_REQUIRED`` and generated with a default --
+  an empty list, or ``None`` -- so an older server that does not send it still parses.
 """
 
 from __future__ import annotations
@@ -87,6 +90,9 @@ CLASS_NAMES: dict[str, str] = {
     "InstanceStatusChangedDelivered": "InstanceStatusChanged",
     "MetadataFieldReorderedDelivered": "MetadataFieldReordered",
     "SystemTokenIssuanceDelivered": "SystemTokenIssuance",
+    "ConversionRuleUpdatedDelivered": "ConversionRuleUpdated",
+    "InstanceAIModelUsageUnauthorizedDelivered": "InstanceAIModelUsageUnauthorized",
+    "ModelUpdatedDelivered": "ModelUpdated",
 }
 
 # Webhook payloads that are a resource plus who wrote the change, keyed to that resource's
@@ -102,6 +108,7 @@ EXTENDS: dict[str, str] = {
     "CancellationChangeDelivered": "InstanceBilling",
     "CancellationDelivered": "InstanceBilling",
     "ComponentDelivered": "Component",
+    "ConversionRuleDelivered": "ConversionRule",
     "CustomerEventDelivered": "Customer",
     "DeploymentZoneDelivered": "DeploymentZone",
     "EntitlementDelivered": "Entitlement",
@@ -119,6 +126,7 @@ EXTENDS: dict[str, str] = {
     "LicensePriceEventDelivered": "Price",
     "LicensePriceUpdatedEventDelivered": "Price",
     "MetadataFieldDelivered": "MetadataField",
+    "ModelDelivered": "Model",
     "MismatchedInvoiceDelivered": "InvoiceSummary",
     "PaidInvoiceDelivered": "InvoiceSummary",
     "PaymentFailedInvoiceDelivered": "InvoiceSummary",
@@ -157,6 +165,11 @@ ENUM_NAMES: dict[tuple[str, str], str] = {
     ("NewAddon", "lifecycleState"): "NewAddonLifecycleState",
     ("ReportEntitlementUsageBody", "behavior"): "UsageBehavior",
     ("AiInference", "denialReason"): "AiDenialReason",
+    ("AiInferencePricing", "chargeOnError"): "AiChargeOnError",
+    ("AiInferencePricing", "specificity"): "AiRuleSpecificity",
+    ("AiUsageRule", "specificity"): "AiRuleSpecificity",
+    ("OrganizationAiInference", "status"): "AiInferenceStatus",
+    ("OrganizationAiInference", "requestType"): "AiRequestType",
     ("Entitlement", "aggregationMethod"): "AggregationMethod",
     ("Entitlement", "resetAnchor"): "ResetAnchor",
     ("Entitlement", "resetPeriod"): "ResetPeriod",
@@ -382,6 +395,17 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
     ),
 }
 
+# Required properties a server this SDK still supports may not send, keyed by (schema, property).
+# Each is generated with a default instead -- an empty list for an array, ``None`` otherwise --
+# so a response from that older server parses. The value says which servers omit it.
+LATE_REQUIRED: dict[tuple[str, str], str] = {
+    ("AiInference", "warnings"): "AI credits before explainable charges",
+    ("AiInference", "refunds"): "AI credits before explainable charges",
+    ("ConversionRule", "createdBy"): "AI credits before explainable charges",
+    ("ConversionRule", "updatedBy"): "AI credits before explainable charges",
+    ("ConversionRule", "grantedByAddons"): "AI credits before explainable charges",
+}
+
 # Attribute names that would shadow a pydantic.BaseModel member or a Python keyword, keyed by
 # (schema, property).
 FIELD_NAMES: dict[tuple[str, str], str] = {
@@ -582,6 +606,10 @@ def main() -> int:
     coverage = load(COVERAGE)
     core = load(CORE_SPEC)
     platform = load(PLATFORM_SPEC)
+    for schema, prop in LATE_REQUIRED:
+        node = core["components"]["schemas"].get(schema) or {}
+        if prop not in (node.get("required") or []):
+            raise SystemExit(f"LATE_REQUIRED: {schema}.{prop} is no longer a required property")
 
     core_source, core_names, core_exports = core_module(
         core, excluded=set(coverage["core"]["excluded"] or {})
@@ -611,7 +639,11 @@ def core_module(
     roots = response_roots(spec, excluded) | refs_in(spec.get("webhooks") or {})
     # AI reports have a write-only discriminator union; generate it without widening reads.
     roots.add("ReportEntitlementUsageBody")
-    emitted = sorted(name for name in closure(schemas, roots) if not PAGE.match(name))
+    # A payload that extends a resource needs the resource's class, even when no mapped
+    # operation returns that resource.
+    reached = closure(schemas, roots)
+    reached = closure(schemas, roots | {EXTENDS[name] for name in reached if name in EXTENDS})
+    emitted = sorted(name for name in reached if not PAGE.match(name))
     names = {name: CLASS_NAMES.get(name, name) for name in emitted}
 
     module = ModelModule(source="openapi/openapi.yaml", schemas=schemas, names=names)
@@ -836,7 +868,14 @@ class ModelModule:
                 )
 
             annotation = self.annotation(node, owner=name, prop=wire)
-            if wire in required:
+            if wire in required and (name, wire) in LATE_REQUIRED:
+                if annotation.startswith("list["):
+                    default = f" = Field(default_factory=list, alias={json.dumps(wire)})"
+                else:
+                    if not self.is_nullable(annotation):
+                        annotation += " | None"
+                    default = f" = Field(default=None, alias={json.dumps(wire)})"
+            elif wire in required:
                 default = f" = Field(alias={json.dumps(wire)})" if attribute != wire else ""
             else:
                 if not self.is_nullable(annotation):
