@@ -32,6 +32,10 @@ public API, a minor version adds to it, and a patch version fixes it.
 - The webhook payloads `ModelUpdated`, `ConversionRuleUpdated` and
   `InstanceAIModelUsageUnauthorized` take those names, without the `Delivered` suffix the
   generator gave them. Nothing published carried the old names.
+- A publishable key is sent in `Kaiten-Publishable-Key`, without the `X-` prefix that RFC 6648
+  deprecates; it was `X-Kaiten-Publishable-Key`. Kaiten reads both names, so code on 1.1.0 keeps
+  working, but a Kaiten server that predates the rename reads only the old one: upgrade it before
+  this package.
 
 ## [1.1.0] - 2026-11-01
 
