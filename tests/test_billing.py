@@ -39,7 +39,8 @@ def test_a_publishable_key_travels_in_its_own_header_never_as_a_bearer_token(
     client.billing.public.get_catalog(include_addons=False)
 
     request = recorder.only
-    assert request.headers["x-kaiten-publishable-key"] == "pk_live_3f6b"
+    assert request.headers["kaiten-publishable-key"] == "pk_live_3f6b"
+    assert "x-kaiten-publishable-key" not in request.headers
     assert "authorization" not in request.headers
     assert request.url.params["include"] == "none"
 

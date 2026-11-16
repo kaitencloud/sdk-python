@@ -35,7 +35,7 @@ class BillingPublic(Resource):
     """What a publishable key (``pk_...``) reaches: the public catalog and anonymous checkouts.
 
     Build the client with the key as its token -- the SDK sends it as the API requires, in
-    ``X-Kaiten-Publishable-Key`` and never as a bearer token::
+    ``Kaiten-Publishable-Key`` and never as a bearer token::
 
         public = KaitenClient(base_url="https://kaiten.example.com", token="pk_...")
         catalog = public.billing.public.get_catalog()

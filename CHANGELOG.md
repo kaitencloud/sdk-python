@@ -8,10 +8,11 @@ public API, a minor version adds to it, and a patch version fixes it.
 ## [1.2.0] - 2026-11-16
 
 Generated and tested against the contract of Kaiten
-[`kaitencloud/kaiten@b24bda80`](https://github.com/kaitencloud/kaiten/commit/b24bda808d9a59838ab826c189f99f7657ce345c):
-use it with Kaiten 26.11.3 or later. Nothing 1.1.0 published was removed, renamed or made to
-behave differently -- this release only adds. AI credits are a **preview**: they are documented
-and usable, and their shapes are not yet frozen.
+[`kaitencloud/kaiten@d3ce8b40`](https://github.com/kaitencloud/kaiten/commit/d3ce8b406e46b049d247ffd24a5a143af2e27c81):
+use it with Kaiten 26.11.3 or later. Nothing 1.1.0 published was removed or renamed; the one
+thing that behaves differently is the header a publishable key is sent in, and Kaiten reads both
+names. AI credits are a **preview**: they are documented and usable, and their shapes are not
+yet frozen.
 
 ### Added
 
@@ -61,6 +62,20 @@ and usable, and their shapes are not yet frozen.
 - A per-call retry policy on the HTTP layer, used by the AI usage phases: they retry a fixed
   number of times, on a fixed set of statuses, rather than under the client's general policy.
   Calls that do not ask for one are unaffected.
+
+### Changed
+
+- A publishable key is sent in `Kaiten-Publishable-Key`, without the `X-` prefix that RFC 6648
+  deprecates; it was `X-Kaiten-Publishable-Key`. Kaiten reads both names, so code on 1.1.0 keeps
+  working, but a Kaiten server that predates the rename reads only the old one: upgrade it before
+  this package.
+- The webhook payloads `ModelUpdated`, `ConversionRuleUpdated` and
+  `InstanceAIModelUsageUnauthorized` take those names, without the `Delivered` suffix the
+  generator gave them. Nothing published carried the old names.
+- The AI helpers, meters and provider wrappers select the AI credit entitlement with
+  `entitlement=` rather than `pool=`. Both names are new in this release, so nothing published
+  used `pool=`; the low-level instance methods still take `entitlement_slug`, and the HTTP
+  routes are unchanged.
 
 ### Fixed
 
