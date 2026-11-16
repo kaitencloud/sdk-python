@@ -154,32 +154,29 @@ UNION_NAMES: dict[frozenset[str], str] = {
 
 # Names for enums with more than one value, keyed by (schema, property).
 ENUM_NAMES: dict[tuple[str, str], str] = {
+    ("Addon", "lifecycleState"): "AddonLifecycleState",
+    ("AddonDelivered", "lifecycleState"): "AddonLifecycleState",
+    ("AddonUpdateDelivered", "lifecycleState"): "AddonLifecycleState",
+    ("DashboardLicenseVersionMix", "lifecycleState"): "LicenseLifecycleState",
+    ("DashboardMeter", "licenseState"): "LicenseLifecycleState",
+    ("DashboardRangeWindow", "range"): "DashboardRange",
+    ("LicenseDelivered", "lifecycleState"): "LicenseLifecycleState",
+    ("LicenseTerm", "status"): "LicenseTermStatus",
+    ("NewAddon", "lifecycleState"): "NewAddonLifecycleState",
     ("ReportEntitlementUsageBody", "behavior"): "UsageBehavior",
-    ("AiInference", "status"): "AiInferenceStatus",
-    ("AiUsageOutcome", "status"): "AiUsageOutcomeStatus",
-    ("Model", "status"): "ModelStatus",
-    ("Model", "modality"): "ModelModality",
-    ("ConversionRule", "status"): "ConversionRuleStatus",
-    ("ConversionRule", "chargeOnError"): "AiChargeOnError",
-    ("AiInference", "requestType"): "AiRequestType",
-    ("AiUsageValue", "requestType"): "AiRequestType",
-    ("ConversionRule", "requestType"): "AiRequestType",
-    ("AiInference", "requestStatus"): "AiRequestStatus",
-    ("AiUsageValue", "requestStatus"): "AiRequestStatus",
-    ("AiUsageValue", "phase"): "AiUsagePhase",
-    ("AiUsageOutcome", "phase"): "AiUsagePhase",
-    ("AiUsage", "unitType"): "AiUnitType",
     ("AiInference", "denialReason"): "AiDenialReason",
     ("AiInferencePricing", "chargeOnError"): "AiChargeOnError",
     ("AiInferencePricing", "specificity"): "AiRuleSpecificity",
     ("AiUsageRule", "specificity"): "AiRuleSpecificity",
     ("OrganizationAiInference", "status"): "AiInferenceStatus",
     ("OrganizationAiInference", "requestType"): "AiRequestType",
-    ("Addon", "lifecycleState"): "AddonLifecycleState",
     ("Entitlement", "aggregationMethod"): "AggregationMethod",
     ("Entitlement", "resetAnchor"): "ResetAnchor",
     ("Entitlement", "resetPeriod"): "ResetPeriod",
     ("Entitlement", "type"): "EntitlementType",
+    ("DashboardInstanceReports", "standing"): "InstanceStanding",
+    # The same lifecycle as a license version's, under the dashboard's own property name.
+    ("DashboardInstanceReports", "licenseState"): "LicenseLifecycleState",
     ("FeatureFlag", "type"): "FeatureFlagType",
     ("Instance", "status"): "InstanceStatus",
     ("License", "lifecycleState"): "LicenseLifecycleState",
@@ -207,6 +204,8 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
         "SubscriptionStatus"
     ),
     ("billingTiming", frozenset({"ADVANCE", "ARREARS"})): "BillingTiming",
+    # A conversion rule's, and the pricing snapshot an AI inference keeps of the rule it applied.
+    ("chargeOnError", frozenset({"NEVER", "ALWAYS", "PROVIDER_ERROR_ONLY"})): "AiChargeOnError",
     (
         "cancellationReason",
         frozenset({"TRIAL_ENDED_WITHOUT_PAYMENT_METHOD", "INCOMPLETE_EXPIRED"}),
@@ -245,6 +244,11 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
     ("kind", frozenset({"SET", "ADD", "UNLIMITED"})): "ExceptionKind",
     ("kind", frozenset({"USER", "SERVICE", "SYSTEM"})): "ActorKind",
     ("lastSyncStatus", frozenset({"SUCCESS", "PARTIAL", "FAILED"})): "SyncStatus",
+    # A model's modalities, in the AI catalogue.
+    (
+        "modality",
+        frozenset({"TEXT", "IMAGE", "AUDIO", "VIDEO", "EMBEDDING", "MULTIMODAL"}),
+    ): "ModelModality",
     ("mode", frozenset({"AT_PERIOD_END", "IMMEDIATE"})): "CancellationMode",
     ("modifierType", frozenset({"SET", "ADD", "MULTIPLY", "UNLIMITED"})): "GrantModifier",
     ("new_status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): "InstanceStatus",
@@ -252,6 +256,7 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
     ("previous_status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): (
         "InstanceStatus"
     ),
+    ("phase", frozenset({"reserve", "commit"})): "AiUsagePhase",
     ("priceAppliesTo", frozenset({"LICENSE_BASE", "ADDONS", "BOTH", "SELECTED_PRICES"})): (
         "DiscountAppliesTo"
     ),
@@ -279,6 +284,18 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
         ),
     ): "VoucherInvalidReason",
     ("reconciliationStatus", frozenset({"MATCHED", "MISMATCH"})): "ReconciliationStatus",
+    (
+        "requestStatus",
+        frozenset({"SUCCESS", "PROVIDER_ERROR", "CUSTOMER_ERROR", "NOT_SENT"}),
+    ): "AiRequestStatus",
+    # What an AI call produces, on a rule, a report and an inference.
+    (
+        "requestType",
+        frozenset({"COMPLETION", "EMBEDDING", "IMAGE_GENERATION", "AUDIO", "VIDEO"}),
+    ): "AiRequestType",
+    ("resetAnchor", frozenset({"CALENDAR", "LICENSE_START", "BILLING_PERIOD"})): "ResetAnchor",
+    ("resetPeriod", frozenset({"HOUR", "DAY", "WEEK", "MONTH", "YEAR"})): "ResetPeriod",
+    ("resourceType", frozenset({"DEPLOYMENT_ZONE", "INSTANCE"})): "MetadataResourceType",
     ("retentionSource", frozenset({"KBK", "ENV", "UNKNOWN"})): "RetentionSource",
     (
         "rule",
@@ -296,7 +313,14 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
     ): "VoucherRule",
     ("source", frozenset({"license", "addon", "exception"})): "EntitlementSource",
     ("source", frozenset({"MARK_PAID", "PROVIDER", "ZERO_TOTAL"})): "PaymentSource",
+    # How the conversion rule matched, on the rule and on an inference's pricing snapshot.
+    (
+        "specificity",
+        frozenset({"EXACT_TYPED", "EXACT_ALL", "ANY_TYPED", "ANY_ALL"}),
+    ): "AiRuleSpecificity",
     ("status", frozenset({"ACCEPTED", "REJECTED"})): "UsageReportStatus",
+    ("status", frozenset({"ACTIVE", "ARCHIVED"})): "ConversionRuleStatus",
+    ("status", frozenset({"ACTIVE", "DEPRECATED", "ARCHIVED"})): "ModelStatus",
     ("status", frozenset({"ACTIVE", "DEPRECATED"})): "PriceStatus",
     ("status", frozenset({"ACTIVE", "EXPIRED", "FAILED"})): "PaymentMethodStatus",
     ("status", frozenset({"ACTIVE", "EXPIRED", "REVOKED"})): "RedemptionStatus",
@@ -316,6 +340,8 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
             }
         ),
     ): "InvoiceStatus",
+    ("status", frozenset({"RESERVED", "COMMITTED", "RELEASED", "EXPIRED"})): "AiInferenceStatus",
+    ("status", frozenset({"RESERVED", "COMMITTED", "RELEASED"})): "AiUsageOutcomeStatus",
     ("status", frozenset({"HEALTHY", "DEGRADED", "INCIDENT", "MAINTENANCE"})): "InstanceStatus",
     ("status", frozenset({"INCOMPLETE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"})): (
         "SubscriptionStatus"
@@ -355,10 +381,13 @@ ENUM_VOCABULARY: dict[tuple[str, frozenset[str]], str] = {
     ),
     ("type", frozenset({"BASE", "ADDON", "USAGE", "OVERAGE", "DISCOUNT"})): "InvoiceLineType",
     ("type", frozenset({"BOOLEAN", "NUMBER", "CONFIG", "NUMBER_AI_CREDIT"})): "EntitlementType",
+    ("type", frozenset({"DEVELOPMENT", "TRIAL", "PAID", "COMMUNITY"})): "LicenseType",
     ("type", frozenset({"PERCENTAGE", "FIXED_AMOUNT"})): "DiscountType",
+    ("type", frozenset({"boolean", "string", "number", "object"})): "FeatureFlagType",
     ("unavailableReason", frozenset({"NOT_ENTITLED", "VAULT_NOT_CONFIGURED"})): (
         "ProviderUnavailableReason"
     ),
+    ("unitType", frozenset({"image", "second", "frame"})): "AiUnitType",
     ("usageHistoryRetentionSource", frozenset({"KBK", "ENV", "UNKNOWN"})): "RetentionSource",
     ("via", frozenset({"customer_session", "checkout_session"})): "EventVia",
     ("voucherType", frozenset({"PRICE", "ENTITLEMENT_BOOST", "FLAG_GRANT", "COMPOSITE"})): (
@@ -381,6 +410,7 @@ LATE_REQUIRED: dict[tuple[str, str], str] = {
 # (schema, property).
 FIELD_NAMES: dict[tuple[str, str], str] = {
     ("ConnectorSettingsSchema", "schema"): "json_schema",
+    ("DashboardRangeWindow", "from"): "from_",
     ("ProviderChangeDelivered", "from"): "from_",
     ("StatusChangeDelivered", "from"): "from_",
 }
@@ -440,6 +470,22 @@ ALIAS_DOCS: dict[str, str] = {
     "InvoiceKind": "What an invoice bills: a subscription's ``ACTIVATION``, a ``RENEWAL``, or its ``FINAL`` period.",
     "InvoiceLineType": "What an invoice line bills.",
     "InvoiceStatus": "Where an invoice stands, from ``DRAFT`` to ``PAID``, ``UNCOLLECTIBLE`` or ``VOID``.",
+    "AiRuleSpecificity": (
+        "How the conversion rule that priced a call matched it: its own model and request "
+        "type, its own model for every request type, any model for its request type, or "
+        "any model and request type."
+    ),
+    "DashboardRange": "The window a dashboard summary covers: seven, thirty or ninety days.",
+    "InstanceStanding": (
+        "The one word for an instance, over every one of its meters: ``atLimit`` when a "
+        "meter refuses, ``watch`` when one is above its warning threshold, ``silent`` "
+        "when nothing reported or read in the range, ``healthy`` otherwise."
+    ),
+    "LicenseTermStatus": "Where a license term stands: not started yet, active, or expired.",
+    "NewAddonLifecycleState": (
+        "The states an add-on may be created in: ``DRAFT``, or ``PUBLISHED`` to put it on "
+        "sale at once."
+    ),
     "LicenseEntitlementType": "The value type of an entitlement granted by a license.",
     "LicenseLifecycleState": (
         "Whether a license version may be served: ``DRAFT`` before it goes on sale, "

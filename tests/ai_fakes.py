@@ -22,10 +22,11 @@ USAGE = {
     "entitlementSlug": "chat-credits",
     "licenseId": "l1",
     "licenseSlug": "pro-v3",
+    # Required since Kaiten 26.10.8, which always sends it: a credit pool comes from the licence.
+    "source": "license",
     "value": {"type": "number", "value": 90},
     "limit": {"type": "number", "value": 100},
-    # What a ReportedEntitlementUsage carries since billing; AI answers leave them empty.
-    "source": "license",
+    # What a ReportedEntitlementUsage also carries since billing; AI answers leave them empty.
     "provenance": None,
     "transactionId": None,
 }

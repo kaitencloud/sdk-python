@@ -22,6 +22,12 @@ A hard ceiling, not a hint: the endpoints declare ``maximum: 200`` and answer 20
 Walking at this size is the fewest round trips a complete list can take.
 """
 
+MAX_REPORT_PAGE_SIZE: Final = 500
+"""The largest page the usage report histories accept, which page by ``afterSeq``."""
+
+EXPORT_MEDIA_TYPES: Final = {"csv": "text/csv", "json": "application/x-ndjson"}
+"""What an export answers in each format it takes: CSV, or NDJSON for ``json``."""
+
 INITIAL_RETRY_DELAY: Final = 0.25
 MAX_RETRY_DELAY: Final = 8.0
 MAX_RETRY_AFTER: Final = 60.0

@@ -121,7 +121,8 @@ def _write_registry(surface: str) -> Registry:
     The API validates a request against the resource schema with its readOnly properties no
     longer required -- and a client has no business sending one -- so readOnly properties are
     dropped outright. Every body is ``additionalProperties: false``, so a request carrying one
-    then fails exactly like a misspelled key.
+    then fails exactly like a misspelled key. And a nullable enum takes null, as the API's
+    validator does, though the document lists only its other values.
     """
     writable = _without_read_only(copy.deepcopy(document(surface)))
     resource = Resource.from_contents(writable, default_specification=DRAFT202012)
@@ -141,6 +142,14 @@ def _without_read_only(node: Any) -> Any:
                 del properties[name]
             if isinstance(node.get("required"), list):
                 node["required"] = [name for name in node["required"] if name not in read_only]
+        kind, enum = node.get("type"), node.get("enum")
+        if (
+            isinstance(kind, list)
+            and "null" in kind
+            and isinstance(enum, list)
+            and None not in enum
+        ):
+            enum.append(None)
         for value in node.values():
             _without_read_only(value)
     elif isinstance(node, list):

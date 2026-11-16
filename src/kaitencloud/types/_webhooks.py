@@ -209,6 +209,7 @@ __all__ = [
     "UpdateConversionRuleEvent",
     "VoucherArchivedEvent",
     "VoucherCreatedEvent",
+    "VoucherDeletedEvent",
     "VoucherExhaustedEvent",
     "VoucherExpiredEvent",
     "VoucherPublishedEvent",
@@ -2374,6 +2375,24 @@ class VoucherCreatedEvent(KaitenModel):
     """The trace context of the request that produced the event."""
 
 
+class VoucherDeletedEvent(KaitenModel):
+    """Triggered when a voucher no instance ever redeemed is deleted, with its last state.
+    Delivered as ``com.kaiten.voucher.v1.deleted``.
+    """
+
+    name: Literal["VOUCHER_DELETED"]
+    """The event name."""
+
+    type: Literal["com.kaiten.voucher.v1.deleted"]
+    """The event type: what tells one event from another."""
+
+    data: VoucherDelivered
+    """What the event is about."""
+
+    headers: EventHeaders | None = None
+    """The trace context of the request that produced the event."""
+
+
 class VoucherExhaustedEvent(KaitenModel):
     """Triggered by the redemption that reaches maxRedemptions. Delivered as
     ``com.kaiten.voucher.v1.exhausted``.
@@ -2565,6 +2584,7 @@ WebhookEvent = Annotated[
     | ReleaseDeletedEvent
     | VoucherArchivedEvent
     | VoucherCreatedEvent
+    | VoucherDeletedEvent
     | VoucherExhaustedEvent
     | VoucherExpiredEvent
     | VoucherPublishedEvent
@@ -2694,6 +2714,7 @@ WEBHOOK_EVENTS: dict[str, type[KaitenModel]] = {
     "com.kaiten.release.v1.deleted": ReleaseDeletedEvent,
     "com.kaiten.voucher.v1.archived": VoucherArchivedEvent,
     "com.kaiten.voucher.v1.created": VoucherCreatedEvent,
+    "com.kaiten.voucher.v1.deleted": VoucherDeletedEvent,
     "com.kaiten.voucher.v1.exhausted": VoucherExhaustedEvent,
     "com.kaiten.voucher.v1.expired": VoucherExpiredEvent,
     "com.kaiten.voucher.v1.published": VoucherPublishedEvent,

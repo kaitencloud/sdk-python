@@ -1,9 +1,11 @@
 # Copyright 2026 KAITEN INC
 # SPDX-License-Identifier: Apache-2.0
 
+from .billing import AsyncBilling
 from .components import AsyncComponents
 from .connectors import AsyncConnectors
 from .customers import AsyncCustomers
+from .dashboard import AsyncDashboard
 from .deployment_zones import AsyncDeploymentZones
 from .entitlement_groups import AsyncEntitlementGroups
 from .entitlements import AsyncEntitlements
@@ -18,9 +20,11 @@ from .releases import AsyncReleases
 from .service_accounts import AsyncServiceAccounts
 
 __all__ = [
+    "AsyncBilling",
     "AsyncComponents",
     "AsyncConnectors",
     "AsyncCustomers",
+    "AsyncDashboard",
     "AsyncDeploymentZones",
     "AsyncEntitlementGroups",
     "AsyncEntitlements",

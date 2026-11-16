@@ -60,8 +60,10 @@ class CredentialError(KaitenError, ValueError):
     """A credential is missing, or belongs to a class the target API refuses.
 
     Raised before anything is sent: a platform credential (``ksm_...``) handed to the Core
-    client, an organization token handed to the platform client, or a webhook signing secret
-    (``whsec_...``) handed to either.
+    client, an organization token handed to the platform client, a webhook signing secret
+    (``whsec_...``) handed to either, or a route under ``/public`` called without the
+    credential it takes -- a publishable key (``pk_...``), a customer session (``kst_...``) or a
+    checkout session's token (``ksc_...``).
     """
 
 
@@ -178,6 +180,22 @@ class ThresholdExceededError(ConflictError):
     """
 
 
+class TransactionIdReusedError(ConflictError):
+    """A usage report reused a ``transaction_id`` already spent on a different report.
+
+    The same key with the same behavior and value is a replay, applied once; with another
+    behavior or value, it is this error. Nothing was recorded, and sending it again will not
+    change the answer: give the report a key of its own.
+
+    An AI report raises it for the same reason: the same id and phase arrived with another body
+    -- a retried commit whose ``vendor_cost`` is spelled differently, ``"0.01"`` then ``"0.010"``,
+    is another body -- or a reservation was made on an id already reserved or closed. A release
+    of a transaction that never reserved (answered with the ``NO_RESERVATION`` warning) closes
+    its id for good: a reserve or commit sent under it afterwards lands here too. A bug in the
+    caller, never a transient failure, so it is not retried.
+    """
+
+
 class UnprocessableEntityError(APIStatusError):
     """The API answered 422: the request is well-formed but its content is refused."""
 
@@ -186,18 +204,6 @@ class InsufficientCreditsError(ThresholdExceededError):
     """An AI usage reservation does not fit in what is left of the credit pool.
 
     Raised before the provider is called: nothing was reserved, and nothing is owed.
-    """
-
-
-class TransactionIdReusedError(ConflictError):
-    """An AI usage transaction id was already used for another call.
-
-    The same id and phase arrived with another body -- a retried commit whose ``vendor_cost``
-    is spelled differently, ``"0.01"`` then ``"0.010"``, is another body -- or a reservation was
-    made on an id that is already reserved or closed. A release of a transaction that never
-    reserved (answered with the ``NO_RESERVATION`` warning) closes its id for good: a reserve or
-    commit sent under it afterwards lands here too. A bug in the caller, never a transient
-    failure: not retried.
     """
 
 
