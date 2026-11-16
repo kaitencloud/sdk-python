@@ -377,7 +377,7 @@ class AsyncAPIClient:
         headers = {"Accept": "application/json", "User-Agent": USER_AGENT, **self.default_headers}
         if token.startswith(PUBLISHABLE_KEY_PREFIX):
             # Not a bearer credential: the API refuses a publishable key sent as Authorization.
-            headers["X-Kaiten-Publishable-Key"] = token
+            headers["Kaiten-Publishable-Key"] = token
         else:
             headers["Authorization"] = f"Bearer {token}"
         return headers

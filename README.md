@@ -168,7 +168,7 @@ anything when one ends up in the wrong place.
 
 The routes under `/public` — a pricing page's, a customer portal's — each take one of the three
 public credentials and refuse any other, so the SDK refuses the mix-up before sending. It sends a
-publishable key in `X-Kaiten-Publishable-Key`, as the API requires, never as a bearer token.
+publishable key in `Kaiten-Publishable-Key`, as the API requires, never as a bearer token.
 
 A credential that rotates can be supplied as a callable — it is read before every request, so
 there is no client to rebuild:
