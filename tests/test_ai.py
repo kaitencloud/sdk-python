@@ -18,6 +18,7 @@ import pytest
 from ai_fakes import USAGE, FakeKaiten, network_error, problem, status
 
 from kaitencloud import (
+    AiUsageDisabledError,
     AiUsageUnsupportedError,
     APIStatusError,
     AsyncKaitenClient,
@@ -25,6 +26,7 @@ from kaitencloud import (
     InsufficientCreditsError,
     KaitenClient,
     ModelNotAuthorizedError,
+    NotFoundError,
     ServiceUnavailableError,
     ThresholdExceededError,
     TransactionIdReusedError,
@@ -253,8 +255,7 @@ def test_units_keep_exact_contract_precision(
         (422, "UnknownModel", UnknownModelError),
         (422, "ModelNotAuthorized", ModelNotAuthorizedError),
         (422, "AiUsageUnsupportedEntitlement", AiUsageUnsupportedError),
-        (422, "InvalidValueType", AiUsageUnsupportedError),
-        (422, None, AiUsageUnsupportedError),
+        (403, "AIUsage.Disabled", AiUsageDisabledError),
     ],
 )
 def test_each_refusal_raises_its_own_error(
@@ -269,6 +270,7 @@ def test_each_refusal_raises_its_own_error(
         client.instances.reserve_ai_usage(INSTANCE, POOL, model="gpt-4o")
     assert len(fake.reports) == 1, "a 4xx is never retried"
     assert caught.value.__cause__ is not None
+    assert fake.probes == 0, "a known code needs no capabilities probe"
 
 
 def test_running_out_of_credits_is_also_a_reached_threshold(
@@ -468,18 +470,90 @@ def test_run_commits_how_a_failed_call_ended_and_reraises(
     assert [commit["requestStatus"] for commit in fake.commits] == [expected]
 
 
-def test_run_survives_a_commit_that_keeps_failing(
+def test_a_commit_that_keeps_failing_raises_with_the_result_and_the_commit_to_resend(
+    kaiten: tuple[KaitenClient, FakeKaiten],
+) -> None:
+    client, fake = kaiten
+    fake.refuse("commit", *[status(503)] * 4)
+    with pytest.raises(ai.AiCommitFailedError) as caught:
+        ai.run(
+            client,
+            lambda: "reply",
+            instance=INSTANCE,
+            entitlement=POOL,
+            model="gpt-4o",
+            usage=lambda _: {"output_tokens": 3},
+            vendor_cost=Decimal("0.0100"),
+        )
+    failure = caught.value
+    assert failure.result == "reply"
+    assert len(fake.commits) == 4
+    assert failure.transaction_id == fake.commits[0]["transactionId"]
+    assert isinstance(failure.__cause__, ServiceUnavailableError)
+    assert (failure.instance, failure.entitlement) == (INSTANCE, POOL)
+
+    # Sending the same commit again settles the call with a byte-identical body.
+    client.instances.commit_ai_usage(INSTANCE, POOL, **failure.arguments)
+    assert fake.reports[-1].request.content == fake.reports[-2].request.content
+    assert fake.commits[-1]["vendorCost"] == "0.0100"
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_on_commit_failure_receives_the_failure_and_the_call_is_served(
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    asynchronous: bool,
+) -> None:
+    fake = FakeKaiten()
+    fake.refuse("commit", *[status(503)] * 4)
+    failures: list[ai.AiCommitFailedError] = []
+
+    async def scenario() -> Any:
+        client, _ = make_async_client(fake)
+        async with client:
+
+            async def call() -> str:
+                return "reply"
+
+            return await ai.run(
+                client,
+                call,
+                instance=INSTANCE,
+                entitlement=POOL,
+                model="gpt-4o",
+                on_commit_failure=failures.append,
+            )
+
+    if asynchronous:
+        result = asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        result = ai.run(
+            client,
+            lambda: "reply",
+            instance=INSTANCE,
+            entitlement=POOL,
+            model="gpt-4o",
+            on_commit_failure=failures.append,
+        )
+    assert result == "reply"
+    assert [failure.result for failure in failures] == ["reply"]
+    assert failures[0].arguments["request_status"] == "SUCCESS"
+
+
+def test_a_failed_call_whose_commit_fails_too_raises_the_call_error(
     kaiten: tuple[KaitenClient, FakeKaiten], caplog: pytest.LogCaptureFixture
 ) -> None:
     client, fake = kaiten
     fake.refuse("commit", *[status(503)] * 4)
-    with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
-        result = ai.run(
-            client, lambda: "reply", instance=INSTANCE, entitlement=POOL, model="gpt-4o"
-        )
-    assert result == "reply"
-    assert len(fake.commits) == 4
-    assert "reservation will expire" in caplog.text
+
+    def call() -> None:
+        raise ProviderError(500)
+
+    with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"), pytest.raises(ProviderError):
+        ai.run(client, call, instance=INSTANCE, entitlement=POOL, model="gpt-4o")
+    assert [commit["requestStatus"] for commit in fake.commits] == ["PROVIDER_ERROR"] * 4
+    assert "failed too" in caplog.text
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -497,6 +571,7 @@ def test_run_preserves_success_when_usage_extraction_or_validation_fails(
     if settlement_fails:
         fake.refuse("commit", *[status(503)] * 4)
     reply = object()
+    failures: list[ai.AiCommitFailedError] = []
 
     def usage(result: Any) -> Any:
         assert result is reply
@@ -512,7 +587,13 @@ def test_run_preserves_success_when_usage_extraction_or_validation_fails(
                 return reply
 
             return await ai.run(
-                client, call, instance=INSTANCE, entitlement=POOL, model="gpt-4o", usage=usage
+                client,
+                call,
+                instance=INSTANCE,
+                entitlement=POOL,
+                model="gpt-4o",
+                usage=usage,
+                on_commit_failure=failures.append,
             )
 
     with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
@@ -528,19 +609,20 @@ def test_run_preserves_success_when_usage_extraction_or_validation_fails(
                     entitlement=POOL,
                     model="gpt-4o",
                     usage=usage,
+                    on_commit_failure=failures.append,
                 )
 
     assert result is reply
     assert len(fake.reserves) == 1
     assert len(fake.commits) == (4 if settlement_fails else 1)
+    if settlement_fails:
+        assert [failure.result for failure in failures] == [reply]
     assert all(commit["requestStatus"] == "SUCCESS" for commit in fake.commits)
     assert all("usage" not in commit for commit in fake.commits)
     assert {commit["transactionId"] for commit in fake.commits} == {
         fake.reserves[0]["transactionId"]
     }
     assert "attempting settlement without usage" in caplog.text
-    if settlement_fails:
-        assert "reservation will expire" in caplog.text
 
 
 def test_a_timeout_class_name_does_not_prove_the_call_was_not_sent() -> None:
@@ -550,31 +632,94 @@ def test_a_timeout_class_name_does_not_prove_the_call_was_not_sent() -> None:
     assert ai.request_status_of(ConnectTimeoutError()) == "PROVIDER_ERROR"
 
 
-def test_run_lets_the_call_through_a_server_without_ai_credits(
-    kaiten: tuple[KaitenClient, FakeKaiten], caplog: pytest.LogCaptureFixture
+@pytest.mark.parametrize("code", [None, "InvalidValueType", "UNPROCESSABLE"])
+def test_an_old_server_is_detected_through_its_capabilities_and_fails_closed(
+    kaiten: tuple[KaitenClient, FakeKaiten], code: str | None
+) -> None:
+    client, fake = kaiten
+    # A Kaiten without AI credits refuses the body as malformed, and has no capabilities route.
+    fake.refuse("reserve", problem(422, code))
+    fake.capabilities = None
+    called: list[bool] = []
+    with pytest.raises(AiUsageUnsupportedError, match="predates AI credits") as caught:
+        ai.run(
+            client,
+            lambda: called.append(True),
+            instance=INSTANCE,
+            entitlement=POOL,
+            model="gpt-4o",
+        )
+    assert called == [], "a deployment that cannot meter never lets a call through"
+    assert fake.probes == 1
+    assert isinstance(caught.value.__cause__, UnprocessableEntityError)
+    assert fake.commits == []
+
+
+def test_a_malformed_report_on_a_current_server_stays_a_validation_error(
+    kaiten: tuple[KaitenClient, FakeKaiten],
 ) -> None:
     client, fake = kaiten
     fake.refuse("reserve", problem(422, None))
-    with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
-        result = ai.run(
-            client, lambda: "reply", instance=INSTANCE, entitlement=POOL, model="gpt-4o"
-        )
-    assert result == "reply"
-    assert fake.phases == [("reserve", fake.reports[0].transaction_id)]
-    assert "NOT being reported" in caplog.text
+    with pytest.raises(UnprocessableEntityError) as caught:
+        client.instances.reserve_ai_usage(INSTANCE, POOL, model="gpt-4o")
+    assert not isinstance(caught.value, AiUsageUnsupportedError)
+    assert fake.probes == 1
 
 
-def test_a_meter_logs_an_unsupported_server_once_and_stops_reporting(
-    kaiten: tuple[KaitenClient, FakeKaiten], caplog: pytest.LogCaptureFixture
+def test_a_disabled_deployment_seen_through_its_capabilities_is_a_typed_error(
+    kaiten: tuple[KaitenClient, FakeKaiten],
 ) -> None:
     client, fake = kaiten
-    fake.refuse("reserve", problem(422, "AiUsageUnsupportedEntitlement"))
-    meter = ai.Meter(client, instance=INSTANCE, entitlement=POOL)
-    with caplog.at_level(logging.ERROR, logger="kaitencloud.ai"):
+    fake.refuse("reserve", problem(422, None))
+    fake.capabilities = {"enabled": False}
+    with pytest.raises(AiUsageDisabledError):
+        client.instances.reserve_ai_usage(INSTANCE, POOL, model="gpt-4o")
+
+
+def test_the_capabilities_read_says_whether_ai_credits_are_on(
+    kaiten: tuple[KaitenClient, FakeKaiten],
+) -> None:
+    client, fake = kaiten
+    assert client.instances.get_ai_capabilities().enabled is True
+    fake.capabilities = None
+    with pytest.raises(NotFoundError):
+        client.instances.get_ai_capabilities()
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_a_pool_that_is_not_an_ai_pool_fails_closed_on_every_call(
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    asynchronous: bool,
+) -> None:
+    fake = FakeKaiten()
+    fake.refuse("reserve", *[problem(422, "AiUsageUnsupportedEntitlement")] * 3)
+    called: list[bool] = []
+
+    async def scenario() -> None:
+        client, _ = make_async_client(fake)
+        async with client:
+            meter = ai.AsyncMeter(client, instance=INSTANCE, entitlement=POOL)
+
+            async def call() -> str:
+                called.append(True)
+                return "reply"
+
+            for _ in range(3):
+                with pytest.raises(AiUsageUnsupportedError):
+                    await meter.run(call, model="gpt-4o")
+
+    if asynchronous:
+        asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        meter = ai.Meter(client, instance=INSTANCE, entitlement=POOL)
         for _ in range(3):
-            assert meter.run(lambda: "reply", model="gpt-4o") == "reply"
-    assert len(fake.reports) == 1
-    assert caplog.text.count("NOT being reported") == 1
+            with pytest.raises(AiUsageUnsupportedError):
+                meter.run(lambda: called.append(True), model="gpt-4o")
+    assert called == [], "a misconfigured pool never disables metering"
+    assert len(fake.reserves) == 3, "every call asks again: nothing is cached as unmetered"
+    assert not hasattr(ai.Meter, "unsupported")
 
 
 def test_the_async_client_runs_the_same_way(make_async_client: Callable[..., Any]) -> None:

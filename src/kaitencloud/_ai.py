@@ -19,26 +19,34 @@ import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import Any, Final
+from typing import Any, Final, Literal, get_args
 
 import httpx
 
 from .types import AiRequestStatus, AiRequestType, AiUsageParam
 
 __all__ = [
+    "AI_WARNINGS",
     "DEFAULT_OUTPUT_TOKENS",
     "AiRequest",
+    "AiWarning",
     "Estimator",
+    "ProviderVendorCostOf",
     "UsageOf",
+    "VendorCost",
+    "VendorCostOf",
     "add_usage",
     "ai_usage_body",
     "check_transaction_id",
     "default_estimator",
+    "exact_decimal",
     "from_anthropic",
     "from_openai",
+    "new_idempotency_key",
     "new_transaction_id",
     "request_status_of",
     "ttl_from_timeout",
+    "vendor_cost_string",
 ]
 
 AI_MAX_RETRIES: Final = 3
@@ -52,6 +60,51 @@ MAX_TTL_SECONDS: Final = 3600
 
 DEFAULT_OUTPUT_TOKENS: Final[Mapping[str, int]] = {"COMPLETION": 1024, "EMBEDDING": 0}
 """The output a request that sets no ceiling is expected to produce, per request type."""
+
+AiWarning = Literal[
+    "RESERVATION_EXPIRED",
+    "MODEL_DEPRECATED",
+    "ESTIMATE_INCOMPLETE",
+    "CONVERSION_INPUT_MISSING",
+    "OVERDRAWN",
+    "MODEL_NOT_AUTHORIZED",
+    "UNKNOWN_MODEL",
+    "NO_RESERVATION",
+    "COUNTER_PRECISION_DEGRADED",
+    "PRICING_SNAPSHOT_UNREADABLE",
+]
+"""The warnings an AI answer or an inference row may carry, as this release knows them.
+
+An open set: ``warnings`` is typed ``list[str]``, and a warning a later Kaiten adds parses like
+any other string. Compare against these names; never treat an unknown one as an error.
+
+- ``NO_RESERVATION``: a release (``NOT_SENT``) of a transaction that never reserved. Nothing
+  was held, nothing is charged, and the transaction id is closed for good: a reserve or a
+  commit sent under it afterwards is refused with ``TransactionIdReusedError``.
+- ``COUNTER_PRECISION_DEGRADED``: the commit was recorded, but the pool's counter can no longer
+  hold the charge exactly; the inference row keeps the exact credits.
+- ``PRICING_SNAPSHOT_UNREADABLE``: an inference row whose pricing snapshot could not be read.
+"""
+
+AI_WARNINGS: Final[frozenset[str]] = frozenset(get_args(AiWarning))
+"""Every warning name in :data:`AiWarning`."""
+
+VendorCost = Decimal | str | int
+"""What a call cost at its vendor, in USD: a ``Decimal``, a decimal string or a whole number.
+
+Never a ``float``: a binary float cannot say ``0.1``, and the commit must carry the exact
+figure. Up to 12 integer digits and 12 decimal places.
+"""
+
+VendorCostOf = Callable[[Any], "VendorCost | None"]
+"""Reads a call's vendor cost out of what the call returned; ``None`` when unknown."""
+
+ProviderVendorCostOf = Callable[["AiRequest", "AiUsageParam | None", Any], "VendorCost | None"]
+"""A provider call's vendor cost, from the request, its usage and its response.
+
+The response is ``None`` for a stream. The SDK knows no price: this is the caller's own price
+table, or a cost the provider's response reports. ``None`` commits without a vendor cost.
+"""
 
 _TRANSACTION_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
@@ -81,6 +134,45 @@ def check_transaction_id(value: str) -> str:
             f"got {value!r}"
         )
     return value
+
+
+def new_idempotency_key() -> str:
+    """A fresh idempotency key for a refund: a UUIDv7, which the API accepts as a key."""
+    return new_transaction_id()
+
+
+def vendor_cost_string(value: VendorCost) -> str:
+    """``value`` as the commit's ``vendorCost`` sends it; ``ValueError`` when it cannot be sent.
+
+    A string is checked and sent exactly as given -- ``"0.010"`` stays ``"0.010"`` -- and a
+    ``Decimal`` keeps its own digits, trailing zeros included (``Decimal("0.010")`` sends
+    ``"0.010"``). The spelling matters: it is part of the commit's identity, so a commit sent
+    again must carry the same string, or the API refuses it as another body
+    (``TransactionIdReusedError``). Converted once per commit; the SDK's retries resend it.
+    """
+    return exact_decimal(value, name="vendor_cost", decimals=12)
+
+
+def exact_decimal(value: VendorCost, *, name: str, decimals: int) -> str:
+    """``value`` as an exact decimal string of up to 12 integer digits and ``decimals`` places.
+
+    Never rounded and never reformatted: a string is checked and kept as written.
+    """
+    if isinstance(value, bool) or not isinstance(value, (Decimal, str, int)):
+        raise ValueError(f"{name} must be a Decimal, a decimal string or an int, got {value!r}")
+    if isinstance(value, str):
+        text = value
+    else:
+        number = Decimal(value)
+        if not number.is_finite():
+            raise ValueError(f"{name} must be a finite amount, got {value!r}")
+        text = format(number, "f")
+    if re.fullmatch(rf"[0-9]{{1,12}}(\.[0-9]{{1,{decimals}}})?", text) is None:
+        raise ValueError(
+            f"{name} must be zero or more, with 1 to 12 integer digits and at most {decimals} "
+            f"decimal places, got {value!r}"
+        )
+    return text
 
 
 def ai_usage_body(usage: AiUsageParam) -> dict[str, Any]:
@@ -302,9 +394,13 @@ def request_status_of(error: BaseException) -> AiRequestStatus:
 
     An HTTP answer is the provider's (5xx, 408, 429) or the caller's (any other 4xx).
     Only explicit connection establishment or pool acquisition failures prove the call was
-    not sent. Other failures may happen after sending, so they are conservatively reported
-    as ``PROVIDER_ERROR``, never released as ``NOT_SENT``.
+    not sent. A call the caller abandoned -- a cancelled task, ``KeyboardInterrupt``, any
+    ``BaseException`` that is not an ``Exception`` -- may have been sent, and is the caller's:
+    ``CUSTOMER_ERROR``. Other failures may happen after sending, so they are conservatively
+    reported as ``PROVIDER_ERROR``, never released as ``NOT_SENT``.
     """
+    if not isinstance(error, Exception):
+        return "CUSTOMER_ERROR"
     status = getattr(error, "status_code", None)
     if isinstance(status, int) and not isinstance(status, bool):
         if status >= 500 or status in (408, 429):

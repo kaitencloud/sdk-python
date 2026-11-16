@@ -3,7 +3,26 @@
 
 """Compatibility aliases for the original AI response bridge, now contract-generated."""
 
-from .types import AiCredits, AiUsageOutcome
-from .types import EntitlementUsage as AiEntitlementUsage
+from .types import (
+    AiCredits,
+    AiInference,
+    AiInferencePricing,
+    AiInferenceRefund,
+    AiUsageOutcome,
+    AiUsageRule,
+    AiVendorCost,
+    OrganizationAiInference,
+)
+from .types import ReportedEntitlementUsage as AiEntitlementUsage
 
-__all__ = ["AiCredits", "AiEntitlementUsage", "AiUsageOutcome"]
+__all__ = [
+    "AiCredits",
+    "AiEntitlementUsage",
+    "AiInference",
+    "AiInferencePricing",
+    "AiInferenceRefund",
+    "AiUsageOutcome",
+    "AiUsageRule",
+    "AiVendorCost",
+    "OrganizationAiInference",
+]

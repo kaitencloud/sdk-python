@@ -8,13 +8,20 @@ from __future__ import annotations
 import asyncio
 import sys
 from collections.abc import Callable
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from ai_fakes import FakeKaiten, problem, status
 
-from kaitencloud import InsufficientCreditsError
+from kaitencloud import (
+    AiCommitFailedError,
+    AiUsageDisabledError,
+    AiUsageUnsupportedError,
+    InsufficientCreditsError,
+)
+from kaitencloud.ai import AiRequest
 from kaitencloud.anthropic import wrap_anthropic
 from kaitencloud.openai import wrap_openai
 
@@ -147,24 +154,28 @@ def test_provider_reserves_calls_and_commits_without_changing_the_result(
     assert fake.commits[0]["usage"] == {"inputTokens": 12, "outputTokens": 3}
 
 
-def test_refusal_prevents_the_provider_and_unsupported_degrades_once(
-    make_client: Callable[..., Any],
+@pytest.mark.parametrize(
+    ("code", "status_code", "expected"),
+    [
+        ("ThresholdExceeded", 409, InsufficientCreditsError),
+        ("AiUsageUnsupportedEntitlement", 422, AiUsageUnsupportedError),
+        ("AIUsage.Disabled", 403, AiUsageDisabledError),
+    ],
+)
+def test_a_refusal_or_an_unmeterable_pool_never_calls_the_provider(
+    make_client: Callable[..., Any], code: str, status_code: int, expected: type[Exception]
 ) -> None:
-    for code, status_code in [("ThresholdExceeded", 409), ("InvalidValueType", 422)]:
-        fake = FakeKaiten()
-        fake.refuse("reserve", problem(status_code, code))
-        client, _ = make_client(fake)
-        provider = Provider("reply")
-        with client:
-            wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
-            if status_code == 409:
-                with pytest.raises(InsufficientCreditsError):
-                    wrapped.responses.create(model="m", input="x")
-                assert provider.calls == []
-            else:
-                for _ in range(2):
-                    assert wrapped.responses.create(model="m", input="x") == "reply"
-                assert len(fake.reports) == 1
+    fake = FakeKaiten()
+    fake.refuse("reserve", *[problem(status_code, code)] * 2)
+    client, _ = make_client(fake)
+    provider = Provider("reply")
+    with client:
+        wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
+        for _ in range(2):
+            with pytest.raises(expected):
+                wrapped.responses.create(model="m", input="x")
+    assert provider.calls == [], "metering fails closed: the provider is never called"
+    assert len(fake.reserves) == 2
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -249,7 +260,7 @@ def test_stream_completion_and_partial_close(
         assert provider.calls[0]["stream_options"] == {"other": True, "include_usage": True}
 
 
-def test_commit_failure_does_not_replace_success_and_copy_stays_wrapped(
+def test_a_failed_commit_raises_with_the_provider_result_and_copy_stays_wrapped(
     make_client: Callable[..., Any],
 ) -> None:
     fake = FakeKaiten()
@@ -258,8 +269,116 @@ def test_commit_failure_does_not_replace_success_and_copy_stays_wrapped(
     provider = Provider("reply")
     with client:
         wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
-        assert wrapped.with_options(timeout=1).responses.create(model="m") == "reply"
+        with pytest.raises(AiCommitFailedError) as caught:
+            wrapped.with_options(timeout=1).responses.create(model="m")
+    assert caught.value.result == "reply"
     assert len(fake.commits) == 4
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_on_commit_failure_serves_the_provider_result(
+    make_client: Callable[..., Any], make_async_client: Callable[..., Any], asynchronous: bool
+) -> None:
+    fake = FakeKaiten()
+    fake.refuse("commit", *[status(503)] * 4)
+    failures: list[AiCommitFailedError] = []
+    provider = Provider("reply", asynchronous)
+
+    async def scenario() -> Any:
+        client, _ = make_async_client(fake)
+        async with client:
+            wrapped = wrap_openai(
+                provider,
+                kaiten=client,
+                instance="i",
+                entitlement="p",
+                on_commit_failure=failures.append,
+            )
+            return await wrapped.with_options(timeout=1).responses.create(model="m")
+
+    if asynchronous:
+        result = asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        with client:
+            wrapped = wrap_openai(
+                provider,
+                kaiten=client,
+                instance="i",
+                entitlement="p",
+                on_commit_failure=failures.append,
+            )
+            result = wrapped.with_options(timeout=1).responses.create(model="m")
+    assert result == "reply"
+    assert [failure.result for failure in failures] == ["reply"]
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("stream", [False, True])
+def test_a_vendor_cost_callback_prices_the_commit_and_never_the_sdk(
+    make_client: Callable[..., Any],
+    make_async_client: Callable[..., Any],
+    asynchronous: bool,
+    stream: bool,
+) -> None:
+    fake = FakeKaiten()
+    events = [{"choices": [], "usage": {"prompt_tokens": 20, "completion_tokens": 4}}]
+    result: Any = (
+        (AsyncStream(events) if asynchronous else Stream(events))
+        if stream
+        else {"usage": {"prompt_tokens": 20, "completion_tokens": 4}}
+    )
+    provider = Provider(result, asynchronous)
+    seen: list[tuple[str, Any, Any]] = []
+
+    def price(request: AiRequest, usage: Any, response: Any) -> Decimal:
+        seen.append((request.model, usage, response))
+        return Decimal("0.000120")
+
+    async def scenario() -> None:
+        client, _ = make_async_client(fake)
+        async with client:
+            wrapped = wrap_openai(
+                provider, kaiten=client, instance="i", entitlement="p", vendor_cost=price
+            )
+            answer = await wrapped.chat.completions.create(model="m", messages=[], stream=stream)
+            if stream:
+                async for _ in answer:
+                    pass
+
+    if asynchronous:
+        asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        with client:
+            wrapped = wrap_openai(
+                provider, kaiten=client, instance="i", entitlement="p", vendor_cost=price
+            )
+            answer = wrapped.chat.completions.create(model="m", messages=[], stream=stream)
+            if stream:
+                list(answer)
+    assert fake.commits[0]["vendorCost"] == "0.000120"
+    assert "vendorCost" not in fake.reserves[0], "the vendor cost is commit-only"
+    assert seen == [("m", {"input_tokens": 20, "output_tokens": 4}, None if stream else result)]
+
+
+def test_a_failing_vendor_cost_callback_still_settles_the_call(
+    make_client: Callable[..., Any], caplog: pytest.LogCaptureFixture
+) -> None:
+    fake = FakeKaiten()
+    client, _ = make_client(fake)
+
+    def price(request: AiRequest, usage: Any, response: Any) -> Decimal:
+        raise LookupError("no price for this model")
+
+    with client:
+        wrapped = wrap_openai(
+            Provider("reply"), kaiten=client, instance="i", entitlement="p", vendor_cost=price
+        )
+        assert wrapped.responses.create(model="m") == "reply"
+    assert len(fake.commits) == 1
+    assert "vendorCost" not in fake.commits[0]
+    assert "vendor cost callback failed" in caplog.text
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -393,7 +512,7 @@ def test_remaining_openai_allow_list(make_client: Callable[..., Any], operation:
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
-def test_unread_stream_releases_on_close(
+def test_a_stream_closed_before_its_first_event_is_never_released_as_not_sent(
     make_client: Callable[..., Any], make_async_client: Callable[..., Any], asynchronous: bool
 ) -> None:
     fake = FakeKaiten()
@@ -416,7 +535,8 @@ def test_unread_stream_releases_on_close(
                 provider, kaiten=client, instance="i", entitlement="p"
             ).responses.create(model="m", stream=True)
             stream.close()
-    assert fake.commits[0]["requestStatus"] == "NOT_SENT"
+    # The stream exists, so the provider answered: the request was sent, and is not free.
+    assert fake.commits[0]["requestStatus"] == "CUSTOMER_ERROR"
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -505,3 +625,64 @@ def test_provider_entry_points_reject_pool_before_constructing_or_calling_provid
         asyncio.run(client.close())
     else:
         client.close()
+
+
+def test_a_cancelled_provider_call_is_committed_as_the_callers_and_re_raised(
+    make_async_client: Callable[..., Any],
+) -> None:
+    fake = FakeKaiten()
+    provider = Provider(asyncio.CancelledError(), asynchronous=True)
+
+    async def scenario() -> None:
+        client, _ = make_async_client(fake)
+        async with client:
+            wrapped = wrap_openai(provider, kaiten=client, instance="i", entitlement="p")
+            with pytest.raises(asyncio.CancelledError):
+                await wrapped.responses.create(model="m")
+
+    asyncio.run(scenario())
+    assert [commit["requestStatus"] for commit in fake.commits] == ["CUSTOMER_ERROR"]
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_leaving_a_stream_on_an_error_settles_it_and_keeps_that_error(
+    make_client: Callable[..., Any], make_async_client: Callable[..., Any], asynchronous: bool
+) -> None:
+    fake = FakeKaiten()
+    fake.refuse("commit", *[status(503)] * 4)
+    events = [{"type": "message_start", "message": {"usage": {"input_tokens": 5}}}]
+    raw = AsyncStream(events) if asynchronous else Stream(events)
+    provider = Provider(raw, asynchronous)
+
+    class BoomError(Exception):
+        pass
+
+    async def leave_async(wrapped: Any) -> None:
+        async with wrapped.messages.stream(model="m", messages=[], max_tokens=5) as stream:
+            await stream.__anext__()
+            raise BoomError
+
+    def leave(wrapped: Any) -> None:
+        with wrapped.messages.stream(model="m", messages=[], max_tokens=5) as stream:
+            next(stream)
+            raise BoomError
+
+    async def scenario() -> None:
+        client, _ = make_async_client(fake)
+        async with client:
+            wrapped = wrap_anthropic(provider, kaiten=client, instance="i", entitlement="p")
+            with pytest.raises(BoomError):
+                await leave_async(wrapped)
+
+    if asynchronous:
+        asyncio.run(scenario())
+    else:
+        client, _ = make_client(fake)
+        with client:
+            wrapped = wrap_anthropic(provider, kaiten=client, instance="i", entitlement="p")
+            with pytest.raises(BoomError):
+                leave(wrapped)
+    assert raw.closed
+    # The failing commit did not replace the caller's own error.
+    assert {commit["requestStatus"] for commit in fake.commits} == {"PROVIDER_ERROR"}
+    assert fake.commits[0]["usage"] == {"inputTokens": 5, "outputTokens": 0}

@@ -152,6 +152,9 @@ core:
     archiveConversionRule: licenses.archive_conversion_rule
     listAiInferences: instances.list_ai_inferences
     listAiReservations: instances.list_ai_reservations
+    listOrganizationAiInferences: instances.list_organization_ai_inferences
+    refundAiInference: instances.refund_ai_inference
+    getAiUsageCapabilities: instances.get_ai_capabilities
 
     # components
     list-components: components.list
@@ -297,15 +300,6 @@ core:
     delete-service-account-token: service_accounts.delete_token
 
   excluded:
-    getAiUsageCapabilities: >-
-      Whether AI credits are switched on for the organization. Excluded only on this branch:
-      the AI charge work stacked on it wraps the operation, and maps it there. The SDK does
-      not pre-check the gate -- a refused reserve says so -- so nothing here depends on it.
-    listOrganizationAiInferences: >-
-      Excluded only on this branch: the AI charge work stacked on it wraps the operation.
-    refundAiInference: >-
-      Excluded only on this branch: the AI charge work stacked on it wraps the operation.
-
     listNotifications: >-
       A person's own notification feed. It addresses the signed-in user's rows -- an unread
       count and a set of choices about what to be told -- and a machine client holding an API
