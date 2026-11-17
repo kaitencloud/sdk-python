@@ -5,37 +5,83 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
 public API, a minor version adds to it, and a patch version fixes it.
 
-## [Unreleased]
+## [1.2.0] - 2026-11-16
+
+Generated and tested against the contract of Kaiten
+[`kaitencloud/kaiten@d3ce8b40`](https://github.com/kaitencloud/kaiten/commit/d3ce8b406e46b049d247ffd24a5a143af2e27c81):
+use it with Kaiten 26.11.3 or later. Nothing 1.1.0 published was removed or renamed; the one
+thing that behaves differently is the header a publishable key is sent in, and Kaiten reads both
+names. AI credits are a **preview**: they are documented and usable, and their shapes are not
+yet frozen.
 
 ### Added
 
-- Explainable AI charges (preview; requires Kaiten 26.11.3 or later):
-  `commit_ai_usage(..., vendor_cost=...)`, sent exactly as spelled; `ai.rule` on report
-  answers; inference rows with their pricing snapshot, license, warnings, report sequence,
-  vendor cost and refunds; the history filters `authorized`, `model_slug`, `model` and
-  `request_type`; `instances.list_organization_ai_inferences()`;
-  `instances.refund_ai_inference()` under a generated, retried `Idempotency-Key`, with one
-  error class per refusal; `instances.get_ai_capabilities()`; `ai.release()`; and the known
-  warnings in `ai.AI_WARNINGS`, `NO_RESERVATION` and `COUNTER_PRECISION_DEGRADED` included.
-- `vendor_cost=` and `on_commit_failure=` on `ai.run`, the meters, the OpenAI and Anthropic
-  drop-ins, and `wrap_openai` / `wrap_anthropic`.
-- `AiUsageDisabledError` for 403 `AIUsage.Disabled`, and `AiCommitFailedError`.
+- AI credit metering. `instances.reserve_ai_usage()` and `instances.commit_ai_usage()` spend an
+  AI credit pool around a model call, and `instances.list_ai_reservations()` and
+  `instances.list_ai_inferences()` read what is open and what was charged. The two phases of one
+  call share a `transaction_id`, which Kaiten applies at most once per phase; sending the same
+  id with another body raises `TransactionIdReusedError`.
+- `kaitencloud.ai`, which wraps that protocol around your own call: `estimate`, `reserve`,
+  `commit`, `release`, `run` and `settle_failure`, with a meter for each client flavour. It
+  fails closed -- an entitlement that is not an AI credit pool, or a deployment without AI
+  credits, raises `AiUsageUnsupportedError` on every call rather than quietly stopping to meter,
+  and a deployment without AI credits is read from `GET /ai/capabilities` rather than guessed
+  from a 422. A commit that fails after its retries raises `AiCommitFailedError`, unless
+  `on_commit_failure=` says what to do with it.
+- The model catalogue and the rules that price it: `client.models.list()`, `get()`, `create()`,
+  `update()` and `delete()`, and on a license `list_conversion_rules()`, `get_conversion_rule()`,
+  `create_conversion_rule()`, `update_conversion_rule()` and `archive_conversion_rule()`.
+- Optional OpenAI and Anthropic drop-in clients, and `wrap_openai()` / `wrap_anthropic()` for a
+  client you already hold: an allow-listed reserve, call and commit around each request,
+  settlement of both sync and async streaming, pluggable estimates, and reservation lifetimes
+  taken from the provider's own timeout.
+- Explainable charges, so an invoice line can be traced back to the call that made it:
+  `commit_ai_usage(..., vendor_cost=...)`, sent exactly as spelled; `ai.rule` on a report answer;
+  inference rows carrying their pricing snapshot, license, warnings, report sequence, vendor cost
+  and refunds; the history filters `authorized`, `model_slug`, `model` and `request_type`;
+  `instances.list_organization_ai_inferences()` across the organization;
+  `instances.refund_ai_inference()` under a generated, retried `Idempotency-Key`;
+  `instances.get_ai_capabilities()`; and the known warnings in `ai.AI_WARNINGS`, `NO_RESERVATION`
+  and `COUNTER_PRECISION_DEGRADED` included.
+- `vendor_cost=` and `on_commit_failure=` on `ai.run`, the meters, the drop-ins and the wrappers.
+- One error class per AI refusal, all exported from the package root:
+  `AiUsageUnsupportedError`, `AiUsageDisabledError`, `AiCommitFailedError`, `AiPoolNotFoundError`,
+  `AiPoolNotGrantedError`, `InsufficientCreditsError`, `UnknownModelError`,
+  `ModelNotAuthorizedError`, `AiInferenceNotFoundError`, `AiInferenceNotCommittedError`,
+  `InvalidRefundError`, `NothingToRefundError`, `RefundExceedsRefundableError`,
+  `IdempotencyKeyReusedError` and `InvalidIdempotencyKeyError`.
+- `client.dashboard.summary()`: the console's home in one read, over every customer, instance
+  and license of the organization -- what needs attention, the figures of the period, the meters
+  closest to their limits and the usage mix. Optional `range`: `"7d"`, `"30d"` or `"90d"`. It
+  requires a Kaiten that reads each record of activity only as far back as the organization keeps
+  it: `DashboardSummary.range` carries `usageHistoryFrom`, `usageHistoryDays`, `auditTrailFrom`
+  and `auditTrailDays`, and a deployment that does not send them raises
+  `APIResponseValidationError`.
+- Models for the AI credits contract: the write-only `ReportUsageValue`, the typed usage outcomes
+  and gauges, and the model and conversion-rule webhook events.
+- A per-call retry policy on the HTTP layer, used by the AI usage phases: they retry a fixed
+  number of times, on a fixed set of statuses, rather than under the client's general policy.
+  Calls that do not ask for one are unaffected.
 
 ### Changed
 
-- AI metering fails closed. An entitlement that is not an AI credit pool, or a deployment
-  without AI credits, raises `AiUsageUnsupportedError` on every call instead of disabling
-  metering for the rest of the process; a deployment without AI credits is detected through
-  `GET /ai/capabilities`, not guessed from a 422.
-- A commit that fails after its retries raises `AiCommitFailedError` instead of being logged
-  and dropped, unless `on_commit_failure=` is given.
-- The webhook payloads `ModelUpdated`, `ConversionRuleUpdated` and
-  `InstanceAIModelUsageUnauthorized` take those names, without the `Delivered` suffix the
-  generator gave them. Nothing published carried the old names.
 - A publishable key is sent in `Kaiten-Publishable-Key`, without the `X-` prefix that RFC 6648
   deprecates; it was `X-Kaiten-Publishable-Key`. Kaiten reads both names, so code on 1.1.0 keeps
   working, but a Kaiten server that predates the rename reads only the old one: upgrade it before
   this package.
+- The webhook payloads `ModelUpdated`, `ConversionRuleUpdated` and
+  `InstanceAIModelUsageUnauthorized` take those names, without the `Delivered` suffix the
+  generator gave them. Nothing published carried the old names.
+- The AI helpers, meters and provider wrappers select the AI credit entitlement with
+  `entitlement=` rather than `pool=`. Both names are new in this release, so nothing published
+  used `pool=`; the low-level instance methods still take `entitlement_slug`, and the HTTP
+  routes are unchanged.
+
+### Fixed
+
+- The 1.1.0 notes credited that release with AI credit reporting, the provider wrappers and the
+  dashboard summary. None of it shipped in 1.1.0 -- those modules landed after the tag was cut.
+  They are listed under this release instead, where they belong.
 
 ## [1.1.0] - 2026-11-01
 
@@ -78,18 +124,6 @@ only gained optional arguments.
   are typed. An event carries the delivery's trace `headers`, and its `data` who wrote the change
   (`via`, `checkout_session_id`, `customer_session_id`); that `data` is still an instance of the
   class 1.0.0 typed it with.
-- Regenerated the AI credits contract, including write-only `ReportUsageValue`,
-  typed usage outcomes/gauges and model/conversion-rule events. Original AI
-  response bridge names now alias generated models.
-- Model catalogue CRUD, license conversion-rule management, paged inference
-  history and open reservation reads on both clients.
-
-- Optional OpenAI and Anthropic drop-in clients and existing-client wrappers, with
-  allow-listed reserve/call/commit accounting, sync/async streaming settlement,
-  pluggable estimates and provider timeout-based reservation lifetimes.
-- Documented current agent SDK accounting interfaces and the missing supported
-  per-model-inference gating boundary; no misleading run-budget wrappers.
-
 - `feature_flags.targeting_context()`, `feature_flags.lint_rule()` and `feature_flags.test_rule()`:
   the facts a targeting rule can read, the check the API runs before accepting one, and a dry run
   of a rule against a customer or an instance.
@@ -101,16 +135,9 @@ only gained optional arguments.
   `EntitlementUsage.source`, `AuditTrail.actor`, `ConnectorSettings.configured`, the trial and
   catalog settings of `LicenseFamilyView`, and the period rollover event's `reason`. From an older
   Kaiten, those reads raise `APIResponseValidationError`, and that event `WebhookPayloadError`.
-- `dashboard.summary()` requires a Kaiten that reads each record of activity only as far back as
-  the organization keeps it: `DashboardSummary.range` carries `usageHistoryFrom`,
-  `usageHistoryDays`, `auditTrailFrom` and `auditTrailDays`, and a deployment that does not send
-  them raises `APIResponseValidationError`.
 - `ResetAnchor` gains `BILLING_PERIOD`, and `Scope` the `read:` and `write:` scopes of `addons`,
   `billing`, `customer_sessions`, `profile`, `publishable_keys`, `users`, `voucher_redemptions` and
   `vouchers`.
-- Unreleased AI helpers, meters and provider wrappers select the AI credit entitlement
-  with `entitlement=` rather than `pool=`; the old keyword is not accepted.
-  Low-level instance methods still use `entitlement_slug`, and HTTP routes are unchanged.
 
 ### Fixed
 
@@ -164,5 +191,6 @@ The first release of the Kaiten Python SDK, generated and tested against the con
 - Flag evaluation. Kaiten implements OFREP, so flags are evaluated with an OpenFeature SDK and
   its generic OFREP provider (`openfeature-provider-ofrep`); the README shows how.
 
+[1.2.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.2.0
 [1.1.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.0.0

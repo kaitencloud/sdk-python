@@ -1100,10 +1100,10 @@ The vendored contract's exact revision is recorded in `openapi/source.yaml`.
 
 #### Explainable charges (preview)
 
-Requires a Kaiten release with explainable AI charges (version to be set); AI credits are
-behind a deployment flag, off by default, and `instances.get_ai_capabilities()` says whether
-they are on. Each answer names the rule that priced it (`ai.rule`), and each inference row
-carries its pricing snapshot, license, warnings, report sequence, vendor cost and refunds:
+Requires Kaiten 26.11.3 or later; AI credits are behind a deployment flag, off by default, and
+`instances.get_ai_capabilities()` says whether they are on. Each answer names the rule that
+priced it (`ai.rule`), and each inference row carries its pricing snapshot, license, warnings,
+report sequence, vendor cost and refunds:
 
 ```python
 from decimal import Decimal
