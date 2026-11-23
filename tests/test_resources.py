@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -13,6 +14,7 @@ import pytest
 from contract import sample
 from helpers import ORG_ID, body, respond
 
+from kaitencloud import UnprocessableEntityError
 from kaitencloud.types import ManifestFlag, NumberEntitlementValue
 
 CUSTOMER = {
@@ -142,6 +144,70 @@ def test_an_instance_update_with_a_slug_renames_it(make_client: Callable[..., An
     client, recorder = make_client(respond(204))
     client.instances.update("acme-production", **INSTANCE_WRITE, slug="acme-prod")
     assert body(recorder.only)["slug"] == "acme-prod"
+
+
+@pytest.mark.parametrize(
+    ("metadata", "expected"),
+    [
+        ({"region": "eu"}, {"metadata": {"region": "eu"}}),
+        ({"tags": ["a", "b"]}, {"metadata": {"tags": ["a", "b"]}}),
+        ({"region": None}, {"metadata": {"region": None}}),
+        ({"region": "eu", "legacy": None}, {"metadata": {"region": "eu", "legacy": None}}),
+        ({}, {}),
+    ],
+    ids=["a key set", "a list replaced whole", "a key removed", "set and removed", "empty"],
+)
+def test_a_metadata_patch_sends_only_the_keys_it_names(
+    make_client: Callable[..., Any], metadata: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    # The endpoint merges at the first level, so the body is the whole contract: a key sent is
+    # set, a key sent as null is removed, a key not sent is kept. A None dropped on the way
+    # would turn a removal into nothing, and a status or lifecycleStage sent alongside would
+    # overwrite what the instance has.
+    client, recorder = make_client(respond(204))
+    client.instances.patch_metadata("acme-production", metadata)
+    request = recorder.only
+    assert (request.method, request.url.path) == ("PATCH", "/api/instances/acme-production")
+    assert body(request) == expected
+
+
+def test_a_metadata_patch_leaves_the_callers_mapping_alone(
+    make_client: Callable[..., Any],
+) -> None:
+    client, _ = make_client(respond(204))
+    metadata = {"region": "eu", "legacy": None}
+    client.instances.patch_metadata("acme-production", metadata)
+    assert metadata == {"region": "eu", "legacy": None}
+
+
+def test_a_metadata_patch_refused_by_a_declared_field_carries_its_code(
+    make_client: Callable[..., Any],
+) -> None:
+    problem = {
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "code": "MetadataValidation.Failed",
+        "detail": "metadata.regions: items must be unique",
+    }
+    client, _ = make_client(respond(422, problem))
+    with pytest.raises(UnprocessableEntityError) as caught:
+        client.instances.patch_metadata("acme-production", {"regions": ["eu", "eu"]})
+    assert caught.value.code == "MetadataValidation.Failed"
+    assert caught.value.detail == "metadata.regions: items must be unique"
+
+
+def test_an_async_metadata_patch_sends_the_same_body(
+    make_async_client: Callable[..., Any],
+) -> None:
+    async def scenario() -> Any:
+        client, recorder = make_async_client(respond(204))
+        async with client:
+            await client.instances.patch_metadata(
+                "acme-production", {"region": "eu", "legacy": None}
+            )
+        return body(recorder.only)
+
+    assert asyncio.run(scenario()) == {"metadata": {"region": "eu", "legacy": None}}
 
 
 def test_a_required_nullable_description_is_sent_as_null(make_client: Callable[..., Any]) -> None:

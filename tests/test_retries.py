@@ -144,6 +144,15 @@ def test_setting_a_status_is_retried_because_it_converges(
     assert len(recorder) == 2
 
 
+def test_a_metadata_patch_is_retried_because_it_converges(
+    make_client: Callable[..., Any], delays: list[float]
+) -> None:
+    client, recorder = make_client(script(status(503), status(204)))
+    client.instances.patch_metadata("acme-production", {"region": "eu", "legacy": None})
+    assert len(recorder) == 2
+    assert recorder[0].content == recorder[1].content
+
+
 def test_a_reorder_is_retried_although_it_is_a_post(
     make_client: Callable[..., Any], delays: list[float]
 ) -> None:

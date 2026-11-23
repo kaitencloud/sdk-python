@@ -226,7 +226,10 @@ core:
     getInstance: instances.get
     createInstance: instances.create
     updateInstance: instances.update
-    patchInstance: [instances.update_status, instances.update_lifecycle_stage]
+    patchInstance:
+      - instances.update_status
+      - instances.update_lifecycle_stage
+      - instances.patch_metadata
     deleteInstance: instances.delete
     getAuditTrails: instances.list_audit_trails
     getEntitlementsUsageMetrics: instances.list_usage
