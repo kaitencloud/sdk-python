@@ -200,6 +200,30 @@ class Instances(Resource):
             idempotent=True,
         )
 
+    def patch_metadata(self, instance_slug: str, metadata: Mapping[str, Any]) -> None:
+        """Change individual metadata keys of an instance, without reading it first.
+
+        Each key in ``metadata`` is set, its value replacing the stored one whole (lists and
+        objects included); a key whose value is ``None`` is removed; keys ``metadata`` does not
+        name are kept. ``update()``, by contrast, replaces the whole metadata object, so
+        changing one key through it means a ``get()`` first, and a concurrent change to another
+        key is lost. An empty ``metadata`` sends no metadata and changes nothing.
+
+        The merged result is validated as ``update()`` validates it: a declared metadata field
+        that refuses it raises ``UnprocessableEntityError`` with the code
+        ``MetadataValidation.Failed``, and nothing of the patch is written. It needs a Kaiten
+        release that accepts ``metadata`` on ``PATCH /instances/{instanceSlug}``; an older one
+        refuses the key with a 422 of its own.
+
+        Args:
+            instance_slug: The instance whose metadata to change.
+            metadata: The keys to set, and the keys to remove as ``None``.
+        """
+        body = {"metadata": dict(metadata)} if metadata else {}
+        self._api.send_empty(
+            "PATCH", api_path("instances", instance_slug), body=body, idempotent=True
+        )
+
     def delete(self, instance_slug: str) -> None:
         """Delete the instance identified by ``instance_slug``. The deletion is permanent."""
         self._api.send_empty("DELETE", api_path("instances", instance_slug))

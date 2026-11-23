@@ -429,6 +429,11 @@ CASES = [
         lambda c: c.instances.update_lifecycle_stage("acme-production", "AT_RISK"),
         name="patchInstance-lifecycle_stage",
     ),
+    Case(
+        "patchInstance",
+        lambda c: c.instances.patch_metadata("acme-production", {"tier": "gold", "legacy": None}),
+        name="patchInstance-metadata",
+    ),
     Case("deleteInstance", lambda c: c.instances.delete("acme-production")),
     Case(
         "getAuditTrails",

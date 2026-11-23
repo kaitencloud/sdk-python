@@ -251,7 +251,18 @@ client.instances.create(
 
 client.instances.update_status("acme-production", "DEGRADED")
 client.instances.update_lifecycle_stage("acme-production", "AT_RISK")
+
+# Set "region", remove "legacy-plan", keep every other metadata key as it is.
+client.instances.patch_metadata("acme-production", {"region": "eu-west-3", "legacy-plan": None})
 ```
+
+`patch_metadata()` changes some metadata keys without reading the instance first, and without
+overwriting a key someone else changed in the meantime. Each key sent replaces the stored value
+whole, lists and objects included; a `None` value removes the key; an empty mapping changes
+nothing. The merged metadata is validated as on `update()`, so a declared metadata field can
+refuse it with an `UnprocessableEntityError` whose code is `MetadataValidation.Failed`. It needs
+a Kaiten release that accepts `metadata` on `PATCH /instances/{instanceSlug}`; an older one
+answers 422.
 
 > **Note** — `update()` methods are full replacements, as the API's `PUT` is: send every field
 > you want to keep. Datetimes must be timezone-aware: the SDK refuses to guess the zone of a
@@ -633,7 +644,7 @@ backoff and jitter, honouring `Retry-After` — but only when repeating it is sa
 | Request | Retried |
 | --- | --- |
 | `GET`, `PUT`, `DELETE` | ✓ |
-| Instance status and lifecycle updates, add-on quantities, metadata dry runs and reorders, invoice previews, voucher lookups and checks, invoice voids and write-offs, handoff acknowledgements, payment-method confirmations, revocations, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
+| Instance status, lifecycle and metadata patches, add-on quantities, metadata dry runs and reorders, invoice previews, voucher lookups and checks, invoice voids and write-offs, handoff acknowledgements, payment-method confirmations, revocations, `organizations.ensure()`, `connectors.register()` | ✓ — they converge |
 | Any other `POST` or `PATCH`: creations, usage reports — keyed or not — handoff claims, upserts | only if the connection never opened |
 | A `401` or `403` | never |
 
@@ -915,6 +926,7 @@ session (`kst_...`). Build the client with that token.
 | `client.instances.update()` | `PUT /instances/{instanceSlug}` |
 | `client.instances.update_status()` | `PATCH /instances/{instanceSlug}` |
 | `client.instances.update_lifecycle_stage()` | `PATCH /instances/{instanceSlug}` |
+| `client.instances.patch_metadata()` | `PATCH /instances/{instanceSlug}` |
 | `client.instances.delete()` | `DELETE /instances/{instanceSlug}` |
 | `client.instances.list_audit_trails()` | `GET /instances/{instanceSlug}/audit-trails` |
 | `client.instances.list_usage()` | `GET /instances/{instanceSlug}/entitlements/usage` |

@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): only a major version changes the
 public API, a minor version adds to it, and a patch version fixes it.
 
+## [Unreleased]
+
+### Added
+
+- `instances.patch_metadata()`, on `PATCH /instances/{instanceSlug}`: changes individual
+  metadata keys of an instance without reading it first. Each key sent is set, a key sent as
+  `None` is removed, and keys not sent are kept; `update()` still replaces the whole metadata
+  object. It needs a Kaiten release that accepts `metadata` on that operation; an older one
+  answers 422.
+
 ## [1.2.0] - 2026-11-16
 
 Generated and tested against the contract of Kaiten
@@ -191,6 +201,7 @@ The first release of the Kaiten Python SDK, generated and tested against the con
 - Flag evaluation. Kaiten implements OFREP, so flags are evaluated with an OpenFeature SDK and
   its generic OFREP provider (`openfeature-provider-ofrep`); the README shows how.
 
+[Unreleased]: https://github.com/kaitencloud/sdk-python/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.2.0
 [1.1.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kaitencloud/sdk-python/releases/tag/v1.0.0
