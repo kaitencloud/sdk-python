@@ -994,6 +994,7 @@ session (`kst_...`). Build the client with that token.
 | `client.service_accounts.get()` | `GET /service-accounts/{serviceAccountSlug}` |
 | `client.service_accounts.create()` | `POST /service-accounts` |
 | `client.service_accounts.update()` | `PUT /service-accounts/{serviceAccountSlug}` |
+| `client.service_accounts.delete()` | `DELETE /service-accounts/{serviceAccountSlug}` |
 | `client.service_accounts.list_tokens()` | `GET /service-accounts/{serviceAccountSlug}/tokens` |
 | `client.service_accounts.create_token()` | `POST /service-accounts/{serviceAccountSlug}/tokens` |
 | `client.service_accounts.delete_token()` | `DELETE /service-accounts/{serviceAccountSlug}/tokens/{tokenSlug}` |

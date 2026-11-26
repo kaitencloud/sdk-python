@@ -14,7 +14,7 @@ import pytest
 from contract import sample
 from helpers import ORG_ID, body, respond
 
-from kaitencloud import UnprocessableEntityError
+from kaitencloud import NotFoundError, UnprocessableEntityError
 from kaitencloud.types import ManifestFlag, NumberEntitlementValue
 
 CUSTOMER = {
@@ -222,6 +222,25 @@ def test_a_token_without_scopes_inherits_them_by_sending_null(
     client, recorder = make_client(respond(201, TOKEN))
     client.service_accounts.create_token("billing-sync", name="ci")
     assert body(recorder.only) == {"name": "ci", "scopes": None}
+
+
+def test_a_service_account_already_deleted_is_not_found(make_client: Callable[..., Any]) -> None:
+    # The delete is soft, and a deleted account is out of every read: deleting it a second
+    # time, by a retry whose first answer was lost or by another caller, finds nothing.
+    problem = {
+        "title": "Not Found",
+        "status": 404,
+        "code": "ServiceAccount.NotFound",
+        "detail": f"ServiceAccount with slug billing-sync not found in organization {ORG_ID}",
+    }
+    client, recorder = make_client(respond(404, problem))
+    with pytest.raises(NotFoundError) as caught:
+        client.service_accounts.delete("billing-sync")
+    assert caught.value.code == "ServiceAccount.NotFound"
+    assert (recorder.only.method, recorder.only.url.path) == (
+        "DELETE",
+        "/api/service-accounts/billing-sync",
+    )
 
 
 def test_a_feature_flag_needs_only_the_essentials(make_client: Callable[..., Any]) -> None:

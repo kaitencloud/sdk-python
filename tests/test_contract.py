@@ -660,6 +660,7 @@ CASES = [
         lambda c: c.service_accounts.update("billing-sync", name="Billing sync"),
         forbidden=frozenset({"slug"}),
     ),
+    Case("delete-service-account", lambda c: c.service_accounts.delete("billing-sync")),
     Case("get-service-account-tokens", lambda c: c.service_accounts.list_tokens("billing-sync")),
     Case(
         "create-service-account-token",

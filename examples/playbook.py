@@ -948,6 +948,8 @@ def cleanup(book: Playbook) -> None:
         ("deployment_zones", "deployment zone", client.deployment_zones.delete),
         ("releases", "release", client.releases.delete),
         ("components", "component", client.components.delete),
+        # Deleting the account revokes the tokens it still holds.
+        ("service_accounts", "service account", client.service_accounts.delete),
     ]
     for kind, label, delete in deletions:
         for identifier in book.created(kind):
@@ -956,12 +958,6 @@ def cleanup(book: Playbook) -> None:
     for field_id in book.created("metadata_fields"):
         note("metadata fields are archived, never deleted: archiving frees the key")
         forget(f"metadata field {field_id}", partial(client.metadata_fields.archive, field_id))
-
-    if book.created("service_accounts"):
-        warn(
-            "service accounts have no delete endpoint: "
-            f"{', '.join(book.created('service_accounts'))} stays, with no live token"
-        )
 
     book.state.clear()
     done("the state file is gone; the next run starts fresh")

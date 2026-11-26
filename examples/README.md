@@ -95,9 +95,10 @@ one of them is recorded in `.kaiten-playbook.json` as it is created. That file i
 records**, never a resource it did not create. It is also never included by accident — neither a
 bare run nor `--from` runs it — so you have to ask for it.
 
-Two things cannot be deleted, and the playbook says so rather than pretend otherwise: a metadata
-field is archived (which frees its key), and a service account has no delete endpoint, so it
-stays behind with no live token.
+One thing cannot be deleted, and the playbook says so rather than pretend otherwise: a metadata
+field is archived, which frees its key. A service account is deleted with the tokens it still
+holds; a Kaiten release without that operation refuses the delete, and the account stays
+behind with no live token.
 
 Running the playbook twice gives two runs with two prefixes, which do not collide. Delete the
 state file to start fresh.
