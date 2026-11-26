@@ -14,6 +14,14 @@ public API, a minor version adds to it, and a patch version fixes it.
   `None` is removed, and keys not sent are kept; `update()` still replaces the whole metadata
   object. It needs a Kaiten release that accepts `metadata` on that operation; an older one
   answers 422.
+- `service_accounts.delete()`, on `DELETE /service-accounts/{serviceAccountSlug}`: deletes a
+  service account and revokes every token it still holds, at once. The rows it wrote keep it as
+  their author, and its slug can be given to a new account; an account already deleted raises
+  `NotFoundError` with the code `ServiceAccount.NotFound`. It needs a Kaiten release that has
+  the operation; an older one refuses the call.
+- From the synced contract: the scopes `read:beta_features` and `write:beta_features` in
+  `Scope`, and `Release.release_note`, the release's notes in markdown, returned when a single
+  release is read.
 
 ## [1.2.0] - 2026-11-16
 

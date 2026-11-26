@@ -298,6 +298,7 @@ core:
     get-service-account: service_accounts.get
     create-service-account: service_accounts.create
     update-service-account: service_accounts.update
+    delete-service-account: service_accounts.delete
     get-service-account-tokens: service_accounts.list_tokens
     create-service-account-token: service_accounts.create_token
     delete-service-account-token: service_accounts.delete_token

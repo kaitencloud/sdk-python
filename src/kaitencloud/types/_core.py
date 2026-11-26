@@ -620,6 +620,7 @@ RetentionSource = Literal["KBK", "ENV", "UNKNOWN"]
 
 Scope = Literal[
     "read:addons",
+    "read:beta_features",
     "read:billing",
     "read:components",
     "read:customer_sessions",
@@ -642,6 +643,7 @@ Scope = Literal[
     "read:vouchers",
     "read:webhooks",
     "write:addons",
+    "write:beta_features",
     "write:billing",
     "write:components",
     "write:customer_sessions",
@@ -5730,6 +5732,11 @@ class Release(KaitenModel):
 
     id: str
     """Unique identifier for the release"""
+
+    release_note: str | None = Field(default=None, alias="releaseNote")
+    """Release notes for the release, in markdown. Set on create only. Returned when a single
+    release is read; omitted from list responses.
+    """
 
     slug: str | None = None
     """Optional URL-friendly identifier, unique per organization. Auto-generated if not provided."""

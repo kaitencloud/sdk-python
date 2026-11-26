@@ -43,6 +43,17 @@ class ServiceAccounts(Resource):
             "PUT", api_path("service-accounts", service_account_slug), body={"name": name}
         )
 
+    def delete(self, service_account_slug: str) -> None:
+        """Delete the service account identified by ``service_account_slug``, revoking its tokens.
+
+        Every token the account still holds is revoked with it; the revocation is immediate.
+        The rows the account wrote keep it as their author, and its slug can be given to a new
+        account. An account already deleted is not found: ``NotFoundError``, with the code
+        ``ServiceAccount.NotFound``. It needs a Kaiten release that has
+        ``DELETE /service-accounts/{serviceAccountSlug}``; an older one refuses the call.
+        """
+        self._api.send_empty("DELETE", api_path("service-accounts", service_account_slug))
+
     def list_tokens(self, service_account_slug: str) -> builtins.list[Token]:
         """Return the service account's tokens, walking all pages. Never their secrets."""
         return self._api.list_all(
